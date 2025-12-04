@@ -34,21 +34,23 @@ type CommentRequest struct {
 	ArticleID uint   `json:"article_id" binding:"required"`
 	Content   string `json:"content" binding:"required,max=500"`
 	ParentID  *uint  `json:"parent_id"`
-	Nickname  string `json:"nickname" binding:"max=50"`
-	Email     string `json:"email" binding:"email,max=100"`
-	Website   string `json:"website" binding:"max=200"`
+	Nickname  string `json:"nickname" binding:"omitempty,max=50"`
+	Email     string `json:"email" binding:"omitempty,email,max=100"`
+	Website   string `json:"website" binding:"omitempty,max=200"`
 }
 
 type CommentListQuery struct {
 	Page      int  `form:"page,default=1"`
 	PageSize  int  `form:"page_size,default=10"`
 	ArticleID uint `form:"article_id"`
+	UserID    uint `form:"user_id"`
 	Status    *int `form:"status"`
 }
 
 type CommentResponse struct {
 	ID         uint              `json:"id"`
 	ArticleID  uint              `json:"article_id"`
+	Article    *ArticleResponse  `json:"article,omitempty"`
 	UserID     uint              `json:"user_id"`
 	User       *UserResponse     `json:"user,omitempty"`
 	Content    string            `json:"content"`
@@ -83,6 +85,13 @@ func (c *Comment) ToResponse() *CommentResponse {
 
 	if c.User != nil {
 		resp.User = c.User.ToResponse()
+	}
+
+	if c.Article != nil {
+		// 只返回文章的基本信息（标题等），不返回完整内容
+		articleResp := c.Article.ToResponse()
+		articleResp.Content = "" // 不返回文章内容
+		resp.Article = articleResp
 	}
 
 	return resp

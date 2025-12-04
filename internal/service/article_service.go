@@ -276,7 +276,11 @@ func (s *ArticleService) GetList(query *models.ArticleListQuery) ([]*models.Arti
 		db = db.Where("status = ?", *query.Status)
 	} else {
 		// Default: only show published
-		db = db.Where("status = ?", 1)
+		// But if author_id is specified (viewing own articles), show all statuses
+		if query.AuthorID == 0 {
+			db = db.Where("status = ?", 1)
+		}
+		// If author_id > 0, don't filter by status (show all: draft and published)
 	}
 
 	// Filter by category
@@ -288,6 +292,11 @@ func (s *ArticleService) GetList(query *models.ArticleListQuery) ([]*models.Arti
 	if query.TagID > 0 {
 		db = db.Joins("JOIN article_tags ON article_tags.article_id = articles.id").
 			Where("article_tags.tag_id = ?", query.TagID)
+	}
+
+	// Filter by author
+	if query.AuthorID > 0 {
+		db = db.Where("author_id = ?", query.AuthorID)
 	}
 
 	// Search by keyword

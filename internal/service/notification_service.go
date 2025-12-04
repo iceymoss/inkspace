@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strconv"
+
 	"mysite/internal/database"
 	"mysite/internal/models"
 
@@ -102,10 +104,16 @@ func (s *NotificationService) Delete(id, userID uint) error {
 
 // Helper functions to create specific notification types
 
-// CreateCommentNotification 创建评论通知
+// CreateCommentNotification 创建评论通知（评论文章时通知文章作者）
 func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID, articleID uint, commentContent string) error {
-	if fromUserID == toUserID {
-		return nil // 不给自己发通知
+	if fromUserID == toUserID || toUserID == 0 {
+		return nil // 不给自己发通知，游客评论不通知
+	}
+
+	// 截取评论内容前50个字符作为预览
+	content := commentContent
+	if len([]rune(content)) > 50 {
+		content = string([]rune(content)[:50]) + "..."
 	}
 
 	notification := &models.NotificationRequest{
@@ -113,10 +121,10 @@ func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID, ar
 		FromUserID: fromUserID,
 		Type:       "comment",
 		Title:      "收到新评论",
-		Content:    commentContent,
+		Content:    content,
 		TargetType: "article",
 		TargetID:   articleID,
-		Link:       "/blog/" + string(rune(articleID)),
+		Link:       "/blog/" + strconv.Itoa(int(articleID)),
 	}
 
 	_, err := s.Create(notification)
@@ -125,6 +133,10 @@ func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID, ar
 
 // CreateFollowNotification 创建关注通知
 func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint) error {
+	if fromUserID == toUserID {
+		return nil
+	}
+
 	notification := &models.NotificationRequest{
 		UserID:     toUserID,
 		FromUserID: fromUserID,
@@ -133,17 +145,17 @@ func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint
 		Content:    "关注了你",
 		TargetType: "user",
 		TargetID:   fromUserID,
-		Link:       "/users/" + string(rune(fromUserID)),
+		Link:       "/users/" + strconv.Itoa(int(fromUserID)),
 	}
 
 	_, err := s.Create(notification)
 	return err
 }
 
-// CreateLikeNotification 创建点赞通知
+// CreateLikeNotification 创建点赞文章通知
 func (s *NotificationService) CreateLikeNotification(fromUserID, toUserID, articleID uint) error {
-	if fromUserID == toUserID {
-		return nil
+	if fromUserID == toUserID || toUserID == 0 {
+		return nil // 不给自己发通知，游客点赞不通知
 	}
 
 	notification := &models.NotificationRequest{
@@ -154,7 +166,55 @@ func (s *NotificationService) CreateLikeNotification(fromUserID, toUserID, artic
 		Content:    "赞了你的文章",
 		TargetType: "article",
 		TargetID:   articleID,
-		Link:       "/blog/" + string(rune(articleID)),
+		Link:       "/blog/" + strconv.Itoa(int(articleID)),
+	}
+
+	_, err := s.Create(notification)
+	return err
+}
+
+// CreateReplyNotification 创建回复评论通知（回复评论时通知被回复的评论作者）
+func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID, articleID, commentID uint, replyContent string) error {
+	if fromUserID == toUserID || toUserID == 0 {
+		return nil // 不给自己发通知，游客回复不通知
+	}
+
+	// 截取回复内容前50个字符作为预览
+	content := replyContent
+	if len([]rune(content)) > 50 {
+		content = string([]rune(content)[:50]) + "..."
+	}
+
+	notification := &models.NotificationRequest{
+		UserID:     toUserID,
+		FromUserID: fromUserID,
+		Type:       "reply",
+		Title:      "收到回复",
+		Content:    content,
+		TargetType: "comment",
+		TargetID:   commentID,
+		Link:       "/blog/" + strconv.Itoa(int(articleID)),
+	}
+
+	_, err := s.Create(notification)
+	return err
+}
+
+// CreateCommentLikeNotification 创建点赞评论通知（点赞评论时通知评论作者）
+func (s *NotificationService) CreateCommentLikeNotification(fromUserID, toUserID, articleID, commentID uint) error {
+	if fromUserID == toUserID || toUserID == 0 {
+		return nil // 不给自己发通知，游客点赞不通知
+	}
+
+	notification := &models.NotificationRequest{
+		UserID:     toUserID,
+		FromUserID: fromUserID,
+		Type:       "like",
+		Title:      "收到点赞",
+		Content:    "赞了你的评论",
+		TargetType: "comment",
+		TargetID:   commentID,
+		Link:       "/blog/" + strconv.Itoa(int(articleID)),
 	}
 
 	_, err := s.Create(notification)

@@ -26,6 +26,7 @@ api.interceptors.response.use(
   (response) => {
     const data = response.data
     if (data.code === 0 || response.status === 200) {
+      // 返回整个响应对象，包含code, message, data
       return data
     } else {
       ElMessage.error(data.message || '请求失败')

@@ -46,6 +46,11 @@ func SetupUserRouter() *gin.Engine {
 
 			// Comments (public read)
 			public.GET("/comments", commentHandler.GetList)
+			public.GET("/comments/:id/is-liked", likeHandler.CheckCommentLiked)
+			
+			// Comment likes (public, can be done by guests)
+			public.POST("/comments/:id/like", likeHandler.LikeComment)
+			public.DELETE("/comments/:id/like", likeHandler.UnlikeComment)
 
 			// Categories and Tags
 			public.GET("/categories", categoryHandler.GetList)
@@ -95,11 +100,9 @@ func SetupUserRouter() *gin.Engine {
 			protected.POST("/comments", commentHandler.Create)
 			protected.DELETE("/comments/:id", commentHandler.Delete)
 
-			// Likes
+			// Likes (articles require auth, comments are public)
 			protected.POST("/articles/:id/like", likeHandler.LikeArticle)
 			protected.DELETE("/articles/:id/like", likeHandler.UnlikeArticle)
-			protected.POST("/comments/:id/like", likeHandler.LikeComment)
-			protected.DELETE("/comments/:id/like", likeHandler.UnlikeComment)
 
 			// Follow
 			protected.POST("/users/:id/follow", followHandler.Follow)

@@ -135,3 +135,27 @@ func (h *LikeHandler) UnlikeComment(c *gin.Context) {
 	utils.SuccessWithMessage(c, "取消点赞成功", nil)
 }
 
+// CheckCommentLiked 检查是否已点赞评论
+func (h *LikeHandler) CheckCommentLiked(c *gin.Context) {
+	commentID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的评论ID")
+		return
+	}
+
+	userID := uint(0)
+	if uid, exists := c.Get("user_id"); exists {
+		userID = uid.(uint)
+	}
+
+	ip := c.ClientIP()
+
+	isLiked, err := h.service.IsCommentLiked(userID, uint(commentID), ip)
+	if err != nil {
+		utils.InternalServerError(c, err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{"is_liked": isLiked})
+}
+

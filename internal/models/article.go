@@ -54,6 +54,7 @@ type ArticleListQuery struct {
 	TagID      uint   `form:"tag_id"`
 	Keyword    string `form:"keyword"`
 	Status     *int   `form:"status"`
+	AuthorID   uint   `form:"author_id"`
 }
 
 type ArticleResponse struct {
@@ -65,6 +66,7 @@ type ArticleResponse struct {
 	CategoryID    uint              `json:"category_id"`
 	Category      *CategoryResponse `json:"category,omitempty"`
 	Tags          []TagResponse     `json:"tags,omitempty"`
+	AuthorID      uint              `json:"author_id"`
 	Author        *UserResponse     `json:"author,omitempty"`
 	ViewCount     int               `json:"view_count"`
 	LikeCount     int               `json:"like_count"`
@@ -89,6 +91,7 @@ func (a *Article) ToResponse() *ArticleResponse {
 		Summary:       a.Summary,
 		Cover:         a.Cover,
 		CategoryID:    a.CategoryID,
+		AuthorID:      a.AuthorID,
 		ViewCount:     a.ViewCount,
 		LikeCount:     a.LikeCount,
 		CommentCount:  a.CommentCount,

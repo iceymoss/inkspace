@@ -3,6 +3,7 @@ package handler
 import (
 	"strconv"
 
+	"mysite/internal/database"
 	"mysite/internal/models"
 	"mysite/internal/service"
 	"mysite/internal/utils"
@@ -81,7 +82,25 @@ func (h *CommentHandler) GetList(c *gin.Context) {
 
 	commentResponses := make([]*models.CommentResponse, len(comments))
 	for i, comment := range comments {
-		commentResponses[i] = comment.ToResponse()
+		resp := comment.ToResponse()
+		
+		// 加载该评论的所有回复（包括回复的回复）
+		// 查询条件：root_id = comment.ID 的所有评论（包括直接回复和回复的回复）
+		var replies []*models.Comment
+		if err := database.DB.Where("root_id = ?", comment.ID).
+			Preload("User").
+			Preload("Article").
+			Order("created_at ASC").
+			Find(&replies).Error; err == nil {
+			// 转换为响应格式
+			replyResponses := make([]models.CommentResponse, len(replies))
+			for j, reply := range replies {
+				replyResponses[j] = *reply.ToResponse()
+			}
+			resp.Replies = replyResponses
+		}
+		
+		commentResponses[i] = resp
 	}
 
 	utils.PageResponse(c, commentResponses, total, query.Page, query.PageSize)

@@ -32,7 +32,7 @@ func (s *LikeService) LikeArticle(userID, articleID uint, ip string) error {
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		query = query.Where("ip = ?", ip)
+		query = query.Where("user_id IS NULL AND ip = ?", ip)
 	}
 	if err := query.Count(&count).Error; err != nil {
 		return err
@@ -44,8 +44,11 @@ func (s *LikeService) LikeArticle(userID, articleID uint, ip string) error {
 	// 创建点赞记录
 	like := &models.ArticleLike{
 		ArticleID: articleID,
-		UserID:    userID,
 		IP:        ip,
+	}
+	// 如果 userID > 0，设置 UserID，否则为 nil（游客）
+	if userID > 0 {
+		like.UserID = &userID
 	}
 
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
@@ -64,6 +67,14 @@ func (s *LikeService) LikeArticle(userID, articleID uint, ip string) error {
 		return nil
 	})
 
+	// 发送通知（异步，不阻塞主流程）
+	if err == nil && userID > 0 {
+		go func() {
+			notificationService := NewNotificationService()
+			_ = notificationService.CreateLikeNotification(userID, article.AuthorID, articleID)
+		}()
+	}
+
 	return err
 }
 
@@ -75,7 +86,7 @@ func (s *LikeService) UnlikeArticle(userID, articleID uint, ip string) error {
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		query = query.Where("ip = ?", ip)
+		query = query.Where("user_id IS NULL AND ip = ?", ip)
 	}
 
 	if err := query.First(&like).Error; err != nil {
@@ -111,7 +122,7 @@ func (s *LikeService) IsArticleLiked(userID, articleID uint, ip string) (bool, e
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		query = query.Where("ip = ?", ip)
+		query = query.Where("user_id IS NULL AND ip = ?", ip)
 	}
 	err := query.Count(&count).Error
 	return count > 0, err
@@ -134,7 +145,7 @@ func (s *LikeService) LikeComment(userID, commentID uint, ip string) error {
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		query = query.Where("ip = ?", ip)
+		query = query.Where("user_id IS NULL AND ip = ?", ip)
 	}
 	if err := query.Count(&count).Error; err != nil {
 		return err
@@ -146,8 +157,11 @@ func (s *LikeService) LikeComment(userID, commentID uint, ip string) error {
 	// 创建点赞记录
 	like := &models.CommentLike{
 		CommentID: commentID,
-		UserID:    userID,
 		IP:        ip,
+	}
+	// 如果 userID > 0，设置 UserID，否则为 nil（游客）
+	if userID > 0 {
+		like.UserID = &userID
 	}
 
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
@@ -166,6 +180,15 @@ func (s *LikeService) LikeComment(userID, commentID uint, ip string) error {
 		return nil
 	})
 
+	// 发送通知（异步，不阻塞主流程）
+	// 注意：只有登录用户点赞时才发送通知，且评论作者必须存在且不是自己
+	if err == nil && userID > 0 && comment.UserID > 0 && userID != comment.UserID {
+		go func() {
+			notificationService := NewNotificationService()
+			_ = notificationService.CreateCommentLikeNotification(userID, comment.UserID, comment.ArticleID, commentID)
+		}()
+	}
+
 	return err
 }
 
@@ -177,7 +200,7 @@ func (s *LikeService) UnlikeComment(userID, commentID uint, ip string) error {
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		query = query.Where("ip = ?", ip)
+		query = query.Where("user_id IS NULL AND ip = ?", ip)
 	}
 
 	if err := query.First(&like).Error; err != nil {
@@ -213,7 +236,7 @@ func (s *LikeService) IsCommentLiked(userID, commentID uint, ip string) (bool, e
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
 	} else {
-		query = query.Where("ip = ?", ip)
+		query = query.Where("user_id IS NULL AND ip = ?", ip)
 	}
 	err := query.Count(&count).Error
 	return count > 0, err

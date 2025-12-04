@@ -61,7 +61,7 @@ const userStore = useUserStore()
 const stats = ref([
   { title: '我的文章', value: 0, icon: Document, color: '#409eff', clickable: true, action: 'articles' },
   { title: '我的收藏', value: 0, icon: Collection, color: '#67c23a', clickable: true, action: 'favorites' },
-  { title: '我的评论', value: 0, icon: ChatDotRound, color: '#e6a23c', clickable: false, action: null },
+  { title: '我的评论', value: 0, icon: ChatDotRound, color: '#e6a23c', clickable: true, action: 'comments' },
   { title: '粉丝数', value: 0, icon: User, color: '#f56c6c', clickable: true, action: 'followers' }
 ])
 
@@ -87,6 +87,9 @@ const handleStatClick = (action) => {
       break
     case 'favorites':
       router.push('/favorites')
+      break
+    case 'comments':
+      router.push('/dashboard/comments')
       break
     case 'followers':
       router.push(`/users/${userStore.user.id}/follows?tab=followers`)

@@ -13,7 +13,7 @@ type ArticleLike struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	ArticleID uint           `gorm:"index:idx_article_user,priority:1;not null" json:"article_id"` // 文章ID
 	Article   *Article       `gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE" json:"article,omitempty"`
-	UserID    uint           `gorm:"index:idx_article_user,priority:2;index:idx_user_id" json:"user_id"` // 用户ID（0表示游客）
+	UserID    *uint          `gorm:"index:idx_article_user,priority:2;index:idx_user_id" json:"user_id"` // 用户ID（NULL表示游客）
 	User      *User          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
 	IP        string         `gorm:"size:50;index" json:"ip"` // IP地址（游客点赞）
 }
@@ -25,7 +25,7 @@ type CommentLike struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	CommentID uint           `gorm:"index:idx_comment_user,priority:1;not null" json:"comment_id"` // 评论ID
 	Comment   *Comment       `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE" json:"comment,omitempty"`
-	UserID    uint           `gorm:"index:idx_comment_user,priority:2;index:idx_user_id" json:"user_id"` // 用户ID（0表示游客）
+	UserID    *uint          `gorm:"index:idx_comment_user,priority:2;index:idx_user_id" json:"user_id"` // 用户ID（NULL表示游客）
 	User      *User          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
 	IP        string         `gorm:"size:50;index" json:"ip"` // IP地址（游客点赞）
 }

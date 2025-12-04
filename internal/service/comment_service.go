@@ -93,6 +93,50 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		return nil, err
 	}
 
+	// 发送通知（异步，不阻塞主流程）
+	go func() {
+		notificationService := NewNotificationService()
+		
+		if req.ParentID != nil {
+			// 回复评论：需要通知两个对象
+			var parentComment models.Comment
+			if err := database.DB.First(&parentComment, *req.ParentID).Error; err == nil {
+				// 1. 通知被回复的评论作者
+				if parentComment.UserID > 0 && userID > 0 && parentComment.UserID != userID {
+					_ = notificationService.CreateReplyNotification(
+						userID,
+						parentComment.UserID,
+						req.ArticleID,
+						*req.ParentID,
+						req.Content,
+					)
+				}
+				
+				// 2. 通知文章作者（如果文章作者不是回复者本人，也不是被回复的评论作者）
+				if article.AuthorID > 0 && userID > 0 && 
+				   article.AuthorID != userID && 
+				   article.AuthorID != parentComment.UserID {
+					_ = notificationService.CreateCommentNotification(
+						userID,
+						article.AuthorID,
+						req.ArticleID,
+						req.Content,
+					)
+				}
+			}
+		} else {
+			// 评论文章：通知文章作者
+			if article.AuthorID > 0 && userID > 0 && article.AuthorID != userID {
+				_ = notificationService.CreateCommentNotification(
+					userID,
+					article.AuthorID,
+					req.ArticleID,
+					req.Content,
+				)
+			}
+		}
+	}()
+
 	return comment, nil
 }
 
@@ -155,16 +199,27 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 		db = db.Where("article_id = ?", query.ArticleID)
 	}
 
+	// Filter by user
+	if query.UserID > 0 {
+		db = db.Where("user_id = ?", query.UserID)
+	}
+
 	// Filter by status
 	if query.Status != nil {
 		db = db.Where("status = ?", *query.Status)
 	} else {
 		// Default: only show approved
-		db = db.Where("status = ?", 1)
+		// But if user_id is specified (viewing own comments), show all statuses
+		if query.UserID == 0 {
+			db = db.Where("status = ?", 1)
+		}
+		// If user_id > 0, don't filter by status (show all: pending, approved, rejected)
 	}
 
-	// Only get root comments
-	db = db.Where("parent_id IS NULL")
+	// Only get root comments (when filtering by article, not when filtering by user)
+	if query.ArticleID > 0 {
+		db = db.Where("parent_id IS NULL")
+	}
 
 	// Count total
 	if err := db.Count(&total).Error; err != nil {
@@ -173,17 +228,22 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 
 	// Get list
 	offset := (query.Page - 1) * query.PageSize
-	db = db.Preload("User").Order("created_at DESC").Offset(offset).Limit(query.PageSize)
+	db = db.Preload("User").Preload("Article").Order("created_at DESC").Offset(offset).Limit(query.PageSize)
 
 	if err := db.Find(&comments).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Load replies
+	// Load replies for each comment and attach to comment
 	for _, comment := range comments {
 		var replies []*models.Comment
-		if err := database.DB.Where("parent_id = ?", comment.ID).Preload("User").Order("created_at ASC").Find(&replies).Error; err == nil {
-			// Convert to response format with replies
+		if err := database.DB.Where("parent_id = ?", comment.ID).
+			Preload("User").
+			Preload("Article").
+			Order("created_at ASC").
+			Find(&replies).Error; err == nil {
+			// 将回复添加到评论（通过反射或手动设置）
+			// 由于 Comment 模型没有 Replies 字段，我们将在 handler 中处理
 		}
 	}
 

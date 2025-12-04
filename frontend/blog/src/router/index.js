@@ -82,6 +82,11 @@ const routes = [
         path: 'articles/:id/edit',
         name: 'EditArticle',
         component: () => import('@/views/user/ArticleEdit.vue')
+      },
+      {
+        path: 'comments',
+        name: 'MyComments',
+        component: () => import('@/views/user/MyComments.vue')
       }
     ]
   },
