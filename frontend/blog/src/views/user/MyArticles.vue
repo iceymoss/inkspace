@@ -17,8 +17,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="草稿" value="draft" />
-            <el-option label="已发布" value="published" />
+            <el-option label="草稿" :value="0" />
+            <el-option label="已发布" :value="1" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -38,8 +38,8 @@
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'published' ? 'success' : 'info'">
-              {{ row.status === 'published' ? '已发布' : '草稿' }}
+            <el-tag :type="row.status === 1 ? 'success' : 'info'">
+              {{ row.status === 1 ? '已发布' : '草稿' }}
             </el-tag>
           </template>
         </el-table-column>

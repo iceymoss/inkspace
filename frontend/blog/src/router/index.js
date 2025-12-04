@@ -87,24 +87,24 @@ const routes = [
   },
   {
     path: '/favorites',
-    name: 'Favorites',
     component: () => import('@/layouts/UserCenterLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
+        name: 'Favorites',
         component: () => import('@/views/Favorites.vue')
       }
     ]
   },
   {
     path: '/notifications',
-    name: 'Notifications',
     component: () => import('@/layouts/UserCenterLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
+        name: 'Notifications',
         component: () => import('@/views/Notifications.vue')
       }
     ]

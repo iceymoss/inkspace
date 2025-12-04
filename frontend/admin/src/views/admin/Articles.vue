@@ -29,9 +29,10 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/admin/articles/${row.id}/edit`)">编辑</el-button>
+            <el-button size="small" @click="$router.push(`/articles/${row.id}`)">查看</el-button>
+            <el-button size="small" type="primary" @click="$router.push(`/articles/${row.id}/edit`)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>

@@ -17,7 +17,8 @@
           </div>
         </div>
 
-        <div class="article-content" v-html="renderedContent"></div>
+        <div class="article-content" id="article-preview" v-if="article"></div>
+        <div v-else class="article-loading">正在加载内容...</div>
 
         <div class="article-actions">
           <el-button 
@@ -104,16 +105,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star, Collection } from '@element-plus/icons-vue'
+import { Star, Collection, User, View, Clock } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
-import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github.css'
+import Vditor from 'vditor'
+import 'vditor/dist/index.css'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -128,21 +128,46 @@ const isLiked = ref(false)
 const likeLoading = ref(false)
 const isFavorited = ref(false)
 const favoriteLoading = ref(false)
+const renderedContent = ref('')
 
-const md = new MarkdownIt({
-  highlight: (str, lang) => {
-    if (lang && hljs.getLanguage(lang)) {
-      try {
-        return hljs.highlight(str, { language: lang }).value
-      } catch (__) {}
-    }
-    return ''
+// 渲染 Markdown 内容（支持 Mermaid）
+const renderMarkdown = () => {
+  if (!article.value || !article.value.content) {
+    return
   }
-})
-
-const renderedContent = computed(() => {
-  return article.value ? md.render(article.value.content) : ''
-})
+  
+  nextTick(() => {
+    const previewDiv = document.getElementById('article-preview')
+    if (!previewDiv) {
+      console.error('Preview element not found')
+      return
+    }
+    
+    console.log('Rendering with Vditor.preview...')
+    
+    // 使用 Vditor.preview 进行渲染
+    Vditor.preview(previewDiv, article.value.content, {
+      mode: 'light',
+      markdown: {
+        toc: true,
+        mark: true,
+        footnotes: true,
+        autoSpace: true,
+      },
+      hljs: {
+        lineNumber: false,
+        style: 'github'
+      },
+      speech: {
+        enable: false
+      },
+      anchor: 1,
+      after: () => {
+        console.log('Vditor preview rendered successfully!')
+      }
+    })
+  })
+}
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
@@ -150,6 +175,12 @@ const loadArticle = async () => {
   try {
     const response = await api.get(`/articles/${route.params.id}`)
     article.value = response.data
+    
+    // 设置已加载标记
+    renderedContent.value = 'loading'
+    
+    // 渲染 Markdown 内容
+    renderMarkdown()
   } catch (error) {
     ElMessage.error('文章加载失败')
   }
@@ -298,6 +329,11 @@ onMounted(() => {
 })
 </script>
 
+<style>
+/* Vditor渲染样式需要全局作用域 */
+@import 'vditor/dist/index.css';
+</style>
+
 <style scoped>
 .blog-detail {
   padding: 40px 0;
@@ -337,45 +373,25 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+/* 文章内容渲染样式 */
 .article-content {
   margin-bottom: 30px;
-  line-height: 2;
-  font-size: 16px;
+  min-height: 200px;
 }
 
-.article-content :deep(h1),
-.article-content :deep(h2),
-.article-content :deep(h3),
-.article-content :deep(h4),
-.article-content :deep(h5),
-.article-content :deep(h6) {
-  margin: 20px 0 10px;
+#article-preview {
+  padding: 20px 0;
 }
 
-.article-content :deep(p) {
-  margin-bottom: 15px;
+/* 加载状态 */
+.article-loading {
+  padding: 40px 0;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
 }
 
-.article-content :deep(code) {
-  background-color: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-.article-content :deep(pre) {
-  background-color: #f6f8fa;
-  padding: 15px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 15px 0;
-}
-
-.article-content :deep(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-  margin: 15px 0;
-}
+/* vditor-reset样式由全局CSS提供 */
 
 .article-actions {
   text-align: center;

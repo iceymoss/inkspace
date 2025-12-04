@@ -16,7 +16,13 @@
         </el-form-item>
 
         <el-form-item label="封面" prop="cover">
-          <el-input v-model="form.cover" placeholder="请输入封面图片URL" />
+          <ImageCropUpload 
+            v-model="form.cover" 
+            preview-size="160px"
+            placeholder="上传封面"
+            tip="可自由裁切任意比例，最大5MB"
+            :aspect-ratio="NaN"
+          />
         </el-form-item>
 
         <el-form-item label="分类" prop="category_id">
@@ -41,8 +47,8 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="内容" prop="content">
-          <el-input v-model="form.content" type="textarea" :rows="20" placeholder="请输入文章内容（支持Markdown）" />
+        <el-form-item label="内容" prop="content" class="content-form-item">
+          <VditorEditor v-model="form.content" height="600px" />
         </el-form-item>
 
         <el-form-item label="状态">
@@ -74,6 +80,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import adminApi from '@/utils/adminApi'
+import VditorEditor from '@/components/VditorEditor.vue'
+import ImageCropUpload from '@/components/ImageCropUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -171,11 +179,31 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.article-edit {
+  padding: 20px;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.content-form-item {
+  margin-bottom: 24px;
+}
+
+.content-form-item :deep(.el-form-item__label) {
+  display: none;
+}
+
+.content-form-item :deep(.el-form-item__content) {
+  margin-left: 0 !important;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 600;
 }
 </style>
 
