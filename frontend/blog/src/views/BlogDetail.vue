@@ -88,7 +88,12 @@
             <el-avatar :src="comment.user?.avatar" />
             <div class="comment-content">
               <div class="comment-header">
-                <span class="comment-author">{{ comment.user?.nickname || comment.nickname }}</span>
+                <span class="comment-author">
+                  {{ comment.user?.nickname || comment.nickname }}
+                  <el-tag v-if="isCommentAuthor(comment)" type="warning" size="small" effect="plain" class="author-tag">
+                    作者
+                  </el-tag>
+                </span>
                 <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
               </div>
               <p>{{ comment.content }}</p>
@@ -148,6 +153,9 @@
                     <div class="reply-header">
                       <span class="reply-author">
                         {{ reply.user?.nickname || reply.nickname }}
+                        <el-tag v-if="isCommentAuthor(reply)" type="warning" size="small" effect="plain" class="author-tag">
+                          作者
+                        </el-tag>
                         <span v-if="reply.parent_id && reply.parent_id !== comment.id" class="reply-to">
                           回复 @{{ getReplyTargetName(comment, reply) }}
                         </span>
@@ -310,6 +318,22 @@ const isArticleOwner = computed(() => {
   return Number(authorId) === Number(userId)
 })
 
+// 判断评论/回复的作者是否是文章作者
+const isCommentAuthor = (comment) => {
+  if (!article.value || !comment) return false
+  
+  // 获取文章作者ID
+  const articleAuthorId = article.value.author_id || article.value.author?.id
+  if (!articleAuthorId) return false
+  
+  // 获取评论作者ID
+  const commentAuthorId = comment.user_id || comment.user?.id
+  if (!commentAuthorId) return false
+  
+  // 比较（处理类型不匹配）
+  return Number(articleAuthorId) === Number(commentAuthorId)
+}
+
 const loadArticle = async () => {
   try {
     const response = await api.get(`/articles/${route.params.id}`)
@@ -335,30 +359,49 @@ const loadComments = async () => {
       }
     })
     const commentsList = response.data.list || []
+    console.debug('Loaded comments:', commentsList.map(c => ({ id: c.id, like_count: c.like_count })))
     
     // 为每个评论添加状态和初始化回复
-    comments.value = commentsList.map(comment => ({
-      ...comment,
-      isLiked: false,
-      likeLoading: false,
-      showReply: false,
-      replyContent: '',
-      replying: false,
-      replyTo: null,
-      replies: (comment.replies || []).map(reply => ({
-        ...reply,
-        isLiked: false,
-        likeLoading: false,
-        showReply: false,
-        replyContent: '',
-        replying: false,
-        replyTo: null
-      }))
-    }))
+    // 注意：必须保留服务器返回的 like_count，这是真实的点赞数
+    const existingComments = comments.value || []
+    comments.value = commentsList.map(comment => {
+      // 查找是否已存在该评论（用于保留UI状态，但不覆盖服务器数据）
+      const existingComment = existingComments.find(c => c.id === comment.id)
+      return {
+        ...comment,
+        // 重要：使用服务器返回的 like_count，这是真实的点赞数
+        // 不要使用本地计算的值，因为可能有多个用户同时点赞
+        like_count: comment.like_count !== undefined ? comment.like_count : 0,
+        // 注意：isLiked 状态会在后面通过 checkCommentLiked 重新检查
+        // 这里先设置为 false，避免显示错误的状态
+        isLiked: false, // 将在后面重新检查
+        likeLoading: false, // 重置loading状态
+        showReply: existingComment?.showReply || false,
+        replyContent: existingComment?.replyContent || '',
+        replying: existingComment?.replying || false,
+        replyTo: existingComment?.replyTo || null,
+        replies: (comment.replies || []).map(reply => {
+          const existingReply = existingComment?.replies?.find(r => r.id === reply.id)
+          return {
+            ...reply,
+            // 重要：使用服务器返回的 like_count
+            like_count: reply.like_count !== undefined ? reply.like_count : 0,
+            // 注意：isLiked 状态会在后面通过 checkCommentLiked 重新检查
+            isLiked: false, // 将在后面重新检查
+            likeLoading: false, // 重置loading状态
+            showReply: existingReply?.showReply || false,
+            replyContent: existingReply?.replyContent || '',
+            replying: existingReply?.replying || false,
+            replyTo: existingReply?.replyTo || null
+          }
+        })
+      }
+    })
     
     commentsTotal.value = response.data.total || 0
     
     // 检查每个评论的点赞状态（并行检查以提高性能）
+    // 注意：必须在重新加载后检查，确保使用最新的评论对象
     const checkPromises = []
     for (const comment of comments.value) {
       checkPromises.push(checkCommentLiked(comment))
@@ -369,10 +412,11 @@ const loadComments = async () => {
         }
       }
     }
-    // 等待所有检查完成（但不阻塞UI）
-    Promise.all(checkPromises).catch(err => {
+    // 等待所有检查完成，确保点赞状态正确显示
+    await Promise.all(checkPromises).catch(err => {
       console.error('Failed to check comment like status:', err)
     })
+    console.debug('Comments loaded and like status checked:', comments.value.map(c => ({ id: c.id, like_count: c.like_count, isLiked: c.isLiked })))
   } catch (error) {
     console.error('Failed to load comments:', error)
   }
@@ -555,34 +599,49 @@ const handleCommentLike = async (comment) => {
   
   comment.likeLoading = true
   const oldIsLiked = comment.isLiked
-  const oldLikeCount = comment.like_count || 0
+  const commentId = comment.id // 保存ID，因为重新加载后comment对象可能变化
   
   try {
     if (comment.isLiked) {
       // 取消点赞
-      console.debug(`Unliking comment ${comment.id}`)
+      console.debug(`Unliking comment ${comment.id}, current count: ${comment.like_count}`)
       const response = await api.delete(`/comments/${comment.id}/like`)
+      // 先更新本地状态（乐观更新）
       comment.isLiked = false
-      comment.like_count = Math.max(0, oldLikeCount - 1)
+      // 重新加载评论以获取服务器端的最新点赞数，确保数据一致性
+      await loadComments()
+      // 重新检查点赞状态（因为重新加载后comment对象可能变化）
+      const updatedComment = comments.value.find(c => c.id === commentId) || 
+                            comments.value.flatMap(c => c.replies || []).find(r => r.id === commentId)
+      if (updatedComment) {
+        await checkCommentLiked(updatedComment)
+      }
       // 显示成功消息
       const message = response?.message || '取消点赞成功'
       ElMessage.success(message)
-      console.debug(`Comment ${comment.id} unliked, new count:`, comment.like_count)
+      console.debug(`Comment ${comment.id} unliked, new count:`, updatedComment?.like_count)
     } else {
       // 点赞
-      console.debug(`Liking comment ${comment.id}`)
+      console.debug(`Liking comment ${comment.id}, current count: ${comment.like_count}`)
       const response = await api.post(`/comments/${comment.id}/like`)
+      // 先更新本地状态（乐观更新）
       comment.isLiked = true
-      comment.like_count = oldLikeCount + 1
+      // 重新加载评论以获取服务器端的最新点赞数，确保数据一致性
+      await loadComments()
+      // 重新检查点赞状态（因为重新加载后comment对象可能变化）
+      const updatedComment = comments.value.find(c => c.id === commentId) || 
+                            comments.value.flatMap(c => c.replies || []).find(r => r.id === commentId)
+      if (updatedComment) {
+        await checkCommentLiked(updatedComment)
+      }
       // 显示成功消息
       const message = response?.message || '点赞成功'
       ElMessage.success(message)
-      console.debug(`Comment ${comment.id} liked, new count:`, comment.like_count)
+      console.debug(`Comment ${comment.id} liked, new count:`, updatedComment?.like_count)
     }
   } catch (error) {
     // 恢复原状态
     comment.isLiked = oldIsLiked
-    comment.like_count = oldLikeCount
     console.error(`Failed to ${oldIsLiked ? 'unlike' : 'like'} comment ${comment.id}:`, error)
     // API拦截器已经显示了错误消息
     // 重新检查状态和重新加载评论以获取最新数据
@@ -887,6 +946,11 @@ onMounted(async () => {
   font-weight: normal;
   font-size: 12px;
   margin-left: 5px;
+}
+
+.author-tag {
+  margin-left: 8px;
+  vertical-align: middle;
 }
 
 .reply-time {
