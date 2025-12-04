@@ -204,7 +204,7 @@ onMounted(() => {
 
 <style scoped>
 .blog {
-  padding: 8px 0 20px;
+  padding: 0 0 20px;
 }
 
 .blog-header {
@@ -213,7 +213,8 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   gap: 20px;
-  padding: 8px 0;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .header-left {

@@ -81,8 +81,8 @@
 
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
-            <el-radio label="draft">草稿</el-radio>
-            <el-radio label="published">发布</el-radio>
+            <el-radio :label="0">草稿</el-radio>
+            <el-radio :label="1">发布</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -119,7 +119,7 @@ const form = reactive({
   summary: '',
   cover_image: '',
   content: '',
-  status: 'draft'
+  status: 0  // 0: draft, 1: published
 })
 
 const rules = {
@@ -208,7 +208,7 @@ const fetchArticle = async () => {
       summary: article.summary || '',
       cover_image: article.cover_image || '',
       content: article.content || '',
-      status: article.status || 'draft'
+      status: article.status || 0  // 0: draft, 1: published
     })
   } catch (error) {
     ElMessage.error('获取文章详情失败')
