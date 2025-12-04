@@ -68,6 +68,9 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 
+# Frontend node_modules (specific paths)
+frontend/blog/node_modules/
+frontend/admin/node_modules/
 # Docker
 .dockerignore
 
