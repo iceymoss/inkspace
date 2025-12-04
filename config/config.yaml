@@ -1,0 +1,44 @@
+server:
+  port: 8080
+  mode: debug # debug, release, test
+
+database:
+  host: localhost
+  port: 3306
+  username: root
+  password: root
+  database: mysite
+  charset: utf8mb4
+  parseTime: true
+  loc: Local
+  maxIdleConns: 10
+  maxOpenConns: 100
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  poolSize: 10
+
+jwt:
+  secret: your-secret-key-change-this-in-production
+  expireHours: 168 # 7 days
+
+upload:
+  maxSize: 10485760 # 10MB
+  allowTypes:
+    - image/jpeg
+    - image/jpg
+    - image/png
+    - image/gif
+  savePath: ./uploads
+
+pagination:
+  pageSize: 10
+  maxPageSize: 100
+
+cache:
+  articleExpire: 3600 # 1 hour
+  userExpire: 1800 # 30 minutes
+

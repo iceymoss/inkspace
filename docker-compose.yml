@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysite-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mysite
+      MYSQL_USER: mysite
+      MYSQL_PASSWORD: mysite123
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - mysite-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mysite-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mysite-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mysite-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - mysite-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mysite-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - mysite-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  mysite-network:
+    driver: bridge
+
