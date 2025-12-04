@@ -5,8 +5,6 @@ import (
 
 	"mysite/internal/database"
 	"mysite/internal/models"
-
-	"gorm.io/gorm"
 )
 
 type CategoryService struct{}
@@ -85,4 +83,3 @@ func (s *CategoryService) GetList() ([]*models.Category, error) {
 	}
 	return categories, nil
 }
-

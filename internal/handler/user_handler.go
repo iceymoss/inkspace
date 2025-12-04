@@ -83,6 +83,24 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	utils.Success(c, user.ToResponse())
 }
 
+// ChangePassword 修改密码
+// PUT /api/profile/password
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	var req models.PasswordChangeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	if err := h.service.ChangePassword(userID.(uint), req.OldPassword, req.NewPassword); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	utils.Success(c, nil)
+}
+
 func (h *UserHandler) GetUserList(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -99,5 +117,90 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 	}
 
 	utils.PageResponse(c, userResponses, total, page, pageSize)
+}
+
+// UpdateUserStatus 更新用户状态
+// PUT /api/admin/users/:id/status
+func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	var req struct {
+		Status int `json:"status" binding:"required,oneof=0 1"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	if err := h.service.UpdateUserStatus(uint(id), req.Status); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	utils.Success(c, nil)
+}
+
+// UpdateUserRole 更新用户角色
+// PUT /api/admin/users/:id/role
+func (h *UserHandler) UpdateUserRole(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	var req struct {
+		Role string `json:"role" binding:"required,oneof=admin user"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	if err := h.service.UpdateUserRole(uint(id), req.Role); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	utils.Success(c, nil)
+}
+
+// DeleteUser 删除用户
+// DELETE /api/admin/users/:id
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	if err := h.service.DeleteUser(uint(id)); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	utils.Success(c, nil)
+}
+
+// GetUserProfile 获取用户主页信息
+// GET /api/users/:id
+func (h *UserHandler) GetUserProfile(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	user, err := h.service.GetUserByID(uint(id))
+	if err != nil {
+		utils.NotFound(c, "用户不存在")
+		return
+	}
+
+	utils.Success(c, user.ToResponse())
 }
 

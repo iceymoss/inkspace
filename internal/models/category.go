@@ -7,14 +7,17 @@ import (
 )
 
 type Category struct {
-	ID          uint           `gorm:"primarykey" json:"id"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
-	Name        string         `gorm:"uniqueIndex;size:50;not null" json:"name" binding:"required"`
-	Slug        string         `gorm:"uniqueIndex;size:50" json:"slug"`
-	Description string         `gorm:"size:200" json:"description"`
-	Sort        int            `gorm:"default:0" json:"sort"`
+	ID           uint           `gorm:"primarykey" json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	Name         string         `gorm:"uniqueIndex;size:50;not null" json:"name" binding:"required"`
+	Slug         string         `gorm:"uniqueIndex;size:50" json:"slug"`
+	Description  string         `gorm:"size:200" json:"description"`
+	Cover        string         `gorm:"size:255" json:"cover"`
+	Sort         int            `gorm:"default:0;index:idx_sort" json:"sort"`
+	ArticleCount int            `gorm:"default:0;not null" json:"article_count"`
+	ParentID     *uint          `gorm:"index:idx_parent_id" json:"parent_id"` // 支持二级分类
 }
 
 type CategoryRequest struct {

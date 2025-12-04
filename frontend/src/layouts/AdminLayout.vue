@@ -36,6 +36,18 @@
             <el-icon><ChatDotRound /></el-icon>
             <span>评论管理</span>
           </el-menu-item>
+          <el-menu-item index="/admin/links">
+            <el-icon><Link /></el-icon>
+            <span>友链管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/settings">
+            <el-icon><Setting /></el-icon>
+            <span>系统配置</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/users">
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -50,8 +62,8 @@
               <el-button text @click="$router.push('/')">返回网站</el-button>
               <el-dropdown @command="handleCommand">
                 <span class="user-info">
-                  <el-avatar :size="32" />
-                  <span>{{ userStore.user?.nickname || userStore.user?.username }}</span>
+                  <el-avatar :size="32" :src="adminStore.admin?.avatar" />
+                  <span>{{ adminStore.admin?.nickname || adminStore.admin?.username }}</span>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -74,11 +86,22 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
+import {
+  Menu as IconMenu,
+  Document,
+  Picture,
+  Folder,
+  CollectionTag,
+  ChatDotRound,
+  Link,
+  Setting,
+  User
+} from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
+const adminStore = useAdminStore()
 
 const activeMenu = computed(() => route.path)
 
@@ -89,15 +112,18 @@ const breadcrumbTitle = computed(() => {
     '/admin/works': '作品管理',
     '/admin/categories': '分类管理',
     '/admin/tags': '标签管理',
-    '/admin/comments': '评论管理'
+    '/admin/comments': '评论管理',
+    '/admin/links': '友链管理',
+    '/admin/settings': '系统配置',
+    '/admin/users': '用户管理'
   }
   return titles[route.path] || '管理'
 })
 
 const handleCommand = (command) => {
   if (command === 'logout') {
-    userStore.logout()
-    router.push('/login')
+    adminStore.logout()
+    router.push('/admin/login')
   }
 }
 </script>

@@ -1,0 +1,20 @@
+import type { ComponentInternalInstance } from 'vue';
+import type { EmitFn } from 'element-plus/es/utils';
+import type Node from './model/node';
+import type { CheckedInfo, NodeDropType } from './tree.type';
+export declare const treeEmits: {
+    'check-change': (data: any, checked: boolean, indeterminate: boolean) => any;
+    'current-change': (data: any | null, node: Node | null) => boolean;
+    'node-click': (data: any, node: Node, nodeInstance: ComponentInternalInstance | null, evt: MouseEvent) => any;
+    'node-contextmenu': (evt: Event, data: any, node: Node, nodeInstance: ComponentInternalInstance | null) => any;
+    'node-collapse': (data: any, node: Node, nodeInstance: ComponentInternalInstance | null) => any;
+    'node-expand': (data: any, node: Node, nodeInstance: ComponentInternalInstance | null) => any;
+    check: (data: any, checkedInfo: CheckedInfo) => any;
+    'node-drag-start': (node: Node, evt: DragEvent) => DragEvent;
+    'node-drag-end': (draggingNode: Node, dropNode: Node | null, dropType: NodeDropType, evt: DragEvent) => DragEvent;
+    'node-drop': (draggingNode: Node, dropNode: Node, dropType: Exclude<NodeDropType, "none">, evt: DragEvent) => DragEvent;
+    'node-drag-leave': (draggingNode: Node, oldDropNode: Node, evt: DragEvent) => DragEvent;
+    'node-drag-enter': (draggingNode: Node, dropNode: Node, evt: DragEvent) => DragEvent;
+    'node-drag-over': (draggingNode: Node, dropNode: Node, evt: DragEvent) => DragEvent;
+};
+export type TreeEmits = EmitFn<typeof treeEmits>;

@@ -1,0 +1,38 @@
+# 管理后台服务配置
+
+admin:
+  port: 8083
+  mode: debug
+
+# 数据库配置（与主服务共享）
+database:
+  host: localhost
+  port: 3306
+  username: iceymoss
+  password: Yk?123456
+  database: mysite
+  charset: utf8mb4
+  parseTime: true
+  loc: Local
+  maxIdleConns: 10
+  maxOpenConns: 100
+
+# Redis配置（与主服务共享）
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  poolSize: 10
+
+# JWT配置（与主服务共享）
+jwt:
+  secret: user-secret-key-SHOULD-NOT-BE-USED-IN-ADMIN
+  adminSecret: admin-secret-key-DIFFERENT-from-user-MUST-CHANGE
+  expireHours: 720
+
+# 服务器配置
+server:
+  port: 8083
+  mode: debug
+

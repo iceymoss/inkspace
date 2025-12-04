@@ -1,12 +1,12 @@
 server:
-  port: 8080
+  port: 8081
   mode: debug # debug, release, test
 
 database:
   host: localhost
   port: 3306
-  username: root
-  password: root
+  username: iceymoss
+  password: Yk?123456
   database: mysite
   charset: utf8mb4
   parseTime: true
@@ -22,7 +22,8 @@ redis:
   poolSize: 10
 
 jwt:
-  secret: your-secret-key-change-this-in-production
+  secret: user-secret-key-change-in-production-MUST-CHANGE
+  adminSecret: admin-secret-key-DIFFERENT-from-user-MUST-CHANGE
   expireHours: 168 # 7 days
 
 upload:

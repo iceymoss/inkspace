@@ -1,0 +1,15 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var card$1 = require('./src/card2.js');
+var card = require('./src/card.js');
+var install = require('../../utils/vue/install.js');
+
+const ElCard = install.withInstall(card$1["default"]);
+
+exports.cardContextKey = card.cardContextKey;
+exports.cardProps = card.cardProps;
+exports.ElCard = ElCard;
+exports["default"] = ElCard;
+//# sourceMappingURL=index.js.map

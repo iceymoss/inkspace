@@ -35,6 +35,21 @@ const routes = [
         path: 'about',
         name: 'About',
         component: () => import('@/views/About.vue')
+      },
+      {
+        path: 'links',
+        name: 'Links',
+        component: () => import('@/views/Links.vue')
+      },
+      {
+        path: 'users/:id',
+        name: 'UserProfile',
+        component: () => import('@/views/UserProfile.vue')
+      },
+      {
+        path: 'users/:id/follows',
+        name: 'FollowList',
+        component: () => import('@/views/FollowList.vue')
       }
     ]
   },
@@ -44,9 +59,77 @@ const routes = [
     component: () => import('@/views/Login.vue')
   },
   {
+    path: '/dashboard',
+    component: () => import('@/layouts/UserCenterLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'UserDashboard',
+        component: () => import('@/views/user/Dashboard.vue')
+      },
+      {
+        path: 'articles',
+        name: 'MyArticles',
+        component: () => import('@/views/user/MyArticles.vue')
+      },
+      {
+        path: 'articles/create',
+        name: 'CreateArticle',
+        component: () => import('@/views/user/ArticleEdit.vue')
+      },
+      {
+        path: 'articles/:id/edit',
+        name: 'EditArticle',
+        component: () => import('@/views/user/ArticleEdit.vue')
+      }
+    ]
+  },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: () => import('@/layouts/UserCenterLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/Favorites.vue')
+      }
+    ]
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/layouts/UserCenterLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/Notifications.vue')
+      }
+    ]
+  },
+  {
+    path: '/profile',
+    component: () => import('@/layouts/UserCenterLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: 'edit',
+        name: 'ProfileEdit',
+        component: () => import('@/views/ProfileEdit.vue')
+      }
+    ]
+  },
+  {
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: () => import('@/views/admin/Login.vue')
+  },
+  {
     path: '/admin',
     component: () => import('@/layouts/AdminLayout.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true },
+    meta: { requiresAdminAuth: true },
     children: [
       {
         path: '',
@@ -87,6 +170,21 @@ const routes = [
         path: 'comments',
         name: 'AdminComments',
         component: () => import('@/views/admin/Comments.vue')
+      },
+      {
+        path: 'links',
+        name: 'AdminLinks',
+        component: () => import('@/views/admin/Links.vue')
+      },
+      {
+        path: 'settings',
+        name: 'AdminSettings',
+        component: () => import('@/views/admin/Settings.vue')
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: () => import('@/views/admin/Users.vue')
       }
     ]
   }
@@ -101,10 +199,18 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   
+  // 管理后台路由守卫
+  if (to.meta.requiresAdminAuth) {
+    const adminToken = localStorage.getItem('admin_token')
+    if (!adminToken) {
+      next('/admin/login')
+      return
+    }
+  }
+  
+  // 用户路由守卫
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
-  } else if (to.meta.requiresAdmin && userStore.user?.role !== 'admin') {
-    next('/')
   } else {
     next()
   }

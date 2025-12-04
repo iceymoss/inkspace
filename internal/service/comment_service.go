@@ -25,7 +25,8 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		return nil, err
 	}
 
-	// Check if parent comment exists
+	// Check if parent comment exists and get root_id
+	var rootID *uint
 	if req.ParentID != nil {
 		var parent models.Comment
 		if err := database.DB.First(&parent, *req.ParentID).Error; err != nil {
@@ -34,6 +35,12 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 			}
 			return nil, err
 		}
+		// 如果父评论有root_id，则使用父评论的root_id，否则使用父评论的id
+		if parent.RootID != nil {
+			rootID = parent.RootID
+		} else {
+			rootID = &parent.ID
+		}
 	}
 
 	comment := &models.Comment{
@@ -41,13 +48,48 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		UserID:    userID,
 		Content:   req.Content,
 		ParentID:  req.ParentID,
+		RootID:    rootID,
 		Nickname:  req.Nickname,
 		Email:     req.Email,
 		Website:   req.Website,
 		Status:    1, // Auto approve
 	}
 
-	if err := database.DB.Create(comment).Error; err != nil {
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// 创建评论
+		if err := tx.Create(comment).Error; err != nil {
+			return err
+		}
+
+		// 更新文章评论数
+		if err := tx.Model(&models.Article{}).
+			Where("id = ?", req.ArticleID).
+			UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+			return err
+		}
+
+		// 更新用户评论数
+		if userID > 0 {
+			if err := tx.Model(&models.User{}).
+				Where("id = ?", userID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 更新父评论回复数
+		if req.ParentID != nil {
+			if err := tx.Model(&models.Comment{}).
+				Where("id = ?", *req.ParentID).
+				UpdateColumn("reply_count", gorm.Expr("reply_count + ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -65,7 +107,41 @@ func (s *CommentService) Delete(id uint, userID uint, role string) error {
 		return errors.New("无权限删除")
 	}
 
-	return database.DB.Delete(&comment).Error
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// 删除评论
+		if err := tx.Delete(&comment).Error; err != nil {
+			return err
+		}
+
+		// 更新文章评论数
+		if err := tx.Model(&models.Article{}).
+			Where("id = ?", comment.ArticleID).
+			UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+			return err
+		}
+
+		// 更新用户评论数
+		if comment.UserID > 0 {
+			if err := tx.Model(&models.User{}).
+				Where("id = ?", comment.UserID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 更新父评论回复数
+		if comment.ParentID != nil {
+			if err := tx.Model(&models.Comment{}).
+				Where("id = ?", *comment.ParentID).
+				UpdateColumn("reply_count", gorm.Expr("reply_count - ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comment, int64, error) {

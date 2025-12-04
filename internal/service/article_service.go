@@ -49,6 +49,31 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 			}
 		}
 
+		// 更新用户文章数
+		if err := tx.Model(&models.User{}).
+			Where("id = ?", authorID).
+			UpdateColumn("article_count", gorm.Expr("article_count + ?", 1)).Error; err != nil {
+			return err
+		}
+
+		// 更新分类文章数
+		if req.CategoryID > 0 {
+			if err := tx.Model(&models.Category{}).
+				Where("id = ?", req.CategoryID).
+				UpdateColumn("article_count", gorm.Expr("article_count + ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 更新标签文章数
+		if len(req.TagIDs) > 0 {
+			if err := tx.Model(&models.Tag{}).
+				Where("id IN ?", req.TagIDs).
+				UpdateColumn("article_count", gorm.Expr("article_count + ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
@@ -73,7 +98,41 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 		return nil, errors.New("无权限修改")
 	}
 
+	// 获取旧的标签IDs和分类ID
+	oldTagIDs := make([]uint, len(article.Tags))
+	for i, tag := range article.Tags {
+		oldTagIDs[i] = tag.ID
+	}
+	oldCategoryID := article.CategoryID
+
 	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		// 如果分类改变，更新旧分类的文章数
+		if oldCategoryID > 0 && oldCategoryID != req.CategoryID {
+			if err := tx.Model(&models.Category{}).
+				Where("id = ?", oldCategoryID).
+				UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
+				return err
+			}
+
+			// 更新新分类的文章数
+			if req.CategoryID > 0 {
+				if err := tx.Model(&models.Category{}).
+					Where("id = ?", req.CategoryID).
+					UpdateColumn("article_count", gorm.Expr("article_count + ?", 1)).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		// 更新旧标签的文章数（减少）
+		if len(oldTagIDs) > 0 {
+			if err := tx.Model(&models.Tag{}).
+				Where("id IN ?", oldTagIDs).
+				UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
 		// Update article
 		article.Title = req.Title
 		article.Content = req.Content
@@ -98,6 +157,13 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 				return err
 			}
 			if err := tx.Model(article).Association("Tags").Append(tags); err != nil {
+				return err
+			}
+
+			// 更新新标签的文章数（增加）
+			if err := tx.Model(&models.Tag{}).
+				Where("id IN ?", req.TagIDs).
+				UpdateColumn("article_count", gorm.Expr("article_count + ?", 1)).Error; err != nil {
 				return err
 			}
 		}
@@ -127,7 +193,47 @@ func (s *ArticleService) Delete(id uint, userID uint, role string) error {
 		return errors.New("无权限删除")
 	}
 
-	if err := database.DB.Delete(article).Error; err != nil {
+	// 获取标签IDs
+	tagIDs := make([]uint, len(article.Tags))
+	for i, tag := range article.Tags {
+		tagIDs[i] = tag.ID
+	}
+
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		// 删除文章
+		if err := tx.Delete(article).Error; err != nil {
+			return err
+		}
+
+		// 更新用户文章数
+		if err := tx.Model(&models.User{}).
+			Where("id = ?", article.AuthorID).
+			UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
+			return err
+		}
+
+		// 更新分类文章数
+		if article.CategoryID > 0 {
+			if err := tx.Model(&models.Category{}).
+				Where("id = ?", article.CategoryID).
+				UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 更新标签文章数
+		if len(tagIDs) > 0 {
+			if err := tx.Model(&models.Tag{}).
+				Where("id IN ?", tagIDs).
+				UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return err
 	}
 
@@ -210,16 +316,5 @@ func (s *ArticleService) GetList(query *models.ArticleListQuery) ([]*models.Arti
 
 func (s *ArticleService) IncrementViewCount(id uint) error {
 	return database.DB.Model(&models.Article{}).Where("id = ?", id).UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error
-}
-
-func (s *ArticleService) IncrementLikeCount(id uint) error {
-	if err := database.DB.Model(&models.Article{}).Where("id = ?", id).UpdateColumn("like_count", gorm.Expr("like_count + ?", 1)).Error; err != nil {
-		return err
-	}
-
-	// Clear cache
-	utils.DeleteCache(fmt.Sprintf("article:%d", id))
-
-	return nil
 }
 

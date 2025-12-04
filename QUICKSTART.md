@@ -1,219 +1,143 @@
-# 快速开始指南
+# 快速启动指南
 
-## 方式一：使用Docker（推荐）
+## 🏗️ 系统架构
 
-### 1. 前置条件
-- 安装 Docker 和 Docker Compose
+完全独立的**四服务架构**：
 
-### 2. 启动项目
-
-```bash
-# 克隆项目
-git clone <your-repository-url>
-cd mysite
-
-# 启动所有服务（MySQL, Redis, 后端, 前端）
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
 ```
-
-### 3. 访问应用
-
-- **前端网站**: http://localhost
-- **管理后台**: http://localhost/admin
-- **后端API**: http://localhost:8080
-
-### 4. 默认账号
-
-- 用户名: `admin`
-- 密码: `admin123`
-
-### 5. 停止服务
-
-```bash
-docker-compose down
+博客前端 (:3001) → 用户服务 (:8081)
+管理前端 (:3002) → 管理服务 (:8083)
+             ↓
+        共享数据库
 ```
 
 ---
 
-## 方式二：本地开发
+## ⚡ 快速启动（推荐）
 
-### 1. 前置条件
-
-- Go 1.21+
-- Node.js 18+
-- MySQL 8.0+
-- Redis 7+
-
-### 2. 数据库准备
-
+### 步骤1：启动数据库
 ```bash
-# 创建数据库
-mysql -u root -p
-CREATE DATABASE mysite CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-# 导入初始数据
-mysql -u root -p mysite < scripts/init.sql
+docker-compose up -d mysql redis
 ```
 
-### 3. 后端启动
-
+### 步骤2：初始化数据库
 ```bash
-# 安装依赖
-go mod download
+make db-migrate && make db-init
+```
 
-# 修改配置文件
-# 编辑 config/config.yaml，配置数据库和Redis连接信息
+### 步骤3：启动后端服务
 
-# 启动后端
-go run main.go
-
-# 或使用 Make
+**终端1 - 用户服务**:
+```bash
 make dev
+# 或: go run cmd/server/main.go
 ```
 
-后端将在 http://localhost:8080 运行
-
-### 4. 前端启动
-
+**终端2 - 管理服务**:
 ```bash
-# 进入前端目录
-cd frontend
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
+make dev-admin
+# 或: go run cmd/admin/main.go
 ```
 
-前端将在 http://localhost:3000 运行
+### 步骤4：启动前端
 
----
-
-## 使用 Makefile
-
-项目提供了 Makefile 来简化常用操作：
-
+**终端3 - 博客前端**:
 ```bash
-# 查看所有可用命令
-make help
+cd frontend/blog
+pnpm install  # 首次
+pnpm dev
+```
 
-# 开发模式运行后端
-make dev
-
-# 构建后端
-make build
-
-# 运行测试
-make test
-
-# Docker相关
-make docker-build    # 构建镜像
-make docker-up       # 启动容器
-make docker-down     # 停止容器
-make docker-logs     # 查看日志
-
-# 前端相关
-make frontend-install  # 安装依赖
-make frontend-dev      # 开发模式
-make frontend-build    # 构建生产版本
+**终端4 - 管理前端**:
+```bash
+cd frontend/admin
+pnpm install  # 首次
+pnpm dev
 ```
 
 ---
 
-## 常见问题
+## 🌐 访问地址
 
-### 1. 数据库连接失败
+- **博客前端**: http://localhost:3001
+- **管理前端**: http://localhost:3002/login
+- **用户API**: http://localhost:8081/api
+- **管理API**: http://localhost:8083/api
 
-检查 `config/config.yaml` 中的数据库配置是否正确：
+---
 
-```yaml
-database:
-  host: localhost
-  port: 3306
-  username: root
-  password: root
-  database: mysite
+## 🔐 默认账号
+
+### 管理后台
+```
+地址: http://localhost:3002/login
+账号: admin
+密码: admin123
 ```
 
-### 2. Redis连接失败
-
-检查Redis是否启动：
-
-```bash
-redis-cli ping
-# 应该返回 PONG
+### 博客系统
 ```
-
-### 3. 前端无法访问后端API
-
-确保后端已启动，并检查前端 `vite.config.js` 中的代理配置：
-
-```javascript
-proxy: {
-  '/api': {
-    target: 'http://localhost:8080',
-    changeOrigin: true
-  }
-}
-```
-
-### 4. Docker容器启动失败
-
-```bash
-# 查看日志
-docker-compose logs
-
-# 重新构建
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-### 5. 端口冲突
-
-如果默认端口被占用，可以修改 `docker-compose.yml` 中的端口映射：
-
-```yaml
-services:
-  frontend:
-    ports:
-      - "8888:80"  # 将前端改为8888端口
-  
-  backend:
-    ports:
-      - "9090:8080"  # 将后端改为9090端口
+地址: http://localhost:3001/login
+可以注册新账号
 ```
 
 ---
 
-## 下一步
+## 📝 Makefile命令
 
-1. 修改个人信息
-   - 编辑 `frontend/src/views/About.vue`
-   - 更新个人简介和联系方式
-
-2. 自定义配置
-   - 修改 `config/config.yaml` 调整系统配置
-   - 修改 JWT密钥以提高安全性
-
-3. 添加内容
-   - 登录管理后台
-   - 创建分类和标签
-   - 发布第一篇文章
-   - 上传作品展示
-
-4. 部署到生产环境
-   - 修改数据库密码
-   - 更新JWT密钥
-   - 配置域名和HTTPS
-   - 设置防火墙规则
+```bash
+make dev              # 启动用户服务 (8081)
+make dev-admin        # 启动管理服务 (8083)
+make build            # 编译用户服务
+make build-admin      # 编译管理服务
+make db-migrate       # 数据库迁移
+make db-init          # 初始化数据
+```
 
 ---
 
-## 技术支持
+## 🎯 四服务说明
 
-如有问题，请提交 Issue 或查看完整文档 [README.md](README.md)
+| 服务 | 端口 | 目录 | 用途 |
+|------|------|------|------|
+| 博客前端 | 3001 | frontend/blog | 用户界面 |
+| 管理前端 | 3002 | frontend/admin | 管理界面 |
+| 用户服务 | 8081 | cmd/server | 用户API |
+| 管理服务 | 8083 | cmd/admin | 管理API |
 
+---
+
+## ✅ 验证启动成功
+
+### 检查后端
+```bash
+curl http://localhost:8081/health  # {"status":"ok"}
+curl http://localhost:8083/health  # {"status":"ok","service":"admin"}
+```
+
+### 检查前端
+- 访问 http://localhost:3001 - 应该看到博客首页
+- 访问 http://localhost:3002 - 应该跳转到管理登录
+
+---
+
+## 🐛 常见问题
+
+### 端口冲突
+修改对应的配置文件：
+- `config/config.yaml` - server.port (用户服务)
+- `config/admin.yaml` - server.port (管理服务)
+- `frontend/blog/vite.config.js` - server.port (博客前端)
+- `frontend/admin/vite.config.js` - server.port (管理前端)
+
+### pnpm未安装
+```bash
+npm install -g pnpm
+```
+
+### 数据库连接失败
+检查 `config/config.yaml` 中的数据库配置
+
+---
+
+**现在是真正的企业级四服务架构！** 🎉

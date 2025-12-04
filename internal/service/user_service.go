@@ -137,3 +137,79 @@ func (s *UserService) GetUserList(page, pageSize int) ([]*models.User, int64, er
 	return users, total, nil
 }
 
+// ChangePassword 修改密码
+func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+	user, err := s.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// 验证旧密码
+	if !utils.CheckPassword(oldPassword, user.Password) {
+		return errors.New("当前密码错误")
+	}
+
+	// 加密新密码
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	// 更新密码
+	user.Password = hashedPassword
+	if err := database.DB.Save(user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateUserStatus 更新用户状态
+func (s *UserService) UpdateUserStatus(userID uint, status int) error {
+	user, err := s.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.Status = status
+	if err := database.DB.Save(user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateUserRole 更新用户角色
+func (s *UserService) UpdateUserRole(userID uint, role string) error {
+	user, err := s.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.Role = role
+	if err := database.DB.Save(user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteUser 删除用户
+func (s *UserService) DeleteUser(userID uint) error {
+	user, err := s.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// 不允许删除管理员
+	if user.Role == "admin" {
+		return errors.New("不能删除管理员账号")
+	}
+
+	if err := database.DB.Delete(user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+

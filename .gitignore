@@ -17,6 +17,15 @@ vendor/
 # Go workspace file
 go.work
 
+# Compiled binaries
+/bin/
+/server
+/admin
+mysite
+
+# Uploads
+uploads/
+
 # IDE
 .idea/
 .vscode/

@@ -7,7 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SetupRouter 旧版路由函数（已废弃，请使用 SetupUserRouter 或 SetupAdminRouter）
+// 保留此函数仅为向后兼容
 func SetupRouter() *gin.Engine {
+	// 默认返回用户路由
+	return SetupUserRouter()
+}
+
+func SetupRouterOld() *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -20,6 +27,13 @@ func SetupRouter() *gin.Engine {
 	categoryHandler := handler.NewCategoryHandler()
 	tagHandler := handler.NewTagHandler()
 	workHandler := handler.NewWorkHandler()
+	followHandler := handler.NewFollowHandler()
+	favoriteHandler := handler.NewFavoriteHandler()
+	likeHandler := handler.NewLikeHandler()
+	linkHandler := handler.NewLinkHandler()
+	settingHandler := handler.NewSettingHandler()
+	notificationHandler := handler.NewNotificationHandler()
+	uploadHandler := handler.NewUploadHandler()
 
 	// API routes
 	api := r.Group("/api")
@@ -34,11 +48,15 @@ func SetupRouter() *gin.Engine {
 			// Articles
 			public.GET("/articles", articleHandler.GetList)
 			public.GET("/articles/:id", articleHandler.GetDetail)
-			public.POST("/articles/:id/like", articleHandler.Like)
+			public.POST("/articles/:id/like", likeHandler.LikeArticle)
+			public.DELETE("/articles/:id/like", likeHandler.UnlikeArticle)
+			public.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
 
 			// Comments
 			public.GET("/comments", commentHandler.GetList)
 			public.POST("/comments", commentHandler.Create)
+			public.POST("/comments/:id/like", likeHandler.LikeComment)
+			public.DELETE("/comments/:id/like", likeHandler.UnlikeComment)
 
 			// Categories
 			public.GET("/categories", categoryHandler.GetList)
@@ -49,6 +67,20 @@ func SetupRouter() *gin.Engine {
 			// Works
 			public.GET("/works", workHandler.GetList)
 			public.GET("/works/:id", workHandler.GetDetail)
+
+			// User Profile (public)
+			public.GET("/users/:id", userHandler.GetUserProfile)
+			public.GET("/users/:id/articles", articleHandler.GetUserArticles)
+			public.GET("/users/:id/follow-stats", followHandler.GetFollowStats)
+			public.GET("/users/:id/following", followHandler.GetFollowingList)
+			public.GET("/users/:id/followers", followHandler.GetFollowerList)
+			public.GET("/users/:id/favorites", favoriteHandler.GetUserFavorites)
+
+			// Links
+			public.GET("/links", linkHandler.GetList)
+
+			// Settings (public)
+			public.GET("/settings/public", settingHandler.GetPublicSettings)
 		}
 
 		// Protected routes (require authentication)
@@ -58,6 +90,11 @@ func SetupRouter() *gin.Engine {
 			// User
 			protected.GET("/profile", userHandler.GetProfile)
 			protected.PUT("/profile", userHandler.UpdateProfile)
+			protected.PUT("/profile/password", userHandler.ChangePassword)
+
+			// Upload
+			protected.POST("/upload/image", uploadHandler.UploadImage)
+			protected.POST("/upload/avatar", uploadHandler.UploadAvatar)
 
 			// Articles (author can manage their own articles)
 			protected.POST("/articles", articleHandler.Create)
@@ -66,39 +103,38 @@ func SetupRouter() *gin.Engine {
 
 			// Comments (author can delete their own comments)
 			protected.DELETE("/comments/:id", commentHandler.Delete)
+
+			// Follow
+			protected.POST("/users/:id/follow", followHandler.Follow)
+			protected.DELETE("/users/:id/follow", followHandler.Unfollow)
+
+			// Favorite
+			protected.POST("/articles/:id/favorite", favoriteHandler.AddFavorite)
+			protected.DELETE("/articles/:id/favorite", favoriteHandler.RemoveFavorite)
+			protected.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
+			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
+
+			// Notifications
+			protected.GET("/notifications", notificationHandler.GetList)
+			protected.PUT("/notifications/:id/read", notificationHandler.MarkAsRead)
+			protected.PUT("/notifications/read-all", notificationHandler.MarkAllAsRead)
+			protected.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
+			protected.DELETE("/notifications/:id", notificationHandler.Delete)
 		}
-
-		// Admin routes
-		admin := api.Group("/admin")
-		admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
-		{
-			// Users management
-			admin.GET("/users", userHandler.GetUserList)
-
-			// Categories management
-			admin.POST("/categories", categoryHandler.Create)
-			admin.PUT("/categories/:id", categoryHandler.Update)
-			admin.DELETE("/categories/:id", categoryHandler.Delete)
-
-			// Tags management
-			admin.POST("/tags", tagHandler.Create)
-			admin.PUT("/tags/:id", tagHandler.Update)
-			admin.DELETE("/tags/:id", tagHandler.Delete)
-
-			// Works management
-			admin.POST("/works", workHandler.Create)
-			admin.PUT("/works/:id", workHandler.Update)
-			admin.DELETE("/works/:id", workHandler.Delete)
-
-			// Comments management
-			admin.PUT("/comments/:id/status", commentHandler.UpdateStatus)
-		}
+		
+		// ⚠️ 注意：所有管理后台路由已移至独立服务
+		// 用户服务不再提供 /api/admin/* 路由
+		// 请使用独立的管理后台服务 (端口 8083)
+		// 启动命令: make dev-admin 或 go run cmd/admin/main.go
 	}
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// Serve static files (uploads)
+	r.Static("/uploads", "./uploads")
 
 	return r
 }

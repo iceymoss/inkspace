@@ -7,13 +7,14 @@ import (
 )
 
 type Tag struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	Name      string         `gorm:"uniqueIndex;size:50;not null" json:"name" binding:"required"`
-	Slug      string         `gorm:"uniqueIndex;size:50" json:"slug"`
-	Color     string         `gorm:"size:20" json:"color"`
+	ID           uint           `gorm:"primarykey" json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	Name         string         `gorm:"uniqueIndex;size:50;not null" json:"name" binding:"required"`
+	Slug         string         `gorm:"uniqueIndex;size:50" json:"slug"`
+	Color        string         `gorm:"size:20;default:'#409eff'" json:"color"`
+	ArticleCount int            `gorm:"default:0;not null" json:"article_count"`
 }
 
 type TagRequest struct {

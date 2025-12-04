@@ -16,9 +16,12 @@ type Work struct {
 	Cover       string         `gorm:"size:255" json:"cover"`
 	Images      string         `gorm:"type:text" json:"images"` // JSON array of image URLs
 	Link        string         `gorm:"size:255" json:"link"`
-	Sort        int            `gorm:"default:0" json:"sort"`
-	ViewCount   int            `gorm:"default:0" json:"view_count"`
-	Status      int            `gorm:"default:1;index" json:"status"` // 1: published, 0: draft
+	GithubURL   string         `gorm:"size:255" json:"github_url"`
+	DemoURL     string         `gorm:"size:255" json:"demo_url"`
+	TechStack   string         `gorm:"size:500" json:"tech_stack"` // 技术栈，逗号分隔
+	Sort        int            `gorm:"default:0;index:idx_status_sort" json:"sort"`
+	ViewCount   int            `gorm:"default:0;not null" json:"view_count"`
+	Status      int            `gorm:"default:1;index:idx_status_sort" json:"status"` // 1: published, 0: draft
 }
 
 type WorkRequest struct {

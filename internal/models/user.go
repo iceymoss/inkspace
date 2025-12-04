@@ -7,18 +7,25 @@ import (
 )
 
 type User struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	Username  string         `gorm:"uniqueIndex;size:50;not null" json:"username" binding:"required,min=3,max=50"`
-	Password  string         `gorm:"size:255;not null" json:"-"`
-	Email     string         `gorm:"uniqueIndex;size:100" json:"email" binding:"required,email"`
-	Nickname  string         `gorm:"size:50" json:"nickname"`
-	Avatar    string         `gorm:"size:255" json:"avatar"`
-	Bio       string         `gorm:"size:500" json:"bio"`
-	Role      string         `gorm:"size:20;default:'user'" json:"role"` // admin, user
-	Status    int            `gorm:"default:1" json:"status"`            // 1: active, 0: inactive
+	ID            uint           `gorm:"primarykey" json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	Username      string         `gorm:"uniqueIndex;size:50;not null" json:"username" binding:"required,min=3,max=50"`
+	Password      string         `gorm:"size:255;not null" json:"-"`
+	Email         string         `gorm:"uniqueIndex;size:100;not null" json:"email" binding:"required,email"`
+	Nickname      string         `gorm:"size:50" json:"nickname"`
+	Avatar        string         `gorm:"size:255" json:"avatar"`
+	Bio           string         `gorm:"size:500" json:"bio"`
+	Role          string         `gorm:"size:20;default:'user';index:idx_role_status" json:"role"` // admin, user
+	Status        int            `gorm:"default:1;index:idx_role_status" json:"status"`            // 1: active, 0: inactive
+	LastLoginAt   *time.Time     `gorm:"type:datetime(3)" json:"last_login_at"`
+	LastLoginIP    string         `gorm:"size:50" json:"last_login_ip"`
+	ArticleCount   int            `gorm:"default:0;not null" json:"article_count"`
+	CommentCount   int            `gorm:"default:0;not null" json:"comment_count"`
+	FollowingCount int            `gorm:"default:0;not null" json:"following_count"` // 关注数
+	FollowerCount  int            `gorm:"default:0;not null" json:"follower_count"`  // 粉丝数
+	FavoriteCount  int            `gorm:"default:0;not null" json:"favorite_count"`  // 收藏数
 }
 
 type UserLoginRequest struct {
@@ -40,29 +47,44 @@ type UserUpdateRequest struct {
 	Avatar   string `json:"avatar"`
 }
 
+type PasswordChangeRequest struct {
+	OldPassword string `json:"old_password" binding:"required,min=6"`
+	NewPassword string `json:"new_password" binding:"required,min=6,max=50"`
+}
+
 type UserResponse struct {
-	ID        uint      `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Nickname  string    `json:"nickname"`
-	Avatar    string    `json:"avatar"`
-	Bio       string    `json:"bio"`
-	Role      string    `json:"role"`
-	Status    int       `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	ID             uint      `json:"id"`
+	Username       string    `json:"username"`
+	Email          string    `json:"email"`
+	Nickname       string    `json:"nickname"`
+	Avatar         string    `json:"avatar"`
+	Bio            string    `json:"bio"`
+	Role           string    `json:"role"`
+	Status         int       `json:"status"`
+	ArticleCount   int       `json:"article_count"`
+	CommentCount   int       `json:"comment_count"`
+	FollowingCount int       `json:"following_count"`
+	FollowerCount  int       `json:"follower_count"`
+	FavoriteCount  int       `json:"favorite_count"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 func (u *User) ToResponse() *UserResponse {
 	return &UserResponse{
-		ID:        u.ID,
-		Username:  u.Username,
-		Email:     u.Email,
-		Nickname:  u.Nickname,
-		Avatar:    u.Avatar,
-		Bio:       u.Bio,
-		Role:      u.Role,
-		Status:    u.Status,
-		CreatedAt: u.CreatedAt,
+		ID:             u.ID,
+		Username:       u.Username,
+		Email:          u.Email,
+		Nickname:       u.Nickname,
+		Avatar:         u.Avatar,
+		Bio:            u.Bio,
+		Role:           u.Role,
+		Status:         u.Status,
+		ArticleCount:   u.ArticleCount,
+		CommentCount:   u.CommentCount,
+		FollowingCount: u.FollowingCount,
+		FollowerCount:  u.FollowerCount,
+		FavoriteCount:  u.FavoriteCount,
+		CreatedAt:      u.CreatedAt,
 	}
 }
 

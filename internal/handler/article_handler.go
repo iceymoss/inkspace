@@ -128,18 +128,52 @@ func (h *ArticleHandler) GetList(c *gin.Context) {
 	utils.PageResponse(c, articleResponses, total, query.Page, query.PageSize)
 }
 
-func (h *ArticleHandler) Like(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+// GetUserArticles 获取用户的文章列表
+// GET /api/users/:id/articles
+func (h *ArticleHandler) GetUserArticles(c *gin.Context) {
+	authorID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.BadRequest(c, "无效的ID")
+		utils.BadRequest(c, "无效的用户ID")
 		return
 	}
 
-	if err := h.service.IncrementLikeCount(uint(id)); err != nil {
-		utils.Error(c, 400, err.Error())
+	var query models.ArticleListQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		utils.BadRequest(c, err.Error())
 		return
 	}
 
-	utils.SuccessWithMessage(c, "点赞成功", nil)
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.PageSize <= 0 || query.PageSize > 100 {
+		query.PageSize = 10
+	}
+
+	// 设置作者ID过滤
+	// 这里需要扩展ArticleListQuery来支持author_id过滤
+	// 临时使用现有的GetList方法，后续可以优化
+	articles, _, err := h.service.GetList(&query)
+	if err != nil {
+		utils.InternalServerError(c, err.Error())
+		return
+	}
+
+	// 过滤出该用户的文章
+	userArticles := make([]*models.Article, 0)
+	for _, article := range articles {
+		if article.AuthorID == uint(authorID) {
+			userArticles = append(userArticles, article)
+		}
+	}
+
+	articleResponses := make([]*models.ArticleResponse, len(userArticles))
+	for i, article := range userArticles {
+		resp := article.ToResponse()
+		// Don't return full content in list
+		resp.Content = ""
+		articleResponses[i] = resp
+	}
+
+	utils.PageResponse(c, articleResponses, int64(len(userArticles)), query.Page, query.PageSize)
 }
-

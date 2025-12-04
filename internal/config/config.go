@@ -6,12 +6,18 @@ import (
 
 type Config struct {
 	Server     ServerConfig     `mapstructure:"server"`
+	Admin      AdminConfig      `mapstructure:"admin"`
 	Database   DatabaseConfig   `mapstructure:"database"`
 	Redis      RedisConfig      `mapstructure:"redis"`
 	JWT        JWTConfig        `mapstructure:"jwt"`
 	Upload     UploadConfig     `mapstructure:"upload"`
 	Pagination PaginationConfig `mapstructure:"pagination"`
 	Cache      CacheConfig      `mapstructure:"cache"`
+}
+
+type AdminConfig struct {
+	Port int    `mapstructure:"port"`
+	Mode string `mapstructure:"mode"`
 }
 
 type ServerConfig struct {
@@ -43,6 +49,7 @@ type RedisConfig struct {
 type JWTConfig struct {
 	Secret      string `mapstructure:"secret"`
 	ExpireHours int    `mapstructure:"expireHours"`
+	AdminSecret string `mapstructure:"adminSecret"` // 管理员专用secret
 }
 
 type UploadConfig struct {
@@ -64,7 +71,11 @@ type CacheConfig struct {
 var AppConfig *Config
 
 func Init() error {
-	viper.SetConfigName("config")
+	return InitWithFile("config")
+}
+
+func InitWithFile(configName string) error {
+	viper.SetConfigName(configName)
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")
