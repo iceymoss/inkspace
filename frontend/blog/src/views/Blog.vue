@@ -2,7 +2,46 @@
   <div class="blog">
     <div class="container">
       <div class="blog-header">
-        <h1>博客文章</h1>
+        <div class="header-left">
+          <h1>博客文章</h1>
+          <!-- 分类选择器 -->
+          <el-dropdown trigger="click" @command="handleCategorySelect" class="category-dropdown">
+            <el-button>
+              <el-image 
+                v-if="selectedCategoryData?.logo" 
+                :src="selectedCategoryData.logo" 
+                class="category-logo-small"
+                fit="cover"
+              />
+              <span>{{ selectedCategoryData?.name || '全部分类' }}</span>
+              <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :command="null">
+                  <span>全部分类</span>
+                </el-dropdown-item>
+                <el-dropdown-item 
+                  v-for="cat in categories" 
+                  :key="cat.id" 
+                  :command="cat.id"
+                >
+                  <div class="dropdown-category-item">
+                    <el-image 
+                      v-if="cat.logo" 
+                      :src="cat.logo" 
+                      class="category-logo-dropdown"
+                      fit="cover"
+                    />
+                    <span>{{ cat.name }}</span>
+                    <el-badge :value="cat.article_count" class="category-badge" />
+                  </div>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+        
         <el-input
           v-model="searchKeyword"
           placeholder="搜索文章..."
@@ -57,22 +96,7 @@
 
         <el-col :xs="24" :md="6">
           <el-card class="sidebar-card">
-            <h3>分类</h3>
-            <div class="category-list">
-              <el-tag
-                v-for="category in categories"
-                :key="category.id"
-                :type="selectedCategory === category.id ? 'primary' : 'info'"
-                class="category-tag"
-                @click="filterByCategory(category.id)"
-              >
-                {{ category.name }}
-              </el-tag>
-            </div>
-          </el-card>
-
-          <el-card class="sidebar-card">
-            <h3>标签</h3>
+            <h3>热门标签</h3>
             <div class="tag-list">
               <el-tag
                 v-for="tag in tags"
@@ -93,8 +117,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { Search, User, View, Clock, ArrowDown } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 
@@ -107,6 +131,12 @@ const total = ref(0)
 const searchKeyword = ref('')
 const selectedCategory = ref(null)
 const selectedTag = ref(null)
+
+// 当前选中的分类数据
+const selectedCategoryData = computed(() => {
+  if (!selectedCategory.value) return null
+  return categories.value.find(c => c.id === selectedCategory.value)
+})
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -151,8 +181,8 @@ const handleSearch = () => {
   loadArticles()
 }
 
-const filterByCategory = (categoryId) => {
-  selectedCategory.value = selectedCategory.value === categoryId ? null : categoryId
+const handleCategorySelect = (categoryId) => {
+  selectedCategory.value = categoryId
   selectedTag.value = null
   currentPage.value = 1
   loadArticles()
@@ -174,20 +204,67 @@ onMounted(() => {
 
 <style scoped>
 .blog {
-  padding: 40px 0;
+  padding: 8px 0 20px;
 }
 
 .blog-header {
-  margin-bottom: 30px;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 20px;
+  padding: 8px 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .blog-header h1 {
-  margin-bottom: 20px;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.category-dropdown {
+  flex-shrink: 0;
+}
+
+.category-button-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-logo-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.dropdown-category-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+}
+
+.category-logo-dropdown {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.category-badge {
+  margin-left: auto;
 }
 
 .search-input {
-  max-width: 500px;
+  max-width: 400px;
 }
 
 .article-list {
@@ -267,7 +344,42 @@ onMounted(() => {
   font-size: 1.1rem;
 }
 
-.category-list, .tag-list {
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid #ebeef5;
+}
+
+.category-item:hover {
+  background-color: #f5f7fa;
+  transform: translateX(5px);
+}
+
+.category-item.active {
+  background-color: #ecf5ff;
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.category-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;

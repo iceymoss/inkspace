@@ -27,6 +27,12 @@ func (h *TagHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// 如果是用户创建标签，自动设置user_id
+	if userID, exists := c.Get("user_id"); exists {
+		uid := userID.(uint)
+		req.UserID = &uid
+	}
+
 	tag, err := h.service.Create(&req)
 	if err != nil {
 		utils.Error(c, 400, err.Error())

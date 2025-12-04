@@ -88,6 +88,9 @@ func SetupUserRouter() *gin.Engine {
 			protected.PUT("/articles/:id", articleHandler.Update)
 			protected.DELETE("/articles/:id", articleHandler.Delete)
 
+			// Tags (users can create their own tags)
+			protected.POST("/tags", tagHandler.Create)
+
 			// Comments
 			protected.POST("/comments", commentHandler.Create)
 			protected.DELETE("/comments/:id", commentHandler.Delete)

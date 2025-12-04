@@ -27,6 +27,7 @@ func (s *CategoryService) Create(req *models.CategoryRequest) (*models.Category,
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Description: req.Description,
+		Logo:        req.Logo,
 		Sort:        req.Sort,
 	}
 
@@ -46,6 +47,7 @@ func (s *CategoryService) Update(id uint, req *models.CategoryRequest) (*models.
 	category.Name = req.Name
 	category.Slug = req.Slug
 	category.Description = req.Description
+	category.Logo = req.Logo
 	category.Sort = req.Sort
 
 	if err := database.DB.Save(category).Error; err != nil {

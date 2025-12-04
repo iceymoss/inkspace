@@ -35,7 +35,15 @@
         </el-form-item>
 
         <el-form-item label="标签" prop="tag_ids">
-          <el-select v-model="form.tag_ids" multiple placeholder="请选择标签">
+          <el-select 
+            v-model="form.tag_ids" 
+            multiple 
+            filterable 
+            allow-create
+            default-first-option
+            placeholder="请选择或输入新标签"
+            @change="handleTagChange"
+          >
             <el-option
               v-for="tag in tags"
               :key="tag.id"
@@ -43,6 +51,7 @@
               :value="tag.id"
             />
           </el-select>
+          <div class="form-tip">可以输入新标签名称并按回车创建</div>
         </el-form-item>
 
         <el-form-item label="摘要" prop="summary">
@@ -143,6 +152,44 @@ const fetchTags = async () => {
     tags.value = response.data || []
   } catch (error) {
     ElMessage.error('获取标签列表失败')
+  }
+}
+
+// 处理标签变化（支持创建新标签）
+const handleTagChange = async (values) => {
+  // 检查是否有新标签（字符串类型的值）
+  const newTags = values.filter(v => typeof v === 'string')
+  
+  if (newTags.length > 0) {
+    for (const tagName of newTags) {
+      try {
+        // 创建新标签
+        const response = await api.post('/tags', {
+          name: tagName,
+          slug: tagName.toLowerCase().replace(/\s+/g, '-'),
+          color: '#409eff'
+        })
+        
+        // 添加到标签列表
+        const newTag = response.data
+        tags.value.push(newTag)
+        
+        // 替换form中的字符串为ID
+        const index = form.tag_ids.indexOf(tagName)
+        if (index > -1) {
+          form.tag_ids[index] = newTag.id
+        }
+        
+        ElMessage.success(`标签"${tagName}"创建成功`)
+      } catch (error) {
+        ElMessage.error(`创建标签"${tagName}"失败`)
+        // 移除失败的标签
+        const index = form.tag_ids.indexOf(tagName)
+        if (index > -1) {
+          form.tag_ids.splice(index, 1)
+        }
+      }
+    }
   }
 }
 

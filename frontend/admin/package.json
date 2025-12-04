@@ -15,6 +15,7 @@
     "axios": "^1.6.2",
     "element-plus": "^2.5.1",
     "@element-plus/icons-vue": "^2.3.1",
+    "cropperjs": "^1.6.1",
     "markdown-it": "^14.0.0",
     "highlight.js": "^11.9.0",
     "dayjs": "^1.11.10"
@@ -27,4 +28,3 @@
     "eslint-plugin-vue": "^9.19.2"
   }
 }
-

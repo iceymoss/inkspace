@@ -14,9 +14,15 @@ func NewTagService() *TagService {
 }
 
 func (s *TagService) Create(req *models.TagRequest) (*models.Tag, error) {
-	// Check if name exists
+	// Check if name exists for this user (or globally if no user)
 	var count int64
-	if err := database.DB.Model(&models.Tag{}).Where("name = ?", req.Name).Count(&count).Error; err != nil {
+	query := database.DB.Model(&models.Tag{}).Where("name = ?", req.Name)
+	if req.UserID != nil {
+		query = query.Where("(user_id = ? OR user_id IS NULL)", *req.UserID)
+	} else {
+		query = query.Where("user_id IS NULL")
+	}
+	if err := query.Count(&count).Error; err != nil {
 		return nil, err
 	}
 	if count > 0 {
@@ -24,9 +30,10 @@ func (s *TagService) Create(req *models.TagRequest) (*models.Tag, error) {
 	}
 
 	tag := &models.Tag{
-		Name:  req.Name,
-		Slug:  req.Slug,
-		Color: req.Color,
+		Name:   req.Name,
+		Slug:   req.Slug,
+		Color:  req.Color,
+		UserID: req.UserID,
 	}
 
 	if err := database.DB.Create(tag).Error; err != nil {
@@ -45,6 +52,9 @@ func (s *TagService) Update(id uint, req *models.TagRequest) (*models.Tag, error
 	tag.Name = req.Name
 	tag.Slug = req.Slug
 	tag.Color = req.Color
+	if req.UserID != nil {
+		tag.UserID = req.UserID
+	}
 
 	if err := database.DB.Save(tag).Error; err != nil {
 		return nil, err

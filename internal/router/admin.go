@@ -24,6 +24,7 @@ func SetupAdminRouter() *gin.Engine {
 	linkHandler := handler.NewLinkHandler()
 	settingHandler := handler.NewSettingHandler()
 	adminAuthHandler := handler.NewAdminAuthHandler()
+	uploadHandler := handler.NewUploadHandler()
 	
 	// 注意：管理后台需要完整的handler来处理查询和管理操作
 
@@ -42,6 +43,14 @@ func SetupAdminRouter() *gin.Engine {
 		{
 			adminAuthRoutes.GET("/profile", adminAuthHandler.GetAdminProfile)
 			adminAuthRoutes.POST("/logout", adminAuthHandler.AdminLogout)
+		}
+
+		// Upload routes (authenticated)
+		upload := api.Group("/upload")
+		upload.Use(middleware.AdminAuthMiddleware())
+		{
+			upload.POST("/image", uploadHandler.UploadImage)
+			upload.POST("/avatar", uploadHandler.UploadAvatar)
 		}
 
 		// Admin routes (require admin authentication)
