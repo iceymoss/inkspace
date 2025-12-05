@@ -69,7 +69,8 @@ func (h *LikeHandler) LikeArticle(c *gin.Context) {
 func (h *LikeHandler) CheckWorkLiked(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		utils.Success(c, gin.H{"liked": false})
+		// 兼容两种字段名
+		utils.Success(c, gin.H{"liked": false, "is_liked": false})
 		return
 	}
 
@@ -85,15 +86,18 @@ func (h *LikeHandler) CheckWorkLiked(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, gin.H{"liked": liked})
+	// 返回两种字段名以兼容前后端
+	utils.Success(c, gin.H{"liked": liked, "is_liked": liked})
 }
 
 // CheckArticleLiked 检查是否已点赞文章
-// GET /api/articles/:id/liked
+// GET /api/articles/:id/is-liked (旧版)
+// GET /api/articles/:id/liked (新版)
 func (h *LikeHandler) CheckArticleLiked(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		utils.Success(c, gin.H{"liked": false})
+		// 兼容两种字段名
+		utils.Success(c, gin.H{"liked": false, "is_liked": false})
 		return
 	}
 
@@ -109,7 +113,8 @@ func (h *LikeHandler) CheckArticleLiked(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, gin.H{"liked": liked})
+	// 返回两种字段名以兼容前后端
+	utils.Success(c, gin.H{"liked": liked, "is_liked": liked})
 }
 
 // UnlikeArticle 取消点赞文章（兼容旧API）
@@ -134,5 +139,6 @@ func (h *LikeHandler) UnlikeComment(c *gin.Context) {
 // CheckCommentLiked 检查是否已点赞评论
 // GET /api/comments/:id/is-liked
 func (h *LikeHandler) CheckCommentLiked(c *gin.Context) {
-	utils.Success(c, gin.H{"liked": false})
+	// 兼容两种字段名
+	utils.Success(c, gin.H{"liked": false, "is_liked": false})
 }
