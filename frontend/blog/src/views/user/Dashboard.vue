@@ -107,6 +107,10 @@ onMounted(() => {
   max-width: 1200px;
 }
 
+.user-dashboard .el-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 .stats-card {
   margin-bottom: 20px;
   transition: all 0.3s;

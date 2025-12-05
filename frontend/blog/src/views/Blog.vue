@@ -117,10 +117,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Search, User, View, Clock, ArrowDown } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+
+const route = useRoute()
 
 const articles = ref([])
 const categories = ref([])
@@ -195,16 +198,39 @@ const filterByTag = (tagId) => {
   loadArticles()
 }
 
-onMounted(() => {
+// 监听 URL 参数变化，自动更新筛选条件
+watch(() => route.query, (newQuery) => {
+  if (newQuery.category_id) {
+    selectedCategory.value = parseInt(newQuery.category_id)
+    selectedTag.value = null
+  } else if (newQuery.tag_id) {
+    selectedTag.value = parseInt(newQuery.tag_id)
+    selectedCategory.value = null
+  }
+  currentPage.value = 1
   loadArticles()
+}, { immediate: false })
+
+onMounted(() => {
   loadCategories()
   loadTags()
+  
+  // 从 URL 参数初始化筛选条件
+  if (route.query.category_id) {
+    selectedCategory.value = parseInt(route.query.category_id)
+  } else if (route.query.tag_id) {
+    selectedTag.value = parseInt(route.query.tag_id)
+  }
+  
+  loadArticles()
 })
 </script>
 
 <style scoped>
 .blog {
   padding: 0 0 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .blog-header {
@@ -275,6 +301,11 @@ onMounted(() => {
 .article-item {
   margin-bottom: 20px;
   cursor: pointer;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .article-content {

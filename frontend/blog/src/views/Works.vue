@@ -64,6 +64,8 @@ onMounted(() => {
 <style scoped>
 .works {
   padding: 40px 0;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .works h1 {
@@ -75,6 +77,7 @@ onMounted(() => {
   cursor: pointer;
   margin-bottom: 20px;
   transition: transform 0.3s;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .work-card:hover {

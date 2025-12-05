@@ -113,6 +113,12 @@ onMounted(() => {
 <style scoped>
 .favorites {
   padding: 40px 0;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.favorite-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .page-header {

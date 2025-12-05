@@ -101,6 +101,12 @@ onMounted(async () => {
 .latest-articles,
 .featured-works {
   padding: 60px 0;
+  background-color: #f5f7fa;
+}
+
+.article-card,
+.work-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .section-title {

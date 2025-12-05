@@ -346,7 +346,13 @@ onMounted(() => {
 .profile-edit {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.profile-edit .el-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .card-header {

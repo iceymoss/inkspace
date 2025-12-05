@@ -191,6 +191,10 @@ onMounted(() => {
   max-width: 1400px;
 }
 
+.my-comments .el-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
