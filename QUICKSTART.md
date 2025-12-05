@@ -39,16 +39,22 @@ make dev-admin
 # 或: go run cmd/admin/main.go
 ```
 
+**终端3 - 定时任务调度器（可选但推荐）**:
+```bash
+make dev-scheduler
+# 或: go run cmd/scheduler/main.go
+```
+
 ### 步骤4：启动前端
 
-**终端3 - 博客前端**:
+**终端4 - 博客前端**:
 ```bash
 cd frontend/blog
 pnpm install  # 首次
 pnpm dev
 ```
 
-**终端4 - 管理前端**:
+**终端5 - 管理前端**:
 ```bash
 cd frontend/admin
 pnpm install  # 首次
@@ -88,15 +94,18 @@ pnpm dev
 ```bash
 make dev              # 启动用户服务 (8081)
 make dev-admin        # 启动管理服务 (8083)
+make dev-scheduler    # 启动定时任务调度器
 make build            # 编译用户服务
 make build-admin      # 编译管理服务
+make build-scheduler  # 编译定时任务调度器
+make build-all        # 编译所有服务
 make db-migrate       # 数据库迁移
 make db-init          # 初始化数据
 ```
 
 ---
 
-## 🎯 四服务说明
+## 🎯 服务说明
 
 | 服务 | 端口 | 目录 | 用途 |
 |------|------|------|------|
@@ -104,6 +113,7 @@ make db-init          # 初始化数据
 | 管理前端 | 3002 | frontend/admin | 管理界面 |
 | 用户服务 | 8081 | cmd/server | 用户API |
 | 管理服务 | 8083 | cmd/admin | 管理API |
+| 定时任务 | - | cmd/scheduler | 后台统计（可选） |
 
 ---
 

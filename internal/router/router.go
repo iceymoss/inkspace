@@ -115,13 +115,13 @@ func SetupRouterOld() *gin.Engine {
 			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
 
 			// Notifications
-			protected.GET("/notifications", notificationHandler.GetList)
+			protected.GET("/notifications", notificationHandler.GetNotifications)
 			protected.PUT("/notifications/:id/read", notificationHandler.MarkAsRead)
 			protected.PUT("/notifications/read-all", notificationHandler.MarkAllAsRead)
 			protected.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
-			protected.DELETE("/notifications/:id", notificationHandler.Delete)
+			protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
 		}
-		
+
 		// ⚠️ 注意：所有管理后台路由已移至独立服务
 		// 用户服务不再提供 /api/admin/* 路由
 		// 请使用独立的管理后台服务 (端口 8083)
@@ -138,4 +138,3 @@ func SetupRouterOld() *gin.Engine {
 
 	return r
 }
-

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"gorm.io/gorm"
@@ -11,8 +12,10 @@ type Comment struct {
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
-	ArticleID  uint           `gorm:"index:idx_article_id;not null" json:"article_id"`
-	Article    *Article       `gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE" json:"article,omitempty"`
+	ArticleID  *uint          `gorm:"index:idx_article_id" json:"article_id"`
+	Article    *Article       `gorm:"foreignKey:ArticleID" json:"article,omitempty"`
+	WorkID     *uint          `gorm:"index:idx_work_id" json:"work_id"`
+	Work       *Work          `gorm:"foreignKey:WorkID" json:"work,omitempty"`
 	UserID     uint           `gorm:"index:idx_user_id" json:"user_id"`
 	User       *User          `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL" json:"user,omitempty"`
 	Content    string         `gorm:"type:text;not null" json:"content" binding:"required"`
@@ -31,7 +34,8 @@ type Comment struct {
 }
 
 type CommentRequest struct {
-	ArticleID uint   `json:"article_id" binding:"required"`
+	ArticleID *uint  `json:"article_id"`
+	WorkID    *uint  `json:"work_id"`
 	Content   string `json:"content" binding:"required,max=500"`
 	ParentID  *uint  `json:"parent_id"`
 	Nickname  string `json:"nickname" binding:"omitempty,max=50"`
@@ -40,17 +44,20 @@ type CommentRequest struct {
 }
 
 type CommentListQuery struct {
-	Page      int  `form:"page,default=1"`
-	PageSize  int  `form:"page_size,default=10"`
-	ArticleID uint `form:"article_id"`
-	UserID    uint `form:"user_id"`
-	Status    *int `form:"status"`
+	Page      int   `form:"page,default=1"`
+	PageSize  int   `form:"page_size,default=10"`
+	ArticleID *uint `form:"article_id"`
+	WorkID    *uint `form:"work_id"`
+	UserID    uint  `form:"user_id"`
+	Status    *int  `form:"status"`
 }
 
 type CommentResponse struct {
 	ID         uint              `json:"id"`
-	ArticleID  uint              `json:"article_id"`
+	ArticleID  *uint             `json:"article_id"`
 	Article    *ArticleResponse  `json:"article,omitempty"`
+	WorkID     *uint             `json:"work_id"`
+	Work       *WorkResponse     `json:"work,omitempty"`
 	UserID     uint              `json:"user_id"`
 	User       *UserResponse     `json:"user,omitempty"`
 	Content    string            `json:"content"`
@@ -70,6 +77,7 @@ func (c *Comment) ToResponse() *CommentResponse {
 	resp := &CommentResponse{
 		ID:         c.ID,
 		ArticleID:  c.ArticleID,
+		WorkID:     c.WorkID,
 		UserID:     c.UserID,
 		Content:    c.Content,
 		ParentID:   c.ParentID,
@@ -92,6 +100,23 @@ func (c *Comment) ToResponse() *CommentResponse {
 		articleResp := c.Article.ToResponse()
 		articleResp.Content = "" // 不返回文章内容
 		resp.Article = articleResp
+	}
+
+	if c.Work != nil {
+		// 简单返回基本信息，不需要完整的 ToResponse
+		// 完整的转换由 work_handler 处理
+		var images []PhotoItem
+		if c.Work.Images != "" {
+			json.Unmarshal([]byte(c.Work.Images), &images)
+		}
+		resp.Work = &WorkResponse{
+			ID:           c.Work.ID,
+			Title:        c.Work.Title,
+			Description:  c.Work.Description,
+			Cover:        c.Work.Cover,
+			Images:       images,
+			CommentCount: c.Work.CommentCount,
+		}
 	}
 
 	return resp

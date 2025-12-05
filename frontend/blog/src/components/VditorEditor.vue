@@ -69,10 +69,11 @@ onMounted(() => {
             msg: '',
             code: 0,
             data: {
-              errFiles: [],
-              succMap: {
-                [files[0].name]: `http://localhost:8081${response.data.url}`
-              }
+            errFiles: [],
+            succMap: {
+              // 直接使用相对路径
+              [files[0].name]: response.data.url
+            }
             }
           })
         }

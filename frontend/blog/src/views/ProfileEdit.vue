@@ -328,9 +328,8 @@ const beforeAvatarUpload = (file) => {
 // 头像上传成功
 const handleAvatarSuccess = (response) => {
   if (response.code === 0 && response.data) {
-    // 后端返回的是相对路径，需要拼接完整URL
-    const avatarUrl = `http://localhost:8081${response.data.url}`
-    form.avatar = avatarUrl
+    // 后端返回的是相对路径，直接使用
+    form.avatar = response.data.url
     ElMessage.success('头像上传成功')
   } else {
     ElMessage.error(response.message || '头像上传失败')
@@ -346,7 +345,13 @@ onMounted(() => {
 .profile-edit {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.profile-edit .el-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .card-header {

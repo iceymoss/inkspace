@@ -17,13 +17,36 @@
             </el-button>
           </div>
           <div class="article-meta">
-            <el-tag v-if="article.category">{{ article.category.name }}</el-tag>
-            <span><el-icon><User /></el-icon> {{ article.author?.nickname || article.author?.username }}</span>
+            <el-tag 
+              v-if="article.category" 
+              class="clickable-tag"
+              @click="handleCategoryClick(article.category.id)"
+            >
+              {{ article.category.name }}
+            </el-tag>
+            <span 
+              class="author-info clickable-author"
+              @click="handleAuthorClick"
+            >
+              <el-avatar 
+                :size="24" 
+                :src="article.author?.avatar" 
+                class="author-avatar"
+              />
+              {{ article.author?.nickname || article.author?.username }}
+            </span>
             <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
             <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
           </div>
           <div class="article-tags">
-            <el-tag v-for="tag in article.tags" :key="tag.id" size="small" type="info">
+            <el-tag 
+              v-for="tag in article.tags" 
+              :key="tag.id" 
+              size="small" 
+              type="info"
+              class="clickable-tag"
+              @click="handleTagClick(tag.id)"
+            >
               {{ tag.name }}
             </el-tag>
           </div>
@@ -85,16 +108,24 @@
 
         <div class="comment-list">
           <div v-for="comment in comments" :key="comment.id" class="comment-item">
-            <el-avatar :src="comment.user?.avatar" />
+            <el-avatar 
+              :src="comment.user?.avatar" 
+              class="clickable-avatar"
+              @click="handleUserClick(comment.user_id)"
+            />
             <div class="comment-content">
               <div class="comment-header">
-                <span class="comment-author">
-                  {{ comment.user?.nickname || comment.nickname }}
+                <div class="comment-author-section">
+                  <span class="comment-author">
+                    {{ comment.user?.nickname || comment.nickname }}
+                  </span>
                   <el-tag v-if="isCommentAuthor(comment)" type="warning" size="small" effect="plain" class="author-tag">
                     作者
                   </el-tag>
-                </span>
-                <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
+                </div>
+                <div class="comment-meta-section">
+                  <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
+                </div>
               </div>
               <p>{{ comment.content }}</p>
               <div class="comment-actions">
@@ -147,8 +178,13 @@
               
               <!-- 回复列表 -->
               <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
-                <div v-for="reply in getDirectReplies(comment)" :key="reply.id" class="reply-item">
-                  <el-avatar :src="reply.user?.avatar" size="small" />
+                <div v-for="reply in getDisplayedReplies(comment)" :key="reply.id" class="reply-item">
+                  <el-avatar 
+                    :src="reply.user?.avatar" 
+                    size="small"
+                    class="clickable-avatar"
+                    @click="handleUserClick(reply.user_id)"
+                  />
                   <div class="reply-content">
                     <div class="reply-header">
                       <span class="reply-author">
@@ -156,8 +192,13 @@
                         <el-tag v-if="isCommentAuthor(reply)" type="warning" size="small" effect="plain" class="author-tag">
                           作者
                         </el-tag>
-                        <span v-if="reply.parent_id && reply.parent_id !== comment.id" class="reply-to">
-                          回复 @{{ getReplyTargetName(comment, reply) }}
+                        <span v-if="reply.parent_id" class="reply-to">
+                          <template v-if="reply.parent_id === comment.id">
+                            回复 @{{ comment.user?.nickname || comment.nickname }}
+                          </template>
+                          <template v-else>
+                            回复 @{{ getReplyTargetName(comment, reply) }}
+                          </template>
                         </span>
                       </span>
                       <span class="reply-time">{{ formatDate(reply.created_at) }}</span>
@@ -212,19 +253,39 @@
                     </div>
                   </div>
                 </div>
+                
+                <!-- 展开更多子评论按钮 -->
+                <div v-if="hasMoreReplies(comment)" class="load-more-replies">
+                  <el-button 
+                    text 
+                    size="small" 
+                    @click="loadMoreReplies(comment)"
+                    :loading="comment.loadingReplies"
+                  >
+                    <el-icon><ArrowDown /></el-icon>
+                    {{ comment.loadingReplies ? '加载中...' : `展开更多回复 (${comment.reply_count - getDisplayedReplies(comment).length} 条)` }}
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="pagination" v-if="commentsTotal > 0">
-          <el-pagination
-            v-model:current-page="commentsPage"
-            :page-size="10"
-            :total="commentsTotal"
-            layout="prev, pager, next"
-            @current-change="loadComments"
-          />
+        <div class="load-more-container" v-if="hasMoreComments">
+          <el-button 
+            @click="loadMoreComments"
+            :loading="loadingMoreComments"
+            class="load-more-btn"
+          >
+            <el-icon v-if="!loadingMoreComments"><ArrowDown /></el-icon>
+            {{ loadingMoreComments ? '加载中...' : '加载更多评论' }}
+          </el-button>
+          <div class="comment-count-info">
+            已显示 {{ comments.length }} / {{ commentsTotal }} 条评论
+          </div>
+        </div>
+        <div v-else-if="comments.length > 0" class="no-more-comments">
+          已显示全部 {{ comments.length }} 条评论
         </div>
       </el-card>
     </div>
@@ -235,7 +296,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star, Collection, User, View, Clock, Edit, ChatDotRound } from '@element-plus/icons-vue'
+import { Star, Collection, User, View, Clock, Edit, ChatDotRound, ArrowDown } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
@@ -252,6 +313,8 @@ const commentsPage = ref(1)
 const commentsTotal = ref(0)
 const commentContent = ref('')
 const submitting = ref(false)
+const loadingMoreComments = ref(false)
+const hasMoreComments = ref(false)
 const isLiked = ref(false)
 const likeLoading = ref(false)
 const isFavorited = ref(false)
@@ -349,7 +412,7 @@ const loadArticle = async () => {
   }
 }
 
-const loadComments = async () => {
+const loadComments = async (append = false) => {
   try {
     const response = await api.get('/comments', {
       params: {
@@ -362,33 +425,27 @@ const loadComments = async () => {
     console.debug('Loaded comments:', commentsList.map(c => ({ id: c.id, like_count: c.like_count })))
     
     // 为每个评论添加状态和初始化回复
-    // 注意：必须保留服务器返回的 like_count，这是真实的点赞数
-    const existingComments = comments.value || []
-    comments.value = commentsList.map(comment => {
-      // 查找是否已存在该评论（用于保留UI状态，但不覆盖服务器数据）
+    const existingComments = append ? comments.value : []
+    const newComments = commentsList.map(comment => {
       const existingComment = existingComments.find(c => c.id === comment.id)
       return {
         ...comment,
-        // 重要：使用服务器返回的 like_count，这是真实的点赞数
-        // 不要使用本地计算的值，因为可能有多个用户同时点赞
         like_count: comment.like_count !== undefined ? comment.like_count : 0,
-        // 注意：isLiked 状态会在后面通过 checkCommentLiked 重新检查
-        // 这里先设置为 false，避免显示错误的状态
-        isLiked: false, // 将在后面重新检查
-        likeLoading: false, // 重置loading状态
+        isLiked: false,
+        likeLoading: false,
         showReply: existingComment?.showReply || false,
         replyContent: existingComment?.replyContent || '',
         replying: existingComment?.replying || false,
         replyTo: existingComment?.replyTo || null,
+        loadingReplies: existingComment?.loadingReplies || false,
+        repliesPage: existingComment?.repliesPage || 1,
         replies: (comment.replies || []).map(reply => {
           const existingReply = existingComment?.replies?.find(r => r.id === reply.id)
           return {
             ...reply,
-            // 重要：使用服务器返回的 like_count
             like_count: reply.like_count !== undefined ? reply.like_count : 0,
-            // 注意：isLiked 状态会在后面通过 checkCommentLiked 重新检查
-            isLiked: false, // 将在后面重新检查
-            likeLoading: false, // 重置loading状态
+            isLiked: false,
+            likeLoading: false,
             showReply: existingReply?.showReply || false,
             replyContent: existingReply?.replyContent || '',
             replying: existingReply?.replying || false,
@@ -398,27 +455,47 @@ const loadComments = async () => {
       }
     })
     
+    // 如果是追加模式，合并评论；否则替换
+    if (append) {
+      comments.value = [...comments.value, ...newComments]
+    } else {
+      comments.value = newComments
+    }
+    
     commentsTotal.value = response.data.total || 0
     
-    // 检查每个评论的点赞状态（并行检查以提高性能）
-    // 注意：必须在重新加载后检查，确保使用最新的评论对象
+    // 判断是否还有更多评论
+    hasMoreComments.value = comments.value.length < commentsTotal.value
+    
+    // 检查每个评论的点赞状态
     const checkPromises = []
-    for (const comment of comments.value) {
+    for (const comment of newComments) {
       checkPromises.push(checkCommentLiked(comment))
-      // 检查回复的点赞状态
       if (comment.replies && comment.replies.length > 0) {
         for (const reply of comment.replies) {
           checkPromises.push(checkCommentLiked(reply))
         }
       }
     }
-    // 等待所有检查完成，确保点赞状态正确显示
     await Promise.all(checkPromises).catch(err => {
       console.error('Failed to check comment like status:', err)
     })
     console.debug('Comments loaded and like status checked:', comments.value.map(c => ({ id: c.id, like_count: c.like_count, isLiked: c.isLiked })))
   } catch (error) {
     console.error('Failed to load comments:', error)
+  }
+}
+
+// 加载更多评论
+const loadMoreComments = async () => {
+  if (loadingMoreComments.value || !hasMoreComments.value) return
+  
+  loadingMoreComments.value = true
+  try {
+    commentsPage.value++
+    await loadComments(true) // 追加模式
+  } finally {
+    loadingMoreComments.value = false
   }
 }
 
@@ -441,7 +518,9 @@ const submitComment = async () => {
     })
     ElMessage.success('评论发表成功')
     commentContent.value = ''
-    loadComments()
+    // 重置为第一页并重新加载
+    commentsPage.value = 1
+    await loadComments(false)
   } catch (error) {
     ElMessage.error('评论发表失败')
   } finally {
@@ -507,18 +586,32 @@ const submitReply = async (comment) => {
     return
   }
 
+  // 去掉 @用户名称 前缀，只保留实际评论内容
+  let content = comment.replyContent.trim()
+  if (comment.replyTo) {
+    const mentionPattern = new RegExp(`^@${comment.replyTo.user?.nickname || comment.replyTo.nickname}\\s*`, 'i')
+    content = content.replace(mentionPattern, '')
+  }
+
+  if (!content) {
+    ElMessage.warning('请输入回复内容')
+    return
+  }
+
   comment.replying = true
   try {
     await api.post('/comments', {
       article_id: parseInt(route.params.id),
-      content: comment.replyContent.trim(),
+      content: content,
       parent_id: comment.replyTo ? comment.replyTo.id : comment.id
     })
     ElMessage.success('回复成功')
     comment.showReply = false
     comment.replyContent = ''
     comment.replyTo = null
-    loadComments()
+    // 重置为第一页并重新加载
+    commentsPage.value = 1
+    await loadComments(false)
   } catch (error) {
     ElMessage.error('回复失败')
   } finally {
@@ -533,18 +626,32 @@ const submitReplyToReply = async (parentComment, reply) => {
     return
   }
 
+  // 去掉 @用户名称 前缀，只保留实际评论内容
+  let content = reply.replyContent.trim()
+  if (reply.replyTo) {
+    const mentionPattern = new RegExp(`^@${reply.replyTo.user?.nickname || reply.replyTo.nickname}\\s*`, 'i')
+    content = content.replace(mentionPattern, '')
+  }
+
+  if (!content) {
+    ElMessage.warning('请输入回复内容')
+    return
+  }
+
   reply.replying = true
   try {
     await api.post('/comments', {
       article_id: parseInt(route.params.id),
-      content: reply.replyContent.trim(),
+      content: content,
       parent_id: reply.replyTo ? reply.replyTo.id : reply.id
     })
     ElMessage.success('回复成功')
     reply.showReply = false
     reply.replyContent = ''
     reply.replyTo = null
-    loadComments()
+    // 重置为第一页并重新加载
+    commentsPage.value = 1
+    await loadComments(false)
   } catch (error) {
     ElMessage.error('回复失败')
   } finally {
@@ -563,6 +670,61 @@ const cancelReplyToReply = (reply) => {
 const getDirectReplies = (comment) => {
   if (!comment.replies) return []
   return comment.replies.filter(reply => reply.parent_id === comment.id)
+}
+
+// 获取当前显示的子评论（所有子评论，包括回复的回复）
+const getDisplayedReplies = (comment) => {
+  if (!comment.replies) return []
+  // 返回所有子评论（按时间排序，后端已经排序）
+  return comment.replies
+}
+
+// 判断是否有更多子评论
+const hasMoreReplies = (comment) => {
+  if (!comment.reply_count) return false
+  const displayedCount = getDisplayedReplies(comment).length
+  return comment.reply_count > displayedCount
+}
+
+// 加载更多子评论
+const loadMoreReplies = async (comment) => {
+  if (!comment || comment.loadingReplies) return
+  
+  comment.loadingReplies = true
+  try {
+    const nextPage = (comment.repliesPage || 1) + 1
+    const response = await api.get(`/comments/replies/${comment.id}`, {
+      params: {
+        page: nextPage,
+        page_size: 10
+      }
+    })
+    
+    const newReplies = (response.data.list || []).map(reply => ({
+      ...reply,
+      like_count: reply.like_count !== undefined ? reply.like_count : 0,
+      isLiked: false,
+      likeLoading: false,
+      showReply: false,
+      replyContent: '',
+      replying: false,
+      replyTo: null
+    }))
+    
+    // 合并新回复到现有回复列表
+    comment.replies = [...(comment.replies || []), ...newReplies]
+    comment.repliesPage = nextPage
+    
+    // 检查新加载的回复的点赞状态
+    for (const reply of newReplies) {
+      await checkCommentLiked(reply)
+    }
+  } catch (error) {
+    console.error('Failed to load more replies:', error)
+    ElMessage.error('加载更多回复失败')
+  } finally {
+    comment.loadingReplies = false
+  }
 }
 
 // 获取回复目标名称
@@ -609,7 +771,8 @@ const handleCommentLike = async (comment) => {
       // 先更新本地状态（乐观更新）
       comment.isLiked = false
       // 重新加载评论以获取服务器端的最新点赞数，确保数据一致性
-      await loadComments()
+      commentsPage.value = 1
+      await loadComments(false)
       // 重新检查点赞状态（因为重新加载后comment对象可能变化）
       const updatedComment = comments.value.find(c => c.id === commentId) || 
                             comments.value.flatMap(c => c.replies || []).find(r => r.id === commentId)
@@ -627,7 +790,8 @@ const handleCommentLike = async (comment) => {
       // 先更新本地状态（乐观更新）
       comment.isLiked = true
       // 重新加载评论以获取服务器端的最新点赞数，确保数据一致性
-      await loadComments()
+      commentsPage.value = 1
+      await loadComments(false)
       // 重新检查点赞状态（因为重新加载后comment对象可能变化）
       const updatedComment = comments.value.find(c => c.id === commentId) || 
                             comments.value.flatMap(c => c.replies || []).find(r => r.id === commentId)
@@ -647,7 +811,8 @@ const handleCommentLike = async (comment) => {
     // 重新检查状态和重新加载评论以获取最新数据
     await checkCommentLiked(comment)
     // 重新加载评论列表以获取最新的点赞数
-    await loadComments()
+    commentsPage.value = 1
+    await loadComments(false)
   } finally {
     comment.likeLoading = false
   }
@@ -658,7 +823,9 @@ const handleDeleteComment = async (comment) => {
     await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' })
     await api.delete(`/comments/${comment.id}`)
     ElMessage.success('删除成功')
-    loadComments()
+    // 重置为第一页并重新加载
+    commentsPage.value = 1
+    await loadComments(false)
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
@@ -668,50 +835,66 @@ const handleDeleteComment = async (comment) => {
 
 
 const checkLiked = async () => {
+  if (!userStore.isLoggedIn) {
+    isLiked.value = false
+    return
+  }
   try {
     const response = await api.get(`/articles/${route.params.id}/is-liked`)
-    isLiked.value = response.data.is_liked
+    isLiked.value = response.data.is_liked || response.data.liked || false
   } catch (error) {
     console.error('Failed to check like status:', error)
+    isLiked.value = false
   }
 }
 
 const handleLike = async () => {
   if (!article.value) return
   
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
   likeLoading.value = true
   try {
+    // 后端是 toggle 操作，统一使用 POST
+    await api.post(`/articles/${route.params.id}/like`)
+    
+    // toggle 状态
+    isLiked.value = !isLiked.value
+    
+    // 更新计数
     if (isLiked.value) {
-      await api.delete(`/articles/${route.params.id}/like`)
-      ElMessage.success('取消点赞成功')
-      isLiked.value = false
-      // 确保数字正确更新
-      article.value.like_count = Math.max(0, (article.value.like_count || 0) - 1)
-    } else {
-      await api.post(`/articles/${route.params.id}/like`)
       ElMessage.success('点赞成功')
-      isLiked.value = true
-      // 确保数字正确更新
       article.value.like_count = (article.value.like_count || 0) + 1
+    } else {
+      ElMessage.success('取消点赞')
+      article.value.like_count = Math.max(0, (article.value.like_count || 0) - 1)
     }
   } catch (error) {
-    ElMessage.error(error.message || '操作失败')
-    // 如果操作失败，重新检查状态和重新加载文章
-    checkLiked()
-    loadArticle()
+    ElMessage.error(error.response?.data?.message || '操作失败')
+    // 如果操作失败，重新检查状态
+    await checkLiked()
+    await loadArticle()
   } finally {
     likeLoading.value = false
   }
 }
 
 const checkFavorited = async () => {
-  if (!userStore.isLoggedIn) return
+  if (!userStore.isLoggedIn) {
+    isFavorited.value = false
+    return
+  }
   
   try {
     const response = await api.get(`/articles/${route.params.id}/is-favorited`)
-    isFavorited.value = response.data.is_favorited
+    isFavorited.value = response.data.is_favorited || response.data.favorited || false
   } catch (error) {
     console.error('Failed to check favorite status:', error)
+    isFavorited.value = false
   }
 }
 
@@ -749,6 +932,38 @@ const handleEdit = () => {
   router.push(`/dashboard/articles/${article.value.id}/edit`)
 }
 
+// 处理分类点击 - 跳转到博客列表页并筛选该分类
+const handleCategoryClick = (categoryId) => {
+  if (!categoryId) return
+  router.push({
+    path: '/blog',
+    query: { category_id: categoryId }
+  })
+}
+
+// 处理标签点击 - 跳转到博客列表页并筛选该标签
+const handleTagClick = (tagId) => {
+  if (!tagId) return
+  router.push({
+    path: '/blog',
+    query: { tag_id: tagId }
+  })
+}
+
+// 处理用户点击 - 跳转到用户主页
+const handleUserClick = (userId) => {
+  if (!userId) return
+  router.push(`/users/${userId}`)
+}
+
+// 处理文章作者点击 - 跳转到作者主页
+const handleAuthorClick = () => {
+  if (!article.value || !article.value.author) return
+  const authorId = article.value.author_id || article.value.author.id
+  if (!authorId) return
+  router.push(`/users/${authorId}`)
+}
+
 onMounted(async () => {
   // 如果已登录但用户信息未加载，先获取用户信息
   if (userStore.isLoggedIn && !userStore.user) {
@@ -770,10 +985,17 @@ onMounted(async () => {
 <style scoped>
 .blog-detail {
   padding: 40px 0;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .article-card {
   margin-bottom: 30px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.comments-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .article-header {
@@ -811,6 +1033,48 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.author-avatar {
+  flex-shrink: 0;
+}
+
+.clickable-author {
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.clickable-author:hover {
+  background-color: #f5f7fa;
+  color: #409eff;
+}
+
+.clickable-tag {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.clickable-tag:hover {
+  transform: translateY(-2px);
+  opacity: 0.8;
+}
+
+.clickable-avatar {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.clickable-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .article-tags {
@@ -875,12 +1139,26 @@ onMounted(async () => {
 .comment-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.comment-author-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .comment-author {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 15px;
+}
+
+.comment-meta-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .comment-time {
@@ -949,8 +1227,7 @@ onMounted(async () => {
 }
 
 .author-tag {
-  margin-left: 8px;
-  vertical-align: middle;
+  /* 已在 comment-author-section 中通过 gap 控制间距 */
 }
 
 .reply-time {
@@ -964,10 +1241,38 @@ onMounted(async () => {
   margin-top: 8px;
 }
 
-.pagination {
-  margin-top: 20px;
+.load-more-container {
+  margin-top: 30px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.load-more-btn {
+  min-width: 200px;
+}
+
+.load-more-replies {
+  margin-top: 10px;
+  padding: 10px 0;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
+}
+
+.comment-count-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.no-more-comments {
+  margin-top: 30px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
 }
 </style>
 

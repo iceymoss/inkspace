@@ -78,11 +78,17 @@ func createForeignKeys() error {
 		FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 	`)
 
-	// 评论表外键
+	// 评论表外键（注意：article_id 和 work_id 可以为 NULL）
 	DB.Exec(`
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_article 
 		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+	`)
+
+	DB.Exec(`
+		ALTER TABLE comments 
+		ADD CONSTRAINT fk_comments_work 
+		FOREIGN KEY (work_id) REFERENCES works(id) ON DELETE CASCADE
 	`)
 
 	DB.Exec(`
@@ -95,6 +101,13 @@ func createForeignKeys() error {
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_parent 
 		FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+	`)
+
+	// 作品表外键
+	DB.Exec(`
+		ALTER TABLE works 
+		ADD CONSTRAINT fk_works_author 
+		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	`)
 
 	// 文章标签关联表外键
@@ -211,6 +224,17 @@ func SyncCounters() error {
 		SET reply_count = (
 			SELECT COUNT(*) FROM comments r 
 			WHERE r.parent_id = c.id AND r.deleted_at IS NULL
+		)
+	`).Error; err != nil {
+		return err
+	}
+
+	// 同步作品的评论数
+	if err := DB.Exec(`
+		UPDATE works w 
+		SET comment_count = (
+			SELECT COUNT(*) FROM comments c 
+			WHERE c.work_id = w.id AND c.deleted_at IS NULL
 		)
 	`).Error; err != nil {
 		return err

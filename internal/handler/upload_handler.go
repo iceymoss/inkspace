@@ -53,7 +53,7 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	uploadDir := "uploads/images"
 	dateDir := time.Now().Format("2006/01/02")
 	fullDir := filepath.Join(uploadDir, dateDir)
-	
+
 	if err := os.MkdirAll(fullDir, 0755); err != nil {
 		utils.InternalServerError(c, "创建上传目录失败")
 		return
@@ -87,7 +87,7 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 
 	// 返回文件访问URL
 	fileURL := fmt.Sprintf("/%s/%s/%s", uploadDir, dateDir, filename)
-	
+
 	utils.Success(c, gin.H{
 		"url":      fileURL,
 		"filename": file.Filename,
@@ -159,7 +159,7 @@ func (h *UploadHandler) UploadAvatar(c *gin.Context) {
 
 	// 返回文件访问URL
 	fileURL := fmt.Sprintf("/%s/%s", uploadDir, filename)
-	
+
 	utils.Success(c, gin.H{
 		"url":      fileURL,
 		"filename": file.Filename,
@@ -167,3 +167,77 @@ func (h *UploadHandler) UploadAvatar(c *gin.Context) {
 	})
 }
 
+// UploadPhoto 上传摄影作品原图（不压缩，保留原图质量）
+// POST /api/upload/photo
+func (h *UploadHandler) UploadPhoto(c *gin.Context) {
+	// 获取上传的文件
+	file, err := c.FormFile("file")
+	if err != nil {
+		utils.BadRequest(c, "请选择要上传的文件")
+		return
+	}
+
+	// 验证文件大小（摄影作品限制20MB，保留高质量）
+	if file.Size > 20*1024*1024 {
+		utils.BadRequest(c, "摄影作品文件大小不能超过20MB")
+		return
+	}
+
+	// 验证文件类型（只支持高质量图片格式）
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowedExts := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+	}
+	if !allowedExts[ext] {
+		utils.BadRequest(c, "摄影作品只支持 jpg, jpeg, png 格式")
+		return
+	}
+
+	// 创建专门的摄影作品上传目录
+	uploadDir := "uploads/photos"
+	dateDir := time.Now().Format("2006/01/02")
+	fullDir := filepath.Join(uploadDir, dateDir)
+
+	if err := os.MkdirAll(fullDir, 0755); err != nil {
+		utils.InternalServerError(c, "创建上传目录失败")
+		return
+	}
+
+	// 生成唯一文件名
+	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+	filePath := filepath.Join(fullDir, filename)
+
+	// 打开上传的文件
+	src, err := file.Open()
+	if err != nil {
+		utils.InternalServerError(c, "打开文件失败")
+		return
+	}
+	defer src.Close()
+
+	// 创建目标文件
+	dst, err := os.Create(filePath)
+	if err != nil {
+		utils.InternalServerError(c, "创建文件失败")
+		return
+	}
+	defer dst.Close()
+
+	// 直接复制文件内容（保留原图质量，不进行任何压缩）
+	if _, err := io.Copy(dst, src); err != nil {
+		utils.InternalServerError(c, "保存文件失败")
+		return
+	}
+
+	// 返回文件访问URL
+	fileURL := fmt.Sprintf("/%s/%s/%s", uploadDir, dateDir, filename)
+
+	utils.Success(c, gin.H{
+		"url":      fileURL,
+		"filename": file.Filename,
+		"size":     file.Size,
+		"type":     "photo", // 标记为摄影作品原图
+	})
+}

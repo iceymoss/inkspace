@@ -41,13 +41,25 @@ func SetupUserRouter() *gin.Engine {
 
 			// Articles (public read)
 			public.GET("/articles", articleHandler.GetList)
+			public.GET("/articles/recommended", articleHandler.GetRecommended)
+			public.GET("/articles/hot", articleHandler.GetHotArticles)
 			public.GET("/articles/:id", articleHandler.GetDetail)
-			public.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
+
+			// 状态检查API（可选认证）
+			publicWithOptionalAuth := api.Group("")
+			publicWithOptionalAuth.Use(middleware.OptionalAuthMiddleware())
+			{
+				publicWithOptionalAuth.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
+				publicWithOptionalAuth.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
+				publicWithOptionalAuth.GET("/works/:id/liked", likeHandler.CheckWorkLiked)
+				publicWithOptionalAuth.GET("/works/:id/favorited", favoriteHandler.CheckWorkFavorited)
+			}
 
 			// Comments (public read)
 			public.GET("/comments", commentHandler.GetList)
+			public.GET("/comments/replies/:root_id", commentHandler.GetReplies) // 获取子评论分页列表
 			public.GET("/comments/:id/is-liked", likeHandler.CheckCommentLiked)
-			
+
 			// Comment likes (public, can be done by guests)
 			public.POST("/comments/:id/like", likeHandler.LikeComment)
 			public.DELETE("/comments/:id/like", likeHandler.UnlikeComment)
@@ -58,7 +70,12 @@ func SetupUserRouter() *gin.Engine {
 
 			// Works
 			public.GET("/works", workHandler.GetList)
+			public.GET("/works/recommended", workHandler.GetRecommended)
+			public.GET("/works/hot", workHandler.GetHotWorks)
 			public.GET("/works/:id", workHandler.GetDetail)
+
+			// Work Comments (public read, same as article comments)
+			// Comments endpoint handles both article and work comments via query params
 
 			// User Profile (public)
 			public.GET("/users/:id", userHandler.GetUserProfile)
@@ -87,11 +104,19 @@ func SetupUserRouter() *gin.Engine {
 			// Upload
 			protected.POST("/upload/image", uploadHandler.UploadImage)
 			protected.POST("/upload/avatar", uploadHandler.UploadAvatar)
+			protected.POST("/upload/photo", uploadHandler.UploadPhoto) // 摄影作品原图上传
 
 			// Articles (author can manage their own articles)
 			protected.POST("/articles", articleHandler.Create)
 			protected.PUT("/articles/:id", articleHandler.Update)
 			protected.DELETE("/articles/:id", articleHandler.Delete)
+
+			// Works (author can manage their own works)
+			protected.POST("/works", workHandler.Create)
+			protected.PUT("/works/:id", workHandler.Update)
+			protected.DELETE("/works/:id", workHandler.Delete)
+			protected.GET("/works/quota", workHandler.GetQuotaUsage)
+			protected.GET("/works/my", workHandler.GetMyWorks)
 
 			// Tags (users can create their own tags)
 			protected.POST("/tags", tagHandler.Create)
@@ -100,9 +125,10 @@ func SetupUserRouter() *gin.Engine {
 			protected.POST("/comments", commentHandler.Create)
 			protected.DELETE("/comments/:id", commentHandler.Delete)
 
-			// Likes (articles require auth, comments are public)
+			// Likes (articles and works require auth, comments are public)
 			protected.POST("/articles/:id/like", likeHandler.LikeArticle)
 			protected.DELETE("/articles/:id/like", likeHandler.UnlikeArticle)
+			protected.POST("/works/:id/like", likeHandler.LikeWork)
 
 			// Follow
 			protected.POST("/users/:id/follow", followHandler.Follow)
@@ -111,15 +137,17 @@ func SetupUserRouter() *gin.Engine {
 			// Favorites
 			protected.POST("/articles/:id/favorite", favoriteHandler.AddFavorite)
 			protected.DELETE("/articles/:id/favorite", favoriteHandler.RemoveFavorite)
-			protected.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
+			protected.POST("/works/:id/favorite", favoriteHandler.AddWorkFavorite)
+			protected.DELETE("/works/:id/favorite", favoriteHandler.RemoveWorkFavorite)
 			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
 
 			// Notifications
-			protected.GET("/notifications", notificationHandler.GetList)
+			protected.GET("/notifications", notificationHandler.GetNotifications)
+			protected.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
 			protected.PUT("/notifications/:id/read", notificationHandler.MarkAsRead)
 			protected.PUT("/notifications/read-all", notificationHandler.MarkAllAsRead)
-			protected.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
-			protected.DELETE("/notifications/:id", notificationHandler.Delete)
+			protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
+			protected.DELETE("/notifications/read-all", notificationHandler.DeleteAllRead)
 		}
 	}
 
@@ -133,4 +161,3 @@ func SetupUserRouter() *gin.Engine {
 
 	return r
 }
-
