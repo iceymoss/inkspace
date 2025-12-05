@@ -2,166 +2,107 @@
   <div class="my-comments">
     <el-card>
       <template #header>
-        <div class="header">
+        <div class="card-header">
           <span>我的评论</span>
         </div>
       </template>
 
-      <!-- 评论列表 -->
-      <el-table :data="comments" style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="文章" min-width="200">
-          <template #default="{ row }">
+      <div class="comments-list">
+        <div 
+          v-for="comment in comments" 
+          :key="comment.id" 
+          class="comment-item"
+        >
+          <div class="comment-target">
             <el-link 
-              type="primary" 
-              @click="handleViewArticle(row.article_id)"
-              :underline="false"
+              v-if="comment.article"
+              :href="`/blog/${comment.article.id}`"
+              type="primary"
             >
-              {{ row.article?.title || `文章 #${row.article_id}` }}
+              评论了文章：{{ comment.article.title }}
             </el-link>
-          </template>
-        </el-table-column>
-        <el-table-column prop="content" label="评论内容" min-width="300" show-overflow-tooltip />
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag 
-              :type="getStatusType(row.status)"
-              size="small"
+            <el-link 
+              v-else-if="comment.work"
+              :href="`/works/${comment.work.id}`"
+              type="primary"
             >
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="统计" width="120">
-          <template #default="{ row }">
-            <div class="stats-text">
-              <span>❤️ {{ row.like_count || 0 }}</span>
-              <span>💬 {{ row.reply_count || 0 }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180">
-          <template #default="{ row }">
-            {{ formatDate(row.created_at) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="handleView(row)">查看</el-button>
-            <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+              评论了作品：{{ comment.work.title }}
+            </el-link>
+          </div>
+          
+          <div class="comment-content">
+            {{ comment.content }}
+          </div>
+          
+          <div class="comment-meta">
+            <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
+            <el-button 
+              size="small" 
+              text 
+              type="danger"
+              @click="handleDelete(comment.id)"
+            >
+              删除
+            </el-button>
+          </div>
+        </div>
 
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchComments"
-        @current-change="fetchComments"
-        class="mt-20"
-      />
+        <el-empty v-if="comments.length === 0" description="暂无评论" />
+      </div>
+
+      <div class="pagination" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          layout="prev, pager, next"
+          @current-change="loadComments"
+        />
+      </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
+import api from '@/utils/api'
 
-const router = useRouter()
 const userStore = useUserStore()
-const loading = ref(false)
+
 const comments = ref([])
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  total: 0
-})
-
-// 获取我的评论列表
-const fetchComments = async () => {
-  // 确保用户已登录
-  if (!userStore.isLoggedIn || !userStore.user) {
-    ElMessage.warning('请先登录')
-    router.push('/login')
-    return
-  }
-
-  loading.value = true
+const loadComments = async () => {
   try {
-    const params = {
-      page: pagination.page,
-      page_size: pagination.pageSize,
-      user_id: userStore.user.id
-    }
-
-    const response = await api.get('/comments', { params })
-    comments.value = response.data.list || []
-    pagination.total = response.data.total || 0
-  } catch (error) {
-    ElMessage.error('获取评论列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const getStatusType = (status) => {
-  switch (status) {
-    case 1:
-      return 'success'
-    case 0:
-      return 'warning'
-    case -1:
-      return 'danger'
-    default:
-      return 'info'
-  }
-}
-
-const getStatusText = (status) => {
-  switch (status) {
-    case 1:
-      return '已通过'
-    case 0:
-      return '待审核'
-    case -1:
-      return '已拒绝'
-    default:
-      return '未知'
-  }
-}
-
-const handleView = (row) => {
-  router.push(`/blog/${row.article_id}`)
-}
-
-const handleViewArticle = (articleId) => {
-  router.push(`/blog/${articleId}`)
-}
-
-const handleDelete = async (row) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除这条评论吗？此操作不可恢复！`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
+    const response = await api.get('/comments', {
+      params: {
+        user_id: userStore.user?.id,
+        page: currentPage.value,
+        page_size: pageSize.value
       }
-    )
+    })
+    comments.value = response.data.list || []
+    total.value = response.data.total || 0
+  } catch (error) {
+    console.error('Failed to load comments:', error)
+  }
+}
 
-    await api.delete(`/comments/${row.id}`)
+const handleDelete = async (commentId) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    await api.delete(`/comments/${commentId}`)
     ElMessage.success('删除成功')
-    fetchComments()
+    loadComments()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
@@ -169,46 +110,65 @@ const handleDelete = async (row) => {
   }
 }
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const formatDate = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleString('zh-CN')
 }
 
 onMounted(() => {
-  fetchComments()
+  loadComments()
 })
 </script>
 
 <style scoped>
 .my-comments {
-  max-width: 1400px;
+  max-width: 900px;
 }
 
-.my-comments .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.header {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.stats-text {
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
+.comments-list {
+  min-height: 400px;
 }
 
-.mt-20 {
+.comment-item {
+  padding: 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+}
+
+.comment-target {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.comment-content {
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.comment-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #909399;
+}
+
+.pagination {
   margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 </style>
-

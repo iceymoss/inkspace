@@ -25,7 +25,7 @@ func SetupAdminRouter() *gin.Engine {
 	settingHandler := handler.NewSettingHandler()
 	adminAuthHandler := handler.NewAdminAuthHandler()
 	uploadHandler := handler.NewUploadHandler()
-	
+
 	// 注意：管理后台需要完整的handler来处理查询和管理操作
 
 	// API routes
@@ -68,6 +68,7 @@ func SetupAdminRouter() *gin.Engine {
 			admin.GET("/articles/:id", articleHandler.GetDetail)
 			admin.POST("/articles", articleHandler.Create)
 			admin.PUT("/articles/:id", articleHandler.Update)
+			admin.PUT("/articles/:id/recommend", articleHandler.SetRecommend)
 			admin.DELETE("/articles/:id", articleHandler.Delete)
 
 			// Works management
@@ -75,6 +76,7 @@ func SetupAdminRouter() *gin.Engine {
 			admin.GET("/works/:id", workHandler.GetDetail)
 			admin.POST("/works", workHandler.Create)
 			admin.PUT("/works/:id", workHandler.Update)
+			admin.PUT("/works/:id/recommend", workHandler.SetRecommend)
 			admin.DELETE("/works/:id", workHandler.Delete)
 
 			// Categories management
@@ -118,4 +120,3 @@ func SetupAdminRouter() *gin.Engine {
 
 	return r
 }
-

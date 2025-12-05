@@ -58,11 +58,16 @@ const routes = [
     name: 'Login',
     component: () => import('@/views/Login.vue')
   },
-  {
-    path: '/dashboard',
-    component: () => import('@/layouts/UserCenterLayout.vue'),
-    meta: { requiresAuth: true },
-    children: [
+    {
+      path: '/dashboard',
+      component: () => import('@/layouts/UserCenterLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'Dashboard',
+          component: () => import('@/views/user/Dashboard.vue')
+        },
       {
         path: '',
         name: 'UserDashboard',
@@ -82,6 +87,31 @@ const routes = [
         path: 'articles/:id/edit',
         name: 'EditArticle',
         component: () => import('@/views/user/ArticleEdit.vue')
+      },
+      {
+        path: 'comments',
+        name: 'MyComments',
+        component: () => import('@/views/user/MyComments.vue')
+      },
+      {
+        path: 'works',
+        name: 'MyWorks',
+        component: () => import('@/views/user/MyWorks.vue')
+      },
+      {
+        path: 'works/create',
+        name: 'CreateWork',
+        component: () => import('@/views/user/WorkEdit.vue')
+      },
+      {
+        path: 'works/:id/edit',
+        name: 'EditWork',
+        component: () => import('@/views/user/WorkEdit.vue')
+      },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/user/Notifications.vue')
       },
       {
         path: 'comments',

@@ -231,8 +231,8 @@ const handleCropConfirm = async () => {
         })
 
         if (response.code === 0 && response.data) {
-          const imageUrl = `http://localhost:8081${response.data.url}`
-          emit('update:modelValue', imageUrl)
+          // 直接使用相对路径
+          emit('update:modelValue', response.data.url)
           ElMessage.success('上传成功')
           cropDialogVisible.value = false
         } else {

@@ -115,13 +115,17 @@
             />
             <div class="comment-content">
               <div class="comment-header">
-                <span class="comment-author">
-                  {{ comment.user?.nickname || comment.nickname }}
+                <div class="comment-author-section">
+                  <span class="comment-author">
+                    {{ comment.user?.nickname || comment.nickname }}
+                  </span>
                   <el-tag v-if="isCommentAuthor(comment)" type="warning" size="small" effect="plain" class="author-tag">
                     作者
                   </el-tag>
-                </span>
-                <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
+                </div>
+                <div class="comment-meta-section">
+                  <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
+                </div>
               </div>
               <p>{{ comment.content }}</p>
               <div class="comment-actions">
@@ -1020,12 +1024,26 @@ onMounted(async () => {
 .comment-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.comment-author-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .comment-author {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 15px;
+}
+
+.comment-meta-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .comment-time {
@@ -1094,8 +1112,7 @@ onMounted(async () => {
 }
 
 .author-tag {
-  margin-left: 8px;
-  vertical-align: middle;
+  /* 已在 comment-author-section 中通过 gap 控制间距 */
 }
 
 .reply-time {
