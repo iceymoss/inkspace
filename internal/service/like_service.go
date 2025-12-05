@@ -1,8 +1,12 @@
 package service
 
 import (
+	"fmt"
+	"log"
+
 	"mysite/internal/database"
 	"mysite/internal/models"
+	"mysite/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -29,8 +33,14 @@ func (s *LikeService) LikeWork(userID, workID uint) error {
 		}
 
 		// 减少作品点赞数
-		return database.DB.Model(&models.Work{}).Where("id = ?", workID).
-			UpdateColumn("like_count", gorm.Expr("like_count - ?", 1)).Error
+		if err := database.DB.Model(&models.Work{}).Where("id = ?", workID).
+			UpdateColumn("like_count", gorm.Expr("like_count - ?", 1)).Error; err != nil {
+			return err
+		}
+
+		// 清除作品缓存
+		utils.DeleteCache(fmt.Sprintf("work:%d", workID))
+		return nil
 	}
 
 	// 未点赞，添加点赞
@@ -48,12 +58,27 @@ func (s *LikeService) LikeWork(userID, workID uint) error {
 		return err
 	}
 
+	// 清除作品缓存
+	utils.DeleteCache(fmt.Sprintf("work:%d", workID))
+
 	// 发送通知给作品作者
 	var work models.Work
-	if err := database.DB.First(&work, workID).Error; err == nil {
-		if work.AuthorID != userID {
-			go s.notificationService.CreateLikeNotification(userID, work.AuthorID, nil, &workID)
-		}
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		log.Printf("❌ 获取作品信息失败 (ID: %d): %v", workID, err)
+		return nil
+	}
+
+	if work.AuthorID != userID {
+		go func() {
+			err := s.notificationService.CreateLikeNotification(userID, work.AuthorID, nil, &workID)
+			if err != nil {
+				log.Printf("❌ 创建作品点赞通知失败: 用户%d -> 用户%d, 作品%d, 错误: %v", userID, work.AuthorID, workID, err)
+			} else {
+				log.Printf("✅ 成功创建作品点赞通知: 用户%d -> 用户%d, 作品%d", userID, work.AuthorID, workID)
+			}
+		}()
+	} else {
+		log.Printf("ℹ️ 用户点赞自己的作品，不发送通知 (用户ID: %d, 作品ID: %d)", userID, workID)
 	}
 
 	return nil
@@ -71,8 +96,14 @@ func (s *LikeService) LikeArticle(userID, articleID uint) error {
 		}
 
 		// 减少文章点赞数
-		return database.DB.Model(&models.Article{}).Where("id = ?", articleID).
-			UpdateColumn("like_count", gorm.Expr("like_count - ?", 1)).Error
+		if err := database.DB.Model(&models.Article{}).Where("id = ?", articleID).
+			UpdateColumn("like_count", gorm.Expr("like_count - ?", 1)).Error; err != nil {
+			return err
+		}
+
+		// 清除文章缓存
+		utils.DeleteCache(fmt.Sprintf("article:%d", articleID))
+		return nil
 	}
 
 	// 未点赞，添加点赞
@@ -89,6 +120,9 @@ func (s *LikeService) LikeArticle(userID, articleID uint) error {
 		UpdateColumn("like_count", gorm.Expr("like_count + ?", 1)).Error; err != nil {
 		return err
 	}
+
+	// 清除文章缓存
+	utils.DeleteCache(fmt.Sprintf("article:%d", articleID))
 
 	// 发送通知给文章作者
 	var article models.Article

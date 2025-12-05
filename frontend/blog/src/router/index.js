@@ -68,31 +68,21 @@ const routes = [
           name: 'Dashboard',
           component: () => import('@/views/user/Dashboard.vue')
         },
-      {
-        path: '',
-        name: 'UserDashboard',
-        component: () => import('@/views/user/Dashboard.vue')
-      },
-      {
-        path: 'articles',
-        name: 'MyArticles',
-        component: () => import('@/views/user/MyArticles.vue')
-      },
-      {
-        path: 'articles/create',
-        name: 'CreateArticle',
-        component: () => import('@/views/user/ArticleEdit.vue')
-      },
-      {
-        path: 'articles/:id/edit',
-        name: 'EditArticle',
-        component: () => import('@/views/user/ArticleEdit.vue')
-      },
-      {
-        path: 'comments',
-        name: 'MyComments',
-        component: () => import('@/views/user/MyComments.vue')
-      },
+        {
+          path: 'articles',
+          name: 'MyArticles',
+          component: () => import('@/views/user/MyArticles.vue')
+        },
+        {
+          path: 'articles/create',
+          name: 'CreateArticle',
+          component: () => import('@/views/user/ArticleEdit.vue')
+        },
+        {
+          path: 'articles/:id/edit',
+          name: 'EditArticle',
+          component: () => import('@/views/user/ArticleEdit.vue')
+        },
       {
         path: 'works',
         name: 'MyWorks',
@@ -129,18 +119,6 @@ const routes = [
         path: '',
         name: 'Favorites',
         component: () => import('@/views/Favorites.vue')
-      }
-    ]
-  },
-  {
-    path: '/notifications',
-    component: () => import('@/layouts/UserCenterLayout.vue'),
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: '',
-        name: 'Notifications',
-        component: () => import('@/views/Notifications.vue')
       }
     ]
   },

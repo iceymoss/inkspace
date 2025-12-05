@@ -2,14 +2,17 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"log"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
+	"mysite/internal/utils"
 
 	"gorm.io/gorm"
 )
 
-type FavoriteService struct{
+type FavoriteService struct {
 	notificationService *NotificationService
 }
 
@@ -74,6 +77,11 @@ func (s *FavoriteService) AddFavorite(userID, articleID uint) error {
 
 		return nil
 	})
+
+	if err == nil {
+		// 清除文章缓存
+		utils.DeleteCache(fmt.Sprintf("article:%d", articleID))
+	}
 
 	return err
 }
@@ -213,12 +221,27 @@ func (s *FavoriteService) AddWorkFavorite(userID, workID uint) error {
 		return err
 	}
 
+	// 清除作品缓存
+	utils.DeleteCache(fmt.Sprintf("work:%d", workID))
+
 	// 发送收藏通知给作品作者
 	var work models.Work
-	if err := database.DB.First(&work, workID).Error; err == nil {
-		if work.AuthorID != userID {
-			go s.notificationService.CreateFavoriteNotification(userID, work.AuthorID, nil, &workID)
-		}
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		log.Printf("❌ 获取作品信息失败 (ID: %d): %v", workID, err)
+		return nil
+	}
+
+	if work.AuthorID != userID {
+		go func() {
+			err := s.notificationService.CreateFavoriteNotification(userID, work.AuthorID, nil, &workID)
+			if err != nil {
+				log.Printf("❌ 创建作品收藏通知失败: 用户%d -> 用户%d, 作品%d, 错误: %v", userID, work.AuthorID, workID, err)
+			} else {
+				log.Printf("✅ 成功创建作品收藏通知: 用户%d -> 用户%d, 作品%d", userID, work.AuthorID, workID)
+			}
+		}()
+	} else {
+		log.Printf("ℹ️ 用户收藏自己的作品，不发送通知 (用户ID: %d, 作品ID: %d)", userID, workID)
 	}
 
 	return nil
@@ -258,6 +281,11 @@ func (s *FavoriteService) RemoveWorkFavorite(userID, workID uint) error {
 		return nil
 	})
 
+	if err == nil {
+		// 清除作品缓存
+		utils.DeleteCache(fmt.Sprintf("work:%d", workID))
+	}
+
 	return err
 }
 
@@ -267,7 +295,6 @@ func (s *FavoriteService) CheckWorkFavorited(userID, workID uint) (bool, error) 
 	err := database.DB.Model(&models.Favorite{}).
 		Where("user_id = ? AND work_id = ?", userID, workID).
 		Count(&count).Error
-	
+
 	return count > 0, err
 }
-

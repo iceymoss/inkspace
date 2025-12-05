@@ -7,35 +7,37 @@ import (
 )
 
 type Work struct {
-	ID           uint           `gorm:"primarykey" json:"id"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
-	Title        string         `gorm:"size:200;not null" json:"title" binding:"required"`
-	Type         string         `gorm:"size:50;not null;default:'project';index:idx_type" json:"type"` // project, photography, video, etc.
-	Metadata     string         `gorm:"type:text" json:"metadata"` // JSON: 类型专属元数据
-	DailyQuota   bool           `gorm:"default:false" json:"daily_quota"` // 是否受每日配额限制
-	Description  string         `gorm:"type:text" json:"description"`
-	Cover        string         `gorm:"size:255" json:"cover"`
-	Images       string         `gorm:"type:text" json:"images"` // JSON array of image URLs
-	Link         string         `gorm:"size:255" json:"link"`
-	GithubURL    string         `gorm:"size:255" json:"github_url"`
-	DemoURL      string         `gorm:"size:255" json:"demo_url"`
-	TechStack    string         `gorm:"size:500" json:"tech_stack"` // 技术栈，逗号分隔
-	AuthorID     uint           `gorm:"index:idx_author_id;not null;default:1" json:"author_id"`
-	Author       *User          `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
-	Sort         int            `gorm:"default:0;index:idx_status_sort" json:"sort"`
-	ViewCount    int            `gorm:"default:0;not null" json:"view_count"`
-	CommentCount int            `gorm:"default:0;not null" json:"comment_count"`
-	Status       int            `gorm:"default:1;index:idx_status_sort" json:"status"` // 1: published, 0: draft
-	IsRecommend  bool           `gorm:"default:false" json:"is_recommend"`
+	ID            uint           `gorm:"primarykey" json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	Title         string         `gorm:"size:200;not null" json:"title" binding:"required"`
+	Type          string         `gorm:"size:50;not null;default:'project';index:idx_type" json:"type"` // project, photography, video, etc.
+	Metadata      string         `gorm:"type:text" json:"metadata"`                                     // JSON: 类型专属元数据
+	DailyQuota    bool           `gorm:"default:false" json:"daily_quota"`                              // 是否受每日配额限制
+	Description   string         `gorm:"type:text" json:"description"`
+	Cover         string         `gorm:"size:255" json:"cover"`
+	Images        string         `gorm:"type:text" json:"images"` // JSON array of image URLs
+	Link          string         `gorm:"size:255" json:"link"`
+	GithubURL     string         `gorm:"size:255" json:"github_url"`
+	DemoURL       string         `gorm:"size:255" json:"demo_url"`
+	TechStack     string         `gorm:"size:500" json:"tech_stack"` // 技术栈，逗号分隔
+	AuthorID      uint           `gorm:"index:idx_author_id;not null;default:1" json:"author_id"`
+	Author        *User          `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	Sort          int            `gorm:"default:0;index:idx_status_sort" json:"sort"`
+	ViewCount     int            `gorm:"default:0;not null" json:"view_count"`
+	CommentCount  int            `gorm:"default:0;not null" json:"comment_count"`
+	LikeCount     int            `gorm:"default:0;not null" json:"like_count"`
+	FavoriteCount int            `gorm:"default:0;not null" json:"favorite_count"`
+	Status        int            `gorm:"default:1;index:idx_status_sort" json:"status"` // 1: published, 0: draft
+	IsRecommend   bool           `gorm:"default:false" json:"is_recommend"`
 }
 
 // PhotoItem 单张照片信息（摄影作品中的一张照片）
 type PhotoItem struct {
-	URL         string               `json:"url"`         // 照片URL
-	Description string               `json:"description"` // 照片描述
-	Metadata    *PhotoItemMetadata   `json:"metadata"`    // 照片参数
+	URL         string             `json:"url"`         // 照片URL
+	Description string             `json:"description"` // 照片描述
+	Metadata    *PhotoItemMetadata `json:"metadata"`    // 照片参数
 }
 
 // PhotoItemMetadata 单张照片的EXIF参数
@@ -74,26 +76,27 @@ type WorkRequest struct {
 }
 
 type WorkResponse struct {
-	ID           uint                   `json:"id"`
-	Title        string                 `json:"title"`
-	Type         string                 `json:"type"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"` // 动态元数据
-	DailyQuota   bool                   `json:"daily_quota"`
-	Description  string                 `json:"description"`
-	Cover        string                 `json:"cover"`
-	Images       []PhotoItem            `json:"images"` // 照片数组（包含参数）
-	Link         string                 `json:"link"`
-	GithubURL    string                 `json:"github_url"`
-	DemoURL      string                 `json:"demo_url"`
-	TechStack    string                 `json:"tech_stack"`
-	AuthorID     uint                   `json:"author_id"`
-	Author       *UserResponse          `json:"author,omitempty"`
-	Sort         int                    `json:"sort"`
-	ViewCount    int                    `json:"view_count"`
-	CommentCount int                    `json:"comment_count"`
-	Status       int                    `json:"status"`
-	IsRecommend  bool                   `json:"is_recommend"`
-	CreatedAt    time.Time              `json:"created_at"`
-	UpdatedAt    time.Time              `json:"updated_at"`
+	ID            uint                   `json:"id"`
+	Title         string                 `json:"title"`
+	Type          string                 `json:"type"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"` // 动态元数据
+	DailyQuota    bool                   `json:"daily_quota"`
+	Description   string                 `json:"description"`
+	Cover         string                 `json:"cover"`
+	Images        []PhotoItem            `json:"images"` // 照片数组（包含参数）
+	Link          string                 `json:"link"`
+	GithubURL     string                 `json:"github_url"`
+	DemoURL       string                 `json:"demo_url"`
+	TechStack     string                 `json:"tech_stack"`
+	AuthorID      uint                   `json:"author_id"`
+	Author        *UserResponse          `json:"author,omitempty"`
+	Sort          int                    `json:"sort"`
+	ViewCount     int                    `json:"view_count"`
+	CommentCount  int                    `json:"comment_count"`
+	LikeCount     int                    `json:"like_count"`
+	FavoriteCount int                    `json:"favorite_count"`
+	Status        int                    `json:"status"`
+	IsRecommend   bool                   `json:"is_recommend"`
+	CreatedAt     time.Time              `json:"created_at"`
+	UpdatedAt     time.Time              `json:"updated_at"`
 }
-

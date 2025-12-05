@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
@@ -9,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type CommentService struct{
+type CommentService struct {
 	notificationService *NotificationService
 }
 
@@ -71,11 +72,11 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 	// 处理 article_id 和 work_id：确保只有一个有值，另一个为 nil
 	var articleID *uint
 	var workID *uint
-	
+
 	if req.ArticleID != nil && *req.ArticleID > 0 {
 		articleID = req.ArticleID
 	}
-	
+
 	if req.WorkID != nil && *req.WorkID > 0 {
 		workID = req.WorkID
 	}
@@ -191,10 +192,39 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 	} else if workID != nil && *workID > 0 {
 		// 作品评论通知
 		go func() {
+			notificationService := NewNotificationService()
 			var work models.Work
-			if err := database.DB.First(&work, *workID).Error; err == nil {
-				if work.AuthorID != userID {
-					s.notificationService.CreateCommentNotification(userID, work.AuthorID, nil, workID, comment.ID)
+			if err := database.DB.First(&work, *workID).Error; err != nil {
+				log.Printf("❌ 获取作品信息失败 (ID: %d): %v", *workID, err)
+				return
+			}
+
+			if req.ParentID != nil {
+				// 回复评论：只通知被回复的评论作者
+				var parentComment models.Comment
+				if err := database.DB.First(&parentComment, *req.ParentID).Error; err == nil {
+					// 通知被回复的评论作者（回复通知）
+					if parentComment.UserID > 0 && userID > 0 && parentComment.UserID != userID {
+						_ = notificationService.CreateReplyNotification(
+							userID,
+							parentComment.UserID,
+							nil,
+							workID,
+							comment.ID,
+						)
+					}
+					// 注意：回复评论时，不通知作品作者（除非作品作者就是被回复的评论作者，上面已经通知了）
+				}
+			} else {
+				// 评论作品：通知作品作者
+				if work.AuthorID > 0 && userID > 0 && work.AuthorID != userID {
+					_ = notificationService.CreateCommentNotification(
+						userID,
+						work.AuthorID,
+						nil,
+						workID,
+						comment.ID,
+					)
 				}
 			}
 		}()

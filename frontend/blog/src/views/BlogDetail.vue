@@ -178,7 +178,7 @@
               
               <!-- 回复列表 -->
               <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
-                <div v-for="reply in getDirectReplies(comment)" :key="reply.id" class="reply-item">
+                <div v-for="reply in getDisplayedReplies(comment)" :key="reply.id" class="reply-item">
                   <el-avatar 
                     :src="reply.user?.avatar" 
                     size="small"
@@ -192,8 +192,13 @@
                         <el-tag v-if="isCommentAuthor(reply)" type="warning" size="small" effect="plain" class="author-tag">
                           作者
                         </el-tag>
-                        <span v-if="reply.parent_id && reply.parent_id !== comment.id" class="reply-to">
-                          回复 @{{ getReplyTargetName(comment, reply) }}
+                        <span v-if="reply.parent_id" class="reply-to">
+                          <template v-if="reply.parent_id === comment.id">
+                            回复 @{{ comment.user?.nickname || comment.nickname }}
+                          </template>
+                          <template v-else>
+                            回复 @{{ getReplyTargetName(comment, reply) }}
+                          </template>
                         </span>
                       </span>
                       <span class="reply-time">{{ formatDate(reply.created_at) }}</span>
@@ -247,6 +252,19 @@
                       </div>
                     </div>
                   </div>
+                </div>
+                
+                <!-- 展开更多子评论按钮 -->
+                <div v-if="hasMoreReplies(comment)" class="load-more-replies">
+                  <el-button 
+                    text 
+                    size="small" 
+                    @click="loadMoreReplies(comment)"
+                    :loading="comment.loadingReplies"
+                  >
+                    <el-icon><ArrowDown /></el-icon>
+                    {{ comment.loadingReplies ? '加载中...' : `展开更多回复 (${comment.reply_count - getDisplayedReplies(comment).length} 条)` }}
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -419,6 +437,8 @@ const loadComments = async (append = false) => {
         replyContent: existingComment?.replyContent || '',
         replying: existingComment?.replying || false,
         replyTo: existingComment?.replyTo || null,
+        loadingReplies: existingComment?.loadingReplies || false,
+        repliesPage: existingComment?.repliesPage || 1,
         replies: (comment.replies || []).map(reply => {
           const existingReply = existingComment?.replies?.find(r => r.id === reply.id)
           return {
@@ -566,11 +586,23 @@ const submitReply = async (comment) => {
     return
   }
 
+  // 去掉 @用户名称 前缀，只保留实际评论内容
+  let content = comment.replyContent.trim()
+  if (comment.replyTo) {
+    const mentionPattern = new RegExp(`^@${comment.replyTo.user?.nickname || comment.replyTo.nickname}\\s*`, 'i')
+    content = content.replace(mentionPattern, '')
+  }
+
+  if (!content) {
+    ElMessage.warning('请输入回复内容')
+    return
+  }
+
   comment.replying = true
   try {
     await api.post('/comments', {
       article_id: parseInt(route.params.id),
-      content: comment.replyContent.trim(),
+      content: content,
       parent_id: comment.replyTo ? comment.replyTo.id : comment.id
     })
     ElMessage.success('回复成功')
@@ -594,11 +626,23 @@ const submitReplyToReply = async (parentComment, reply) => {
     return
   }
 
+  // 去掉 @用户名称 前缀，只保留实际评论内容
+  let content = reply.replyContent.trim()
+  if (reply.replyTo) {
+    const mentionPattern = new RegExp(`^@${reply.replyTo.user?.nickname || reply.replyTo.nickname}\\s*`, 'i')
+    content = content.replace(mentionPattern, '')
+  }
+
+  if (!content) {
+    ElMessage.warning('请输入回复内容')
+    return
+  }
+
   reply.replying = true
   try {
     await api.post('/comments', {
       article_id: parseInt(route.params.id),
-      content: reply.replyContent.trim(),
+      content: content,
       parent_id: reply.replyTo ? reply.replyTo.id : reply.id
     })
     ElMessage.success('回复成功')
@@ -626,6 +670,61 @@ const cancelReplyToReply = (reply) => {
 const getDirectReplies = (comment) => {
   if (!comment.replies) return []
   return comment.replies.filter(reply => reply.parent_id === comment.id)
+}
+
+// 获取当前显示的子评论（所有子评论，包括回复的回复）
+const getDisplayedReplies = (comment) => {
+  if (!comment.replies) return []
+  // 返回所有子评论（按时间排序，后端已经排序）
+  return comment.replies
+}
+
+// 判断是否有更多子评论
+const hasMoreReplies = (comment) => {
+  if (!comment.reply_count) return false
+  const displayedCount = getDisplayedReplies(comment).length
+  return comment.reply_count > displayedCount
+}
+
+// 加载更多子评论
+const loadMoreReplies = async (comment) => {
+  if (!comment || comment.loadingReplies) return
+  
+  comment.loadingReplies = true
+  try {
+    const nextPage = (comment.repliesPage || 1) + 1
+    const response = await api.get(`/comments/replies/${comment.id}`, {
+      params: {
+        page: nextPage,
+        page_size: 10
+      }
+    })
+    
+    const newReplies = (response.data.list || []).map(reply => ({
+      ...reply,
+      like_count: reply.like_count !== undefined ? reply.like_count : 0,
+      isLiked: false,
+      likeLoading: false,
+      showReply: false,
+      replyContent: '',
+      replying: false,
+      replyTo: null
+    }))
+    
+    // 合并新回复到现有回复列表
+    comment.replies = [...(comment.replies || []), ...newReplies]
+    comment.repliesPage = nextPage
+    
+    // 检查新加载的回复的点赞状态
+    for (const reply of newReplies) {
+      await checkCommentLiked(reply)
+    }
+  } catch (error) {
+    console.error('Failed to load more replies:', error)
+    ElMessage.error('加载更多回复失败')
+  } finally {
+    comment.loadingReplies = false
+  }
 }
 
 // 获取回复目标名称
@@ -736,50 +835,66 @@ const handleDeleteComment = async (comment) => {
 
 
 const checkLiked = async () => {
+  if (!userStore.isLoggedIn) {
+    isLiked.value = false
+    return
+  }
   try {
     const response = await api.get(`/articles/${route.params.id}/is-liked`)
-    isLiked.value = response.data.is_liked
+    isLiked.value = response.data.is_liked || response.data.liked || false
   } catch (error) {
     console.error('Failed to check like status:', error)
+    isLiked.value = false
   }
 }
 
 const handleLike = async () => {
   if (!article.value) return
   
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
   likeLoading.value = true
   try {
+    // 后端是 toggle 操作，统一使用 POST
+    await api.post(`/articles/${route.params.id}/like`)
+    
+    // toggle 状态
+    isLiked.value = !isLiked.value
+    
+    // 更新计数
     if (isLiked.value) {
-      await api.delete(`/articles/${route.params.id}/like`)
-      ElMessage.success('取消点赞成功')
-      isLiked.value = false
-      // 确保数字正确更新
-      article.value.like_count = Math.max(0, (article.value.like_count || 0) - 1)
-    } else {
-      await api.post(`/articles/${route.params.id}/like`)
       ElMessage.success('点赞成功')
-      isLiked.value = true
-      // 确保数字正确更新
       article.value.like_count = (article.value.like_count || 0) + 1
+    } else {
+      ElMessage.success('取消点赞')
+      article.value.like_count = Math.max(0, (article.value.like_count || 0) - 1)
     }
   } catch (error) {
-    ElMessage.error(error.message || '操作失败')
-    // 如果操作失败，重新检查状态和重新加载文章
-    checkLiked()
-    loadArticle()
+    ElMessage.error(error.response?.data?.message || '操作失败')
+    // 如果操作失败，重新检查状态
+    await checkLiked()
+    await loadArticle()
   } finally {
     likeLoading.value = false
   }
 }
 
 const checkFavorited = async () => {
-  if (!userStore.isLoggedIn) return
+  if (!userStore.isLoggedIn) {
+    isFavorited.value = false
+    return
+  }
   
   try {
     const response = await api.get(`/articles/${route.params.id}/is-favorited`)
-    isFavorited.value = response.data.is_favorited
+    isFavorited.value = response.data.is_favorited || response.data.favorited || false
   } catch (error) {
     console.error('Failed to check favorite status:', error)
+    isFavorited.value = false
   }
 }
 
@@ -1136,6 +1251,13 @@ onMounted(async () => {
 
 .load-more-btn {
   min-width: 200px;
+}
+
+.load-more-replies {
+  margin-top: 10px;
+  padding: 10px 0;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
 }
 
 .comment-count-info {

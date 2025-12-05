@@ -44,10 +44,20 @@ func SetupUserRouter() *gin.Engine {
 			public.GET("/articles/recommended", articleHandler.GetRecommended)
 			public.GET("/articles/hot", articleHandler.GetHotArticles)
 			public.GET("/articles/:id", articleHandler.GetDetail)
-			public.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
+
+			// 状态检查API（可选认证）
+			publicWithOptionalAuth := api.Group("")
+			publicWithOptionalAuth.Use(middleware.OptionalAuthMiddleware())
+			{
+				publicWithOptionalAuth.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
+				publicWithOptionalAuth.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
+				publicWithOptionalAuth.GET("/works/:id/liked", likeHandler.CheckWorkLiked)
+				publicWithOptionalAuth.GET("/works/:id/favorited", favoriteHandler.CheckWorkFavorited)
+			}
 
 			// Comments (public read)
 			public.GET("/comments", commentHandler.GetList)
+			public.GET("/comments/replies/:root_id", commentHandler.GetReplies) // 获取子评论分页列表
 			public.GET("/comments/:id/is-liked", likeHandler.CheckCommentLiked)
 
 			// Comment likes (public, can be done by guests)
@@ -63,8 +73,6 @@ func SetupUserRouter() *gin.Engine {
 			public.GET("/works/recommended", workHandler.GetRecommended)
 			public.GET("/works/hot", workHandler.GetHotWorks)
 			public.GET("/works/:id", workHandler.GetDetail)
-			public.GET("/works/:id/liked", likeHandler.CheckWorkLiked)
-			public.GET("/articles/:id/liked", likeHandler.CheckArticleLiked)
 
 			// Work Comments (public read, same as article comments)
 			// Comments endpoint handles both article and work comments via query params
@@ -131,8 +139,6 @@ func SetupUserRouter() *gin.Engine {
 			protected.DELETE("/articles/:id/favorite", favoriteHandler.RemoveFavorite)
 			protected.POST("/works/:id/favorite", favoriteHandler.AddWorkFavorite)
 			protected.DELETE("/works/:id/favorite", favoriteHandler.RemoveWorkFavorite)
-			protected.GET("/works/:id/favorited", favoriteHandler.CheckWorkFavorited)
-			protected.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
 			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
 
 			// Notifications

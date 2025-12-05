@@ -109,7 +109,8 @@ func (h *FavoriteHandler) RemoveWorkFavorite(c *gin.Context) {
 func (h *FavoriteHandler) CheckWorkFavorited(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		utils.Success(c, gin.H{"favorited": false})
+		// 兼容两种字段名
+		utils.Success(c, gin.H{"favorited": false, "is_favorited": false})
 		return
 	}
 
@@ -125,7 +126,8 @@ func (h *FavoriteHandler) CheckWorkFavorited(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, gin.H{"favorited": favorited})
+	// 返回两种字段名以兼容前后端
+	utils.Success(c, gin.H{"favorited": favorited, "is_favorited": favorited})
 }
 
 // CheckFavorited 检查是否已收藏
@@ -139,7 +141,8 @@ func (h *FavoriteHandler) CheckFavorited(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
-		utils.Success(c, gin.H{"is_favorited": false})
+		// 兼容两种字段名
+		utils.Success(c, gin.H{"is_favorited": false, "favorited": false})
 		return
 	}
 
@@ -149,7 +152,8 @@ func (h *FavoriteHandler) CheckFavorited(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, gin.H{"is_favorited": isFavorited})
+	// 返回两种字段名以兼容前后端
+	utils.Success(c, gin.H{"is_favorited": isFavorited, "favorited": isFavorited})
 }
 
 // GetMyFavorites 获取我的收藏列表

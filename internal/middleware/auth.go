@@ -48,3 +48,33 @@ func AdminMiddleware() gin.HandlerFunc {
 	}
 }
 
+// OptionalAuthMiddleware 可选认证中间件
+// 如果有token就解析，没有token也允许通过
+func OptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			// 没有token，继续处理，但不设置user_id
+			c.Next()
+			return
+		}
+
+		// Remove "Bearer " prefix
+		if strings.HasPrefix(token, "Bearer ") {
+			token = strings.TrimPrefix(token, "Bearer ")
+		}
+
+		claims, err := utils.ParseToken(token)
+		if err != nil {
+			// Token无效，继续处理，但不设置user_id
+			c.Next()
+			return
+		}
+
+		// Token有效，设置用户信息
+		c.Set("user_id", claims.UserID)
+		c.Set("username", claims.Username)
+		c.Set("role", claims.Role)
+		c.Next()
+	}
+}

@@ -18,12 +18,46 @@ func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID uin
 		return nil // 不给自己发通知
 	}
 
-	var content string
-	if articleID != nil {
-		content = "评论了你的文章"
-	} else if workID != nil {
-		content = "评论了你的作品"
+	// 查询评论内容
+	var comment models.Comment
+	if err := database.DB.First(&comment, commentID).Error; err != nil {
+		// 如果查询失败，仍然创建通知，但不包含评论内容
+		var content string
+		if articleID != nil {
+			content = "评论了你的文章"
+		} else if workID != nil {
+			content = "评论了你的作品"
+		}
+
+		notification := &models.Notification{
+			UserID:     toUserID,
+			FromUserID: fromUserID,
+			Type:       "comment",
+			Content:    content,
+			ArticleID:  articleID,
+			WorkID:     workID,
+			CommentID:  &commentID,
+			IsRead:     false,
+		}
+		return database.DB.Create(notification).Error
 	}
+
+	// 构建通知内容：包含评论内容
+	var prefix string
+	if articleID != nil {
+		prefix = "评论了你的文章："
+	} else if workID != nil {
+		prefix = "评论了你的作品："
+	} else {
+		prefix = "评论："
+	}
+
+	// 限制评论内容长度（避免通知内容过长）
+	commentContent := comment.Content
+	if len(commentContent) > 100 {
+		commentContent = commentContent[:100] + "..."
+	}
+	content := prefix + commentContent
 
 	notification := &models.Notification{
 		UserID:     toUserID,
@@ -173,12 +207,46 @@ func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID uint,
 		return nil // 不给自己发通知
 	}
 
-	var content string
-	if articleID != nil {
-		content = "回复了你的评论"
-	} else if workID != nil {
-		content = "回复了你的评论"
+	// 查询评论内容
+	var comment models.Comment
+	if err := database.DB.First(&comment, commentID).Error; err != nil {
+		// 如果查询失败，仍然创建通知，但不包含评论内容
+		var content string
+		if articleID != nil {
+			content = "回复了你的评论"
+		} else if workID != nil {
+			content = "回复了你的评论"
+		}
+
+		notification := &models.Notification{
+			UserID:     toUserID,
+			FromUserID: fromUserID,
+			Type:       "reply",
+			Content:    content,
+			ArticleID:  articleID,
+			WorkID:     workID,
+			CommentID:  &commentID,
+			IsRead:     false,
+		}
+		return database.DB.Create(notification).Error
 	}
+
+	// 构建通知内容：包含回复内容
+	var prefix string
+	if articleID != nil {
+		prefix = "回复了你的评论："
+	} else if workID != nil {
+		prefix = "回复了你的评论："
+	} else {
+		prefix = "回复："
+	}
+
+	// 限制评论内容长度（避免通知内容过长）
+	commentContent := comment.Content
+	if len(commentContent) > 100 {
+		commentContent = commentContent[:100] + "..."
+	}
+	content := prefix + commentContent
 
 	notification := &models.Notification{
 		UserID:     toUserID,
