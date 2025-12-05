@@ -5,8 +5,8 @@ server:
 database:
   host: localhost
   port: 3306
-  username: root
-  password: 123456789
+  username: iceymoss
+  password: Yk?123456
   database: mysite
   charset: utf8mb4
   parseTime: true
@@ -40,6 +40,6 @@ pagination:
   maxPageSize: 100
 
 cache:
-  articleExpire: 3600 # 1 hour
-  userExpire: 1800 # 30 minutes
+  articleExpire: 15 # 15 seconds
+  userExpire: 15 # 15 seconds
 

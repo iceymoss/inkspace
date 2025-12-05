@@ -303,6 +303,11 @@ onMounted(() => {
   padding: 0 20px;
 }
 
+.article-edit .editor-card,
+.article-edit .preview-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 .edit-header {
   display: flex;
   justify-content: space-between;

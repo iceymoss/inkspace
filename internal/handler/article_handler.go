@@ -177,3 +177,86 @@ func (h *ArticleHandler) GetUserArticles(c *gin.Context) {
 
 	utils.PageResponse(c, articleResponses, int64(len(userArticles)), query.Page, query.PageSize)
 }
+
+// GetRecommended 获取推荐文章
+// GET /api/articles/recommended
+func (h *ArticleHandler) GetRecommended(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "3")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 3
+	}
+	if limit > 10 {
+		limit = 10
+	}
+
+	articles, err := h.service.GetRecommended(limit)
+	if err != nil {
+		utils.InternalServerError(c, err.Error())
+		return
+	}
+
+	articleResponses := make([]*models.ArticleResponse, len(articles))
+	for i, article := range articles {
+		resp := article.ToResponse()
+		// Don't return full content in list
+		resp.Content = ""
+		articleResponses[i] = resp
+	}
+
+	utils.Success(c, articleResponses)
+}
+
+// SetRecommend 设置文章推荐状态
+// PUT /api/admin/articles/:id/recommend
+func (h *ArticleHandler) SetRecommend(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的ID")
+		return
+	}
+
+	var req struct {
+		IsRecommend bool `json:"is_recommend"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	if err := h.service.SetRecommend(uint(id), req.IsRecommend); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	utils.SuccessWithMessage(c, "设置成功", nil)
+}
+
+// GetHotArticles 获取热门文章
+// GET /api/articles/hot
+func (h *ArticleHandler) GetHotArticles(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "6")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 6
+	}
+	if limit > 20 {
+		limit = 20
+	}
+
+	articles, err := h.service.GetHotArticles(limit)
+	if err != nil {
+		utils.InternalServerError(c, err.Error())
+		return
+	}
+
+	articleResponses := make([]*models.ArticleResponse, len(articles))
+	for i, article := range articles {
+		resp := article.ToResponse()
+		// Don't return full content in list
+		resp.Content = ""
+		articleResponses[i] = resp
+	}
+
+	utils.Success(c, articleResponses)
+}

@@ -60,6 +60,8 @@ onMounted(() => {
 <style scoped>
 .links-page {
   padding: 40px 0;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .links-page h1 {
@@ -78,6 +80,7 @@ onMounted(() => {
   margin-bottom: 20px;
   transition: transform 0.3s;
   height: 100%;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .link-card:hover {

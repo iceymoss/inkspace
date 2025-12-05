@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
@@ -9,20 +10,45 @@ import (
 	"gorm.io/gorm"
 )
 
-type CommentService struct{}
+type CommentService struct {
+	notificationService *NotificationService
+}
 
 func NewCommentService() *CommentService {
-	return &CommentService{}
+	return &CommentService{
+		notificationService: NewNotificationService(),
+	}
 }
 
 func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*models.Comment, error) {
-	// Check if article exists
-	var article models.Article
-	if err := database.DB.First(&article, req.ArticleID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("文章不存在")
+	// 验证：必须指定文章ID或作品ID其中之一
+	if req.ArticleID == nil && req.WorkID == nil {
+		return nil, errors.New("必须指定文章或作品")
+	}
+	if req.ArticleID != nil && req.WorkID != nil {
+		return nil, errors.New("不能同时评论文章和作品")
+	}
+
+	// Check if article/work exists and load for notifications
+	var article *models.Article
+	if req.ArticleID != nil && *req.ArticleID > 0 {
+		article = &models.Article{}
+		if err := database.DB.First(article, *req.ArticleID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("文章不存在")
+			}
+			return nil, err
 		}
-		return nil, err
+	}
+
+	if req.WorkID != nil && *req.WorkID > 0 {
+		var work models.Work
+		if err := database.DB.First(&work, *req.WorkID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("作品不存在")
+			}
+			return nil, err
+		}
 	}
 
 	// Check if parent comment exists and get root_id
@@ -43,8 +69,21 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		}
 	}
 
+	// 处理 article_id 和 work_id：确保只有一个有值，另一个为 nil
+	var articleID *uint
+	var workID *uint
+
+	if req.ArticleID != nil && *req.ArticleID > 0 {
+		articleID = req.ArticleID
+	}
+
+	if req.WorkID != nil && *req.WorkID > 0 {
+		workID = req.WorkID
+	}
+
 	comment := &models.Comment{
-		ArticleID: req.ArticleID,
+		ArticleID: articleID,
+		WorkID:    workID,
 		UserID:    userID,
 		Content:   req.Content,
 		ParentID:  req.ParentID,
@@ -62,10 +101,21 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		}
 
 		// 更新文章评论数
-		if err := tx.Model(&models.Article{}).
-			Where("id = ?", req.ArticleID).
-			UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
-			return err
+		if req.ArticleID != nil && *req.ArticleID > 0 {
+			if err := tx.Model(&models.Article{}).
+				Where("id = ?", *req.ArticleID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 更新作品评论数
+		if req.WorkID != nil && *req.WorkID > 0 {
+			if err := tx.Model(&models.Work{}).
+				Where("id = ?", *req.WorkID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+				return err
+			}
 		}
 
 		// 更新用户评论数
@@ -94,48 +144,91 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 	}
 
 	// 发送通知（异步，不阻塞主流程）
-	go func() {
-		notificationService := NewNotificationService()
-		
-		if req.ParentID != nil {
-			// 回复评论：需要通知两个对象
-			var parentComment models.Comment
-			if err := database.DB.First(&parentComment, *req.ParentID).Error; err == nil {
-				// 1. 通知被回复的评论作者
-				if parentComment.UserID > 0 && userID > 0 && parentComment.UserID != userID {
-					_ = notificationService.CreateReplyNotification(
-						userID,
-						parentComment.UserID,
-						req.ArticleID,
-						*req.ParentID,
-						req.Content,
-					)
+	if req.ArticleID != nil && *req.ArticleID > 0 && article != nil {
+		go func() {
+			notificationService := NewNotificationService()
+
+			if req.ParentID != nil {
+				// 回复评论：需要通知两个对象
+				var parentComment models.Comment
+				if err := database.DB.First(&parentComment, *req.ParentID).Error; err == nil {
+					// 1. 通知被回复的评论作者
+					if parentComment.UserID > 0 && userID > 0 && parentComment.UserID != userID {
+						_ = notificationService.CreateReplyNotification(
+							userID,
+							parentComment.UserID,
+							req.ArticleID,
+							nil,
+							comment.ID,
+						)
+					}
+
+					// 2. 通知文章作者（如果文章作者不是回复者本人，也不是被回复的评论作者）
+					if article.AuthorID > 0 && userID > 0 &&
+						article.AuthorID != userID &&
+						article.AuthorID != parentComment.UserID {
+						_ = notificationService.CreateCommentNotification(
+							userID,
+							article.AuthorID,
+							req.ArticleID,
+							nil,
+							comment.ID,
+						)
+					}
 				}
-				
-				// 2. 通知文章作者（如果文章作者不是回复者本人，也不是被回复的评论作者）
-				if article.AuthorID > 0 && userID > 0 && 
-				   article.AuthorID != userID && 
-				   article.AuthorID != parentComment.UserID {
+			} else {
+				// 评论文章：通知文章作者
+				if article.AuthorID > 0 && userID > 0 && article.AuthorID != userID {
 					_ = notificationService.CreateCommentNotification(
 						userID,
 						article.AuthorID,
 						req.ArticleID,
-						req.Content,
+						nil,
+						comment.ID,
 					)
 				}
 			}
-		} else {
-			// 评论文章：通知文章作者
-			if article.AuthorID > 0 && userID > 0 && article.AuthorID != userID {
-				_ = notificationService.CreateCommentNotification(
-					userID,
-					article.AuthorID,
-					req.ArticleID,
-					req.Content,
-				)
+		}()
+	} else if workID != nil && *workID > 0 {
+		// 作品评论通知
+		go func() {
+			notificationService := NewNotificationService()
+			var work models.Work
+			if err := database.DB.First(&work, *workID).Error; err != nil {
+				log.Printf("❌ 获取作品信息失败 (ID: %d): %v", *workID, err)
+				return
 			}
-		}
-	}()
+
+			if req.ParentID != nil {
+				// 回复评论：只通知被回复的评论作者
+				var parentComment models.Comment
+				if err := database.DB.First(&parentComment, *req.ParentID).Error; err == nil {
+					// 通知被回复的评论作者（回复通知）
+					if parentComment.UserID > 0 && userID > 0 && parentComment.UserID != userID {
+						_ = notificationService.CreateReplyNotification(
+							userID,
+							parentComment.UserID,
+							nil,
+							workID,
+							comment.ID,
+						)
+					}
+					// 注意：回复评论时，不通知作品作者（除非作品作者就是被回复的评论作者，上面已经通知了）
+				}
+			} else {
+				// 评论作品：通知作品作者
+				if work.AuthorID > 0 && userID > 0 && work.AuthorID != userID {
+					_ = notificationService.CreateCommentNotification(
+						userID,
+						work.AuthorID,
+						nil,
+						workID,
+						comment.ID,
+					)
+				}
+			}
+		}()
+	}
 
 	return comment, nil
 }
@@ -158,10 +251,21 @@ func (s *CommentService) Delete(id uint, userID uint, role string) error {
 		}
 
 		// 更新文章评论数
-		if err := tx.Model(&models.Article{}).
-			Where("id = ?", comment.ArticleID).
-			UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
-			return err
+		if comment.ArticleID != nil && *comment.ArticleID > 0 {
+			if err := tx.Model(&models.Article{}).
+				Where("id = ?", *comment.ArticleID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 更新作品评论数
+		if comment.WorkID != nil && *comment.WorkID > 0 {
+			if err := tx.Model(&models.Work{}).
+				Where("id = ?", *comment.WorkID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+				return err
+			}
 		}
 
 		// 更新用户评论数
@@ -195,8 +299,13 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 	db := database.DB.Model(&models.Comment{})
 
 	// Filter by article
-	if query.ArticleID > 0 {
-		db = db.Where("article_id = ?", query.ArticleID)
+	if query.ArticleID != nil && *query.ArticleID > 0 {
+		db = db.Where("article_id = ?", *query.ArticleID)
+	}
+
+	// Filter by work
+	if query.WorkID != nil && *query.WorkID > 0 {
+		db = db.Where("work_id = ?", *query.WorkID)
 	}
 
 	// Filter by user
@@ -216,8 +325,8 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 		// If user_id > 0, don't filter by status (show all: pending, approved, rejected)
 	}
 
-	// Only get root comments (when filtering by article, not when filtering by user)
-	if query.ArticleID > 0 {
+	// Only get root comments (when filtering by article/work, not when filtering by user)
+	if (query.ArticleID != nil && *query.ArticleID > 0) || (query.WorkID != nil && *query.WorkID > 0) {
 		db = db.Where("parent_id IS NULL")
 	}
 
@@ -228,7 +337,7 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 
 	// Get list
 	offset := (query.Page - 1) * query.PageSize
-	db = db.Preload("User").Preload("Article").Order("created_at DESC").Offset(offset).Limit(query.PageSize)
+	db = db.Preload("User").Preload("Article").Preload("Work").Order("created_at DESC").Offset(offset).Limit(query.PageSize)
 
 	if err := db.Find(&comments).Error; err != nil {
 		return nil, 0, err
@@ -240,6 +349,7 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 		if err := database.DB.Where("parent_id = ?", comment.ID).
 			Preload("User").
 			Preload("Article").
+			Preload("Work").
 			Order("created_at ASC").
 			Find(&replies).Error; err == nil {
 			// 将回复添加到评论（通过反射或手动设置）
@@ -253,4 +363,3 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 func (s *CommentService) UpdateStatus(id uint, status int) error {
 	return database.DB.Model(&models.Comment{}).Where("id = ?", id).Update("status", status).Error
 }
-

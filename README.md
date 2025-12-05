@@ -44,8 +44,11 @@ cd frontend/admin && pnpm dev   # 管理前端 :3002
 - ✅ **文章收藏功能** 🔥
 - ✅ **点赞系统**（文章+评论）🔥
 - ✅ **实时通知** 🔥
+- ✅ **热门文章排名**（多维度计算）🔥
+- ✅ **推荐文章/作品**（管理后台设置）🔥
 - ✅ 分类标签、作品展示、友情链接
 - ✅ 完整的管理后台
+- ✅ 独立的定时任务调度器
 
 ---
 
@@ -94,6 +97,7 @@ make docker-down   # 停止
 - [QUICKSTART.md](QUICKSTART.md) - 快速启动指南
 - [docs/database-design.md](docs/database-design.md) - 数据库设计（18张表详解）
 - [docs/API-REFERENCE.md](docs/API-REFERENCE.md) - API文档（53个接口）
+- [docs/SCHEDULER.md](docs/SCHEDULER.md) - 定时任务调度器文档
 - [scripts/database-maintenance.md](scripts/database-maintenance.md) - 数据库维护指南
 
 ---

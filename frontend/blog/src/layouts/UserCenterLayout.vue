@@ -22,13 +22,18 @@
             <el-icon><Picture /></el-icon>
             <span>我的作品</span>
           </el-menu-item>
+          <el-menu-item index="/dashboard/comments">
+            <el-icon><ChatDotRound /></el-icon>
+            <span>我的评论</span>
+          </el-menu-item>
           <el-menu-item index="/favorites">
             <el-icon><Collection /></el-icon>
             <span>我的收藏</span>
           </el-menu-item>
-          <el-menu-item index="/notifications">
+          <el-menu-item index="/dashboard/notifications">
             <el-icon><Bell /></el-icon>
             <span>我的通知</span>
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge" />
           </el-menu-item>
           <el-menu-item index="/profile/edit">
             <el-icon><User /></el-icon>
@@ -75,9 +80,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import api from '@/utils/api'
 import {
   Odometer,
   Document,
@@ -85,12 +91,37 @@ import {
   Collection,
   Bell,
   User,
-  SwitchButton
+  SwitchButton,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const unreadCount = ref(0)
+
+const loadUnreadCount = async () => {
+  try {
+    const response = await api.get('/notifications/unread-count')
+    unreadCount.value = response.data.count || 0
+  } catch (error) {
+    console.error('Failed to load unread count:', error)
+  }
+}
+
+// 每30秒刷新一次未读数量
+let intervalId = null
+
+onMounted(() => {
+  loadUnreadCount()
+  intervalId = setInterval(loadUnreadCount, 30000)
+})
+
+onUnmounted(() => {
+  if (intervalId) {
+    clearInterval(intervalId)
+  }
+})
 
 const activeMenu = computed(() => route.path)
 
@@ -100,13 +131,19 @@ const breadcrumbTitle = computed(() => {
     '/dashboard/articles': '我的文章',
     '/dashboard/articles/create': '写文章',
     '/dashboard/works': '我的作品',
+    '/dashboard/works/create': '创建作品',
+    '/dashboard/comments': '我的评论',
     '/favorites': '我的收藏',
-    '/notifications': '我的通知',
+    '/dashboard/notifications': '我的通知',
     '/profile/edit': '个人设置'
   }
   // 检查文章编辑路径
   if (route.path.includes('/dashboard/articles/') && route.path.includes('/edit')) {
     return '编辑文章'
+  }
+  // 检查作品编辑路径
+  if (route.path.includes('/dashboard/works/') && route.path.includes('/edit')) {
+    return '编辑作品'
   }
   return titles[route.path] || '用户中心'
 })

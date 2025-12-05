@@ -1,8 +1,10 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"mysite/internal/config"
@@ -325,5 +327,91 @@ func (s *ArticleService) GetList(query *models.ArticleListQuery) ([]*models.Arti
 
 func (s *ArticleService) IncrementViewCount(id uint) error {
 	return database.DB.Model(&models.Article{}).Where("id = ?", id).UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error
+}
+
+// GetRecommended 获取推荐文章
+func (s *ArticleService) GetRecommended(limit int) ([]*models.Article, error) {
+	if limit <= 0 {
+		limit = 3
+	}
+
+	var articles []*models.Article
+	err := database.DB.Where("status = ? AND is_recommend = ?", 1, true).
+		Preload("Category").Preload("Tags").Preload("Author").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&articles).Error
+
+	return articles, err
+}
+
+// SetRecommend 设置文章推荐状态
+func (s *ArticleService) SetRecommend(id uint, isRecommend bool) error {
+	// Clear cache
+	defer utils.DeleteCachePattern("article:*")
+	
+	return database.DB.Model(&models.Article{}).
+		Where("id = ?", id).
+		Update("is_recommend", isRecommend).Error
+}
+
+// GetHotArticles 获取热门文章（从Redis读取）
+func (s *ArticleService) GetHotArticles(limit int) ([]*models.Article, error) {
+	if limit <= 0 {
+		limit = 6
+	}
+
+	// 从Redis获取热门文章ID列表
+	ctx := database.Ctx
+	data, err := database.RDB.Get(ctx, "hot:articles").Result()
+	if err != nil {
+		// 如果Redis中没有数据，返回最新文章作为降级方案
+		log.Printf("Redis中没有热门文章数据，使用最新文章作为降级: %v", err)
+		var articles []*models.Article
+		err := database.DB.Where("status = ?", 1).
+			Preload("Category").Preload("Tags").Preload("Author").
+			Order("created_at DESC").
+			Limit(limit).
+			Find(&articles).Error
+		return articles, err
+	}
+
+	// 解析文章ID列表
+	var articleIDs []uint
+	if err := json.Unmarshal([]byte(data), &articleIDs); err != nil {
+		return nil, fmt.Errorf("解析热门文章ID失败: %w", err)
+	}
+
+	// 限制数量
+	if len(articleIDs) > limit {
+		articleIDs = articleIDs[:limit]
+	}
+
+	if len(articleIDs) == 0 {
+		return []*models.Article{}, nil
+	}
+
+	// 从数据库查询文章详情
+	var articles []*models.Article
+	if err := database.DB.Where("id IN ?", articleIDs).
+		Preload("Category").Preload("Tags").Preload("Author").
+		Find(&articles).Error; err != nil {
+		return nil, err
+	}
+
+	// 按ID顺序排序（保持热度排序）
+	articleMap := make(map[uint]*models.Article)
+	for _, article := range articles {
+		articleMap[article.ID] = article
+	}
+
+	sortedArticles := make([]*models.Article, 0, len(articleIDs))
+	for _, id := range articleIDs {
+		if article, ok := articleMap[id]; ok {
+			sortedArticles = append(sortedArticles, article)
+		}
+	}
+
+	return sortedArticles, nil
 }
 
