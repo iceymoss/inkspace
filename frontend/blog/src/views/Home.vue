@@ -90,7 +90,12 @@
 
               <el-row :gutter="20">
                 <el-col :xs="24" :sm="12" :md="12" v-for="work in works" :key="work.id">
-                  <el-card class="work-card" shadow="hover" @click="$router.push(`/works/${work.id}`)">
+                  <el-card 
+                    class="work-card" 
+                    :class="{ 'work-card-clickable': work.type !== 'project' }"
+                    shadow="hover" 
+                    @click="work.type !== 'project' && $router.push(`/works/${work.id}`)"
+                  >
                     <div class="work-type-badge">
                       <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
                         {{ work.type === 'photography' ? '📷' : '💻' }}
@@ -100,6 +105,17 @@
                     <div class="work-info">
                       <h4>{{ work.title }}</h4>
                       <p class="work-desc">{{ work.description }}</p>
+                      <!-- 开源项目显示技术栈 -->
+                      <div class="work-tech-stack" v-if="work.type === 'project' && work.tech_stack">
+                        <el-tag
+                          v-for="(tech, index) in getTechStack(work.tech_stack)"
+                          :key="index"
+                          size="small"
+                          class="tech-tag"
+                        >
+                          {{ tech }}
+                        </el-tag>
+                      </div>
                     </div>
                   </el-card>
                 </el-col>
@@ -254,6 +270,12 @@ const stats = ref({
 })
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
+
+// 解析技术栈字符串（逗号分隔）
+const getTechStack = (techStack) => {
+  if (!techStack) return []
+  return techStack.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0)
+}
 
 const loadData = async () => {
   try {
@@ -460,17 +482,37 @@ onMounted(() => {
   margin-top: 50px;
 }
 
+.works-section :deep(.el-col) {
+  display: flex;
+}
+
 .work-card {
-  cursor: pointer;
   margin-bottom: 20px;
   transition: all 0.3s;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-.work-card:hover {
+.work-card-clickable {
+  cursor: pointer;
+}
+
+.work-card-clickable:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.12);
+}
+
+.work-card :deep(.el-card__body) {
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .work-type-badge {
@@ -482,26 +524,68 @@ onMounted(() => {
 
 .work-cover {
   width: 100%;
-  height: 180px;
-  border-radius: 4px;
-  margin-bottom: 15px;
+  max-width: 100%;
+  height: 200px;
+  border-radius: 4px 4px 0 0;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.work-cover :deep(.el-image) {
+  width: 100%;
+  height: 100%;
+}
+
+.work-cover :deep(.el-image__inner) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.work-info {
+  padding: 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .work-info h4 {
   margin: 0 0 8px 0;
   font-size: 1.1rem;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
 }
 
 .work-desc {
   color: var(--text-secondary);
   font-size: 0.85rem;
-  margin: 0;
+  margin: 0 0 12px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
+  line-height: 1.5;
+}
+
+.work-tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.tech-tag {
+  margin: 0;
+  font-size: 0.75rem;
 }
 
 /* Sidebar */

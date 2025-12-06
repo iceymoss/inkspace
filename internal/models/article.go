@@ -7,44 +7,44 @@ import (
 )
 
 type Article struct {
-	ID           uint           `gorm:"primarykey" json:"id"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
-	Title        string         `gorm:"size:200;not null;index:idx_title" json:"title" binding:"required"`
-	Content      string         `gorm:"type:longtext;not null" json:"content" binding:"required"`
-	ContentHTML  string         `gorm:"type:longtext" json:"content_html"`
-	Summary      string         `gorm:"size:500" json:"summary"`
-	Cover        string         `gorm:"size:255" json:"cover"`
-	CategoryID   uint           `gorm:"index:idx_category_id" json:"category_id"`
-	Category     *Category      `gorm:"foreignKey:CategoryID;constraint:OnDelete:SET NULL" json:"category,omitempty"`
-	Tags         []Tag          `gorm:"many2many:article_tags;constraint:OnDelete:CASCADE" json:"tags,omitempty"`
-	AuthorID     uint           `gorm:"index:idx_author_id;not null" json:"author_id"`
-	Author       *User          `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE" json:"author,omitempty"`
-	ViewCount    int            `gorm:"default:0;not null" json:"view_count"`
+	ID            uint           `gorm:"primarykey" json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	Title         string         `gorm:"size:200;not null;index:idx_title" json:"title" binding:"required"`
+	Content       string         `gorm:"type:longtext;not null" json:"content" binding:"required"`
+	ContentHTML   string         `gorm:"type:longtext" json:"content_html"`
+	Summary       string         `gorm:"size:500" json:"summary"`
+	Cover         string         `gorm:"size:255" json:"cover"`
+	CategoryID    uint           `gorm:"index:idx_category_id" json:"category_id"`
+	Category      *Category      `gorm:"foreignKey:CategoryID;constraint:OnDelete:SET NULL" json:"category,omitempty"`
+	Tags          []Tag          `gorm:"many2many:article_tags;constraint:OnDelete:CASCADE" json:"tags,omitempty"`
+	AuthorID      uint           `gorm:"index:idx_author_id;not null" json:"author_id"`
+	Author        *User          `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE" json:"author,omitempty"`
+	ViewCount     int            `gorm:"default:0;not null" json:"view_count"`
 	LikeCount     int            `gorm:"default:0;not null" json:"like_count"`
 	CommentCount  int            `gorm:"default:0;not null" json:"comment_count"`
 	FavoriteCount int            `gorm:"default:0;not null" json:"favorite_count"` // 收藏数
 	WordCount     int            `gorm:"default:0;not null" json:"word_count"`
-	ReadingTime  int            `gorm:"default:0;not null" json:"reading_time"` // 阅读时间（分钟）
-	Status       int            `gorm:"default:1;index:idx_status;index:idx_top_status_created" json:"status"` // 1: published, 0: draft
-	IsTop        bool           `gorm:"default:false;index:idx_top_status_created" json:"is_top"`
-	IsRecommend  bool           `gorm:"default:false" json:"is_recommend"`
-	IsOriginal   bool           `gorm:"default:true" json:"is_original"`
-	SourceURL    string         `gorm:"size:255" json:"source_url"`
-	PublishAt    *time.Time     `gorm:"type:datetime(3)" json:"publish_at"`
+	ReadingTime   int            `gorm:"default:0;not null" json:"reading_time"`                                // 阅读时间（分钟）
+	Status        int            `gorm:"default:1;index:idx_status;index:idx_top_status_created" json:"status"` // 1: published, 0: draft
+	IsTop         bool           `gorm:"default:false;index:idx_top_status_created" json:"is_top"`
+	IsRecommend   bool           `gorm:"default:false" json:"is_recommend"`
+	IsOriginal    bool           `gorm:"default:true" json:"is_original"`
+	SourceURL     string         `gorm:"size:255" json:"source_url"`
+	PublishAt     *time.Time     `gorm:"type:datetime(3)" json:"publish_at"`
 }
 
 type ArticleRequest struct {
-	Title       string   `json:"title" binding:"required,max=200"`
-	Content     string   `json:"content" binding:"required"`
-	Summary     string   `json:"summary" binding:"max=500"`
-	Cover       string   `json:"cover"`
-	CategoryID  uint     `json:"category_id"`
-	TagIDs      []uint   `json:"tag_ids"`
-	Status      int      `json:"status"`
-	IsTop       bool     `json:"is_top"`
-	IsRecommend bool     `json:"is_recommend"`
+	Title       string `json:"title" binding:"required,max=200"`
+	Content     string `json:"content" binding:"required"`
+	Summary     string `json:"summary" binding:"max=500"`
+	Cover       string `json:"cover"`
+	CategoryID  uint   `json:"category_id"`
+	TagIDs      []uint `json:"tag_ids"`
+	Status      int    `json:"status"`
+	IsTop       bool   `json:"is_top"`
+	IsRecommend bool   `json:"is_recommend"`
 }
 
 type ArticleListQuery struct {
@@ -55,6 +55,9 @@ type ArticleListQuery struct {
 	Keyword    string `form:"keyword"`
 	Status     *int   `form:"status"`
 	AuthorID   uint   `form:"author_id"`
+	SortBy     string `form:"sort_by"`    // 排序字段: hot, time, view_count, like_count, comment_count
+	SortOrder  string `form:"sort_order"` // 排序方向: asc, desc
+	RankType   string `form:"rank_type"`  // 榜单类型: hot, week, month, year
 }
 
 type ArticleResponse struct {
@@ -124,4 +127,3 @@ func (a *Article) ToResponse() *ArticleResponse {
 
 	return resp
 }
-

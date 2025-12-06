@@ -46,6 +46,47 @@
         </el-form>
       </el-tab-pane>
 
+      <el-tab-pane label="Markdown设置" name="markdown">
+        <el-form :model="markdownSettings" label-width="150px">
+          <el-form-item label="Markdown 主题风格">
+            <el-select v-model="markdownSettings.markdown_theme" placeholder="选择 Markdown 主题风格" style="width: 300px">
+              <el-option label="浅色主题" value="light" />
+              <el-option label="深色主题" value="dark" />
+            </el-select>
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              设置 Markdown 内容的整体主题风格（浅色/深色）
+            </div>
+          </el-form-item>
+          <el-form-item label="代码高亮主题">
+            <el-select v-model="markdownSettings.code_theme" placeholder="选择代码高亮主题" style="width: 300px">
+              <el-option label="GitHub" value="github" />
+              <el-option label="GitHub Dark" value="github-dark" />
+              <el-option label="Atom One Dark" value="atom-one-dark" />
+              <el-option label="Atom One Light" value="atom-one-light" />
+              <el-option label="Monokai" value="monokai" />
+              <el-option label="VS2015" value="vs2015" />
+              <el-option label="VS" value="vs" />
+              <el-option label="Xcode" value="xcode" />
+              <el-option label="Dracula" value="dracula" />
+              <el-option label="Nord" value="nord" />
+              <el-option label="Solarized Dark" value="solarized-dark" />
+              <el-option label="Solarized Light" value="solarized-light" />
+              <el-option label="Tomorrow Night" value="tomorrow-night" />
+              <el-option label="Tomorrow Night Blue" value="tomorrow-night-blue" />
+              <el-option label="Tomorrow Night Bright" value="tomorrow-night-bright" />
+              <el-option label="Tomorrow Night Eighties" value="tomorrow-night-eighties" />
+              <el-option label="Default" value="default" />
+            </el-select>
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              设置代码块的高亮主题风格
+            </div>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="saveMarkdownSettings" :loading="saving">保存</el-button>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+
       <el-tab-pane label="所有配置" name="all">
         <el-button type="primary" @click="showEditDialog()" style="margin-bottom: 20px;">
           <el-icon><Plus /></el-icon> 新建配置
@@ -137,6 +178,11 @@ const featureSettings = reactive({
   comment_audit: false
 })
 
+const markdownSettings = reactive({
+  markdown_theme: 'light', // 默认使用浅色主题
+  code_theme: 'github' // 默认使用 github 主题
+})
+
 const editForm = reactive({
   key: '',
   value: '',
@@ -161,6 +207,8 @@ const loadAllSettings = async () => {
         siteSettings[setting.key] = setting.value
       } else if (setting.group === 'feature') {
         featureSettings[setting.key] = setting.value === '1' || setting.value === 'true'
+      } else if (setting.group === 'markdown') {
+        markdownSettings[setting.key] = setting.value
       }
     })
   } catch (error) {
@@ -188,6 +236,24 @@ const saveFeatureSettings = async () => {
     const settings = {}
     Object.keys(featureSettings).forEach(key => {
       settings[key] = featureSettings[key] ? '1' : '0'
+    })
+    
+    await adminApi.put('/admin/settings/batch', settings)
+    ElMessage.success('保存成功')
+    loadAllSettings()
+  } catch (error) {
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+const saveMarkdownSettings = async () => {
+  saving.value = true
+  try {
+    const settings = {}
+    Object.keys(markdownSettings).forEach(key => {
+      settings[key] = markdownSettings[key]
     })
     
     await adminApi.put('/admin/settings/batch', settings)

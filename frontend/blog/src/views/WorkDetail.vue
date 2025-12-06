@@ -2,6 +2,18 @@
   <div class="work-detail">
     <div class="container">
       <el-card v-if="work" class="detail-card">
+        <template #header v-if="isWorkOwner">
+          <div class="card-header-actions">
+            <el-button 
+              type="primary" 
+              :icon="Edit" 
+              @click="handleEdit"
+              size="default"
+            >
+              编辑作品
+            </el-button>
+          </div>
+        </template>
         <!-- 摄影作品布局 -->
         <template v-if="work.type === 'photography'">
           <div class="photography-layout">
@@ -22,6 +34,9 @@
                       :alt="photo.description || work.title"
                       fit="contain"
                       class="main-photo"
+                      :preview-src-list="photoUrlList"
+                      :initial-index="index"
+                      preview-teleported
                       @load="handleImageLoad"
                     />
                   </el-carousel-item>
@@ -54,7 +69,8 @@
               <!-- 相册信息 -->
               <div class="album-info">
                 <h2>{{ work.title }}</h2>
-                <p class="album-description">{{ work.description }}</p>
+                <div id="work-description-preview-photography" v-if="work.description"></div>
+                <p v-else class="album-description-empty">暂无描述</p>
                 
                 <div class="album-meta" v-if="work.metadata">
                   <div class="meta-item" v-if="work.metadata.location">
@@ -181,52 +197,92 @@
               </div>
             </div>
 
-            <el-image :src="work.cover" fit="cover" class="work-cover" />
-
             <div class="work-content">
-              <p class="work-description">{{ work.description }}</p>
+              <div id="work-description-preview-project" v-if="work.description"></div>
+              <p v-else class="work-description-empty">暂无描述</p>
               
-              <div class="work-links" v-if="work.github_url || work.demo_url || work.link">
-                <el-link 
-                  v-if="work.github_url" 
-                  :href="work.github_url" 
-                  target="_blank" 
-                  type="primary"
-                  :icon="Link"
-                >
-                  GitHub
-                </el-link>
-                <el-link 
-                  v-if="work.demo_url" 
-                  :href="work.demo_url" 
-                  target="_blank" 
-                  type="success"
-                  :icon="Link"
-                >
-                  在线演示
-                </el-link>
-                <el-link 
-                  v-if="work.link" 
-                  :href="work.link" 
-                  target="_blank"
-                  :icon="Link"
-                >
-                  项目主页
-                </el-link>
-              </div>
-
               <div class="tech-stack" v-if="work.tech_stack">
                 <h3>技术栈</h3>
                 <p>{{ work.tech_stack }}</p>
+              </div>
+
+              <div class="work-links" v-if="work.github_url || work.demo_url || work.link">
+                <el-button 
+                  v-if="work.github_url" 
+                  type="primary"
+                  size="large"
+                  class="work-link-btn github-btn"
+                  @click="openLink(work.github_url)"
+                >
+                  <el-icon><Link /></el-icon>
+                  GitHub
+                </el-button>
+                <el-button 
+                  v-if="work.link" 
+                  type="success"
+                  size="large"
+                  class="work-link-btn project-btn"
+                  @click="openLink(work.link)"
+                >
+                  <el-icon><Link /></el-icon>
+                  项目主页
+                </el-button>
+                <el-button 
+                  v-if="work.demo_url" 
+                  plain
+                  size="large"
+                  class="work-link-btn demo-btn"
+                  @click="openLink(work.demo_url)"
+                >
+                  <el-icon><Link /></el-icon>
+                  在线演示
+                </el-button>
               </div>
 
               <div class="work-stats">
                 <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
                 <span><el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}</span>
               </div>
+
+              <!-- 点赞和收藏按钮 -->
+              <div class="work-actions" v-if="work">
+                <el-button 
+                  :type="isLiked ? 'primary' : 'default'"
+                  @click="handleLike"
+                  :loading="liking"
+                  size="default"
+                  class="action-btn"
+                >
+                  <el-icon><Star /></el-icon>
+                  {{ work.like_count || 0 }} {{ isLiked ? '已点赞' : '点赞' }}
+                </el-button>
+                <el-button 
+                  :type="isFavorited ? 'warning' : 'default'"
+                  @click="handleFavorite"
+                  :loading="favoriting"
+                  size="default"
+                  class="action-btn"
+                >
+                  <el-icon><Star /></el-icon>
+                  {{ work.favorite_count || 0 }} {{ isFavorited ? '已收藏' : '收藏' }}
+                </el-button>
+              </div>
             </div>
           </div>
         </template>
+
+        <!-- 编辑按钮（底部） -->
+        <div v-if="isWorkOwner" class="edit-actions-bottom">
+          <el-button 
+            type="primary" 
+            :icon="Edit" 
+            @click="handleEdit"
+            size="large"
+          >
+            <el-icon><Edit /></el-icon>
+            编辑作品
+          </el-button>
+        </div>
 
         <!-- 评论区（两种类型共用） -->
         <el-divider />
@@ -441,15 +497,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   View, ChatDotRound, Star, Link, 
-  Location, Calendar, Picture, ArrowDown 
+  Location, Calendar, Picture, ArrowDown, Edit
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
+import Vditor from 'vditor'
+import 'vditor/dist/index.css'
+import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
 
 const route = useRoute()
 const router = useRouter()
@@ -480,8 +539,32 @@ const photos = computed(() => {
   return work.value.images || []
 })
 
+// 所有图片的URL列表，用于图片预览
+const photoUrlList = computed(() => {
+  return photos.value.map(photo => photo.url)
+})
+
 const currentPhoto = computed(() => {
   return photos.value[currentPhotoIndex.value] || { metadata: {} }
+})
+
+// 判断当前用户是否是作品作者
+const isWorkOwner = computed(() => {
+  if (!userStore.isLoggedIn || !work.value || !userStore.user) {
+    return false
+  }
+  
+  // 检查作品作者ID是否等于当前用户ID
+  // 优先使用 author_id，如果没有则使用 author.id
+  const authorId = work.value.author_id || work.value.author?.id
+  const userId = userStore.user.id
+  
+  if (!authorId || !userId) {
+    return false
+  }
+  
+  // 处理可能的类型不匹配（字符串 vs 数字）
+  return Number(authorId) === Number(userId)
 })
 
 // 判断评论/回复的作者是否是作品作者
@@ -500,10 +583,79 @@ const isCommentAuthor = (comment) => {
   return Number(workAuthorId) === Number(commentAuthorId)
 }
 
-const loadWork = async () => {
+// 跳转到编辑页面
+const handleEdit = () => {
+  if (!work.value) return
+  router.push(`/dashboard/works/${work.value.id}/edit`)
+}
+
+// 渲染 Markdown 描述
+const renderDescription = async () => {
+  if (!work.value || !work.value.description) {
+    return
+  }
+  
+  // 加载代码主题配置
+  const codeThemeValue = await loadCodeTheme()
+  // 加载 highlight.js 主题样式
+  await loadHighlightTheme(codeThemeValue)
+  // 加载 Markdown 主题配置
+  const mdTheme = await getMarkdownTheme()
+  
+  // 确保样式表完全加载后再渲染
+  await new Promise(resolve => setTimeout(resolve, 150))
+  
+  nextTick(() => {
+    // 根据作品类型选择不同的预览元素
+    const previewId = work.value.type === 'photography' 
+      ? 'work-description-preview-photography' 
+      : 'work-description-preview-project'
+    
+    const previewDiv = document.getElementById(previewId)
+    if (!previewDiv) {
+      console.error(`Description preview element not found: ${previewId}`)
+      return
+    }
+    
+    // 清空之前的内容（仅在刷新时可能需要）
+    previewDiv.innerHTML = ''
+    
+    console.log('Rendering work description with Vditor.preview, code theme:', codeThemeValue, 'markdown theme:', mdTheme)
+    
+    // 使用 Vditor.preview 进行渲染
+    Vditor.preview(previewDiv, work.value.description, {
+      mode: mdTheme || 'light',
+      markdown: {
+        toc: true,
+        mark: true,
+        footnotes: true,
+        autoSpace: true,
+      },
+      hljs: {
+        lineNumber: true,
+        style: codeThemeValue || 'github', // 使用配置的代码主题
+        enable: true
+      },
+      speech: {
+        enable: false
+      },
+      anchor: 1,
+      after: () => {
+        console.log('Work description rendered successfully!')
+      }
+    })
+  })
+}
+
+const loadWork = async (skipView = false) => {
   try {
-    const response = await api.get(`/works/${route.params.id}`)
+    const url = skipView 
+      ? `/works/${route.params.id}?skip_view=true`
+      : `/works/${route.params.id}`
+    const response = await api.get(url)
     work.value = response.data
+    // 渲染描述
+    renderDescription()
   } catch (error) {
     ElMessage.error('加载作品失败')
   }
@@ -618,8 +770,8 @@ const submitComment = async () => {
     // 重置为第一页并重新加载
     commentsPage.value = 1
     await loadComments(false)
-    // 重新加载作品以更新评论数
-    await loadWork()
+    // 重新加载作品以更新评论数（跳过浏览量增加）
+    await loadWork(true)
   } catch (error) {
     ElMessage.error('评论发表失败')
   } finally {
@@ -711,8 +863,8 @@ const submitReply = async (comment) => {
     // 重置为第一页并重新加载
     commentsPage.value = 1
     await loadComments(false)
-    // 重新加载作品以更新评论数
-    await loadWork()
+    // 重新加载作品以更新评论数（跳过浏览量增加）
+    await loadWork(true)
   } catch (error) {
     ElMessage.error('回复失败')
   } finally {
@@ -753,8 +905,8 @@ const submitReplyToReply = async (parentComment, reply) => {
     // 重置为第一页并重新加载
     commentsPage.value = 1
     await loadComments(false)
-    // 重新加载作品以更新评论数
-    await loadWork()
+    // 重新加载作品以更新评论数（跳过浏览量增加）
+    await loadWork(true)
   } catch (error) {
     ElMessage.error('回复失败')
   } finally {
@@ -923,8 +1075,8 @@ const handleDeleteComment = async (comment) => {
     // 重置为第一页并重新加载
     commentsPage.value = 1
     await loadComments(false)
-    // 重新加载作品以更新评论数
-    await loadWork()
+    // 重新加载作品以更新评论数（跳过浏览量增加）
+    await loadWork(true)
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
@@ -953,6 +1105,13 @@ const handleImageLoad = () => {
 const goToUserProfile = (userId) => {
   if (userId) {
     router.push(`/user/${userId}`)
+  }
+}
+
+// 打开外部链接
+const openLink = (url) => {
+  if (url) {
+    window.open(url, '_blank')
   }
 }
 
@@ -1017,25 +1176,28 @@ const handleLike = async () => {
     return
   }
 
+  // 防止重复点击
+  if (liking.value) {
+    return
+  }
+
   liking.value = true
   try {
     // 后端是 toggle 操作
     await api.post(`/works/${route.params.id}/like`)
     
-    // toggle 状态
-    isLiked.value = !isLiked.value
-    
-    // 重新加载作品数据以获取服务器端的最新数量
-    await loadWork()
-    // 重新检查点赞状态
+    // 重新加载作品数据以获取服务器端的最新数量（跳过浏览量增加）
+    await loadWork(true)
+    // 重新检查点赞状态（从服务器获取最新状态）
     await checkLikedStatus()
     
+    // 根据最新状态显示消息
     ElMessage.success(isLiked.value ? '点赞成功' : '取消点赞')
   } catch (error) {
     ElMessage.error(error.response?.data?.message || '操作失败')
-    // 重新检查状态和重新加载作品
+    // 重新检查状态和重新加载作品（跳过浏览量增加）
     await checkLikedStatus()
-    await loadWork()
+    await loadWork(true)
   } finally {
     liking.value = false
   }
@@ -1048,32 +1210,40 @@ const handleFavorite = async () => {
     return
   }
 
+  // 防止重复点击
+  if (favoriting.value) {
+    return
+  }
+
   favoriting.value = true
   try {
     // 根据当前状态选择操作
     if (isFavorited.value) {
       await api.delete(`/works/${route.params.id}/favorite`)
-      isFavorited.value = false
       ElMessage.success('取消收藏')
     } else {
       await api.post(`/works/${route.params.id}/favorite`)
-      isFavorited.value = true
       ElMessage.success('收藏成功')
     }
     
-    // 重新加载作品数据以获取服务器端的最新数量
-    await loadWork()
-    // 重新检查收藏状态
+    // 重新加载作品数据以获取服务器端的最新数量（跳过浏览量增加）
+    await loadWork(true)
+    // 重新检查收藏状态（从服务器获取最新状态）
     await checkFavoritedStatus()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || '操作失败')
-    // 重新检查状态和重新加载作品
+    // 重新检查状态和重新加载作品（跳过浏览量增加）
     await checkFavoritedStatus()
-    await loadWork()
+    await loadWork(true)
   } finally {
     favoriting.value = false
   }
 }
+
+// 监听 work 变化，重新渲染描述
+watch(() => work.value?.description, () => {
+  renderDescription()
+})
 
 onMounted(async () => {
   if (userStore.isLoggedIn && !userStore.user) {
@@ -1092,8 +1262,13 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateCarouselHeight)
-})
+  })
 </script>
+
+<style>
+/* Vditor渲染样式需要全局作用域 */
+@import 'vditor/dist/index.css';
+</style>
 
 <style scoped>
 .work-detail {
@@ -1105,6 +1280,20 @@ onUnmounted(() => {
 .detail-card {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.card-header-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.edit-actions-bottom {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+  margin-top: 20px;
+  border-top: 1px solid #ebeef5;
 }
 
 /* ========== 摄影作品布局 ========== */
@@ -1201,9 +1390,15 @@ onUnmounted(() => {
 }
 
 .album-description {
-  color: var(--text-secondary);
   margin-bottom: 20px;
   line-height: 1.6;
+  /* 样式由 Vditor 主题控制，不设置 color 避免影响代码块 */
+}
+
+.album-description-empty {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  font-style: italic;
 }
 
 .album-meta {
@@ -1368,25 +1563,122 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-.work-cover {
-  width: 100%;
-  border-radius: 8px;
-  margin-bottom: 30px;
-}
 
 .work-content {
   line-height: 1.8;
 }
 
+/* 确保代码块不受父元素 line-height 影响 */
+.work-content :deep(pre) {
+  line-height: 1.45;
+}
+
 .work-description {
   font-size: 1.1rem;
   margin-bottom: 25px;
+  line-height: 1.8;
+  /* 样式由 Vditor 主题控制，不设置 color 避免影响代码块 */
 }
+
+.work-description-empty {
+  font-size: 1.1rem;
+  margin-bottom: 25px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+#work-description-preview-photography,
+#work-description-preview-project {
+  padding: 20px 0;
+}
+
+/* 内联代码样式 */
+#work-description-preview-photography :deep(code:not(pre code)),
+#work-description-preview-project :deep(code:not(pre code)) {
+  background-color: rgba(175, 184, 193, 0.2);
+  color: #24292e;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 85%;
+}
+
+/* 确保代码块样式不被覆盖，让 highlight.js 样式生效 */
+#work-description-preview-photography :deep(pre),
+#work-description-preview-project :deep(pre) {
+  /* 不设置任何样式，让 highlight.js 主题 CSS 完全控制代码块 */
+  line-height: 1.45;
+}
+
+#work-description-preview-photography :deep(pre code),
+#work-description-preview-project :deep(pre code) {
+  /* 不设置任何样式，让 highlight.js 主题 CSS 完全控制代码块 */
+  line-height: inherit;
+}
+
+/* vditor-reset样式由全局CSS提供 */
 
 .work-links {
   display: flex;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 16px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.work-link-btn {
+  min-width: 140px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.work-link-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.github-btn {
+  background: linear-gradient(135deg, #24292e 0%, #1a1e22 100%);
+  border: none;
+  color: #fff;
+}
+
+.github-btn:hover {
+  background: linear-gradient(135deg, #2d3339 0%, #24292e 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(36, 41, 46, 0.3);
+}
+
+.project-btn {
+  background: linear-gradient(135deg, #67c23a 0%, #529b2e 100%);
+  border: none;
+  color: #fff;
+}
+
+.project-btn:hover {
+  background: linear-gradient(135deg, #73d048 0%, #5fb832 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(103, 194, 58, 0.3);
+}
+
+.demo-btn {
+  border: 2px solid #409eff;
+  color: #409eff;
+  background: #fff;
+}
+
+.demo-btn:hover {
+  background: #409eff;
+  color: #fff;
+  border-color: #409eff;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+}
+
+.work-link-btn .el-icon {
+  margin-right: 6px;
+  font-size: 18px;
 }
 
 .tech-stack {
@@ -1395,6 +1687,34 @@ onUnmounted(() => {
 
 .tech-stack h3 {
   margin-bottom: 10px;
+}
+
+.work-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+  justify-content: center;
+}
+
+.action-btn {
+  min-width: 120px;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.action-btn .el-icon {
+  margin-right: 4px;
+  font-size: 16px;
 }
 
 .work-stats {

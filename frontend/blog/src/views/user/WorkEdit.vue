@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>{{ isEdit ? '编辑作品' : '创建作品' }}</span>
-          <el-button text @click="$router.back()">返回</el-button>
+          <el-button text @click="handleCancel">返回</el-button>
         </div>
       </template>
 
@@ -15,7 +15,8 @@
         label-width="120px"
         style="max-width: 1200px"
       >
-        <el-form-item label="作品类型" prop="type">
+        <!-- 创建模式：显示类型选择器 -->
+        <el-form-item v-if="!isEdit" label="作品类型" prop="type">
           <el-radio-group v-model="form.type" @change="handleTypeChange">
             <el-radio label="project">💻 开源项目</el-radio>
             <el-radio label="photography">📷 摄影作品</el-radio>
@@ -24,6 +25,13 @@
             摄影作品每天最多发布3个相册，已用：{{ quotaUsed }}/3<br>
             照片限制：{{ photoLimit }}张/相册
           </div>
+        </el-form-item>
+        
+        <!-- 编辑模式：只显示类型标签 -->
+        <el-form-item v-else label="作品类型">
+          <el-tag :type="form.type === 'photography' ? 'warning' : 'primary'" size="large">
+            {{ form.type === 'photography' ? '📷 摄影作品' : '💻 开源项目' }}
+          </el-tag>
         </el-form-item>
 
         <el-form-item label="作品标题" prop="title">
@@ -36,13 +44,9 @@
         </el-form-item>
 
         <el-form-item label="作品描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="4"
-            placeholder="作品描述"
-            maxlength="500"
-            show-word-limit
+          <VditorEditor 
+            v-model="form.description" 
+            height="400px"
           />
         </el-form-item>
 
@@ -232,7 +236,7 @@
           <el-button type="primary" @click="handleSubmit" :loading="submitting">
             {{ isEdit ? '保存修改' : '发布作品' }}
           </el-button>
-          <el-button @click="$router.back()">取消</el-button>
+          <el-button @click="handleCancel">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -240,12 +244,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
+import VditorEditor from '@/components/VditorEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,6 +260,9 @@ const formRef = ref()
 const submitting = ref(false)
 const quotaUsed = ref(0)
 const activePhotoIndex = ref(0)
+const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
+const originalData = ref(null) // 保存原始数据用于对比
+const isSaved = ref(false) // 标记是否已保存成功，用于跳过路由守卫提示
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -413,8 +421,62 @@ const loadQuota = async () => {
   }
 }
 
+// 检查表单是否有未保存的更改
+const checkUnsavedChanges = () => {
+  if (!isEdit.value || !originalData.value) {
+    // 创建模式下，检查是否有任何输入
+    return form.title || form.description || form.cover || 
+           (form.type === 'project' && (form.link || form.github_url || form.demo_url || form.tech_stack)) ||
+           (form.type === 'photography' && (photos.value.length > 0 || albumMetadata.location || albumMetadata.shooting_date))
+  }
+  
+  // 编辑模式下，与原始数据对比
+  const original = originalData.value
+  
+  // 检查基础字段
+  if (form.title !== original.title ||
+      form.description !== original.description ||
+      form.cover !== original.cover ||
+      form.status !== original.status) {
+    return true
+  }
+  
+  // 检查项目类型字段
+  if (form.type === 'project') {
+    if (form.link !== original.link ||
+        form.github_url !== original.github_url ||
+        form.demo_url !== original.demo_url ||
+        form.tech_stack !== original.tech_stack) {
+      return true
+    }
+  }
+  
+  // 检查摄影类型字段
+  if (form.type === 'photography') {
+    if (albumMetadata.location !== (original.metadata?.location || '') ||
+        albumMetadata.shooting_date !== (original.metadata?.shooting_date || '')) {
+      return true
+    }
+    
+    // 检查照片数组
+    if (JSON.stringify(photos.value) !== JSON.stringify(original.images || [])) {
+      return true
+    }
+  }
+  
+  return false
+}
+
 const loadWork = async () => {
-  if (!isEdit.value) return
+  // 重置保存状态
+  isSaved.value = false
+  
+  if (!isEdit.value) {
+    // 创建模式下，重置未保存标记
+    hasUnsavedChanges.value = false
+    originalData.value = null
+    return
+  }
 
   try {
     const response = await api.get(`/works/${route.params.id}`)
@@ -452,6 +514,23 @@ const loadWork = async () => {
         status: 'success'
       }))
     }
+    
+    // 保存原始数据用于对比
+    originalData.value = {
+      title: work.title,
+      type: work.type || 'project',
+      description: work.description,
+      cover: work.cover,
+      link: work.link,
+      github_url: work.github_url,
+      demo_url: work.demo_url,
+      tech_stack: work.tech_stack,
+      status: work.status,
+      images: work.images || [],
+      metadata: work.metadata || {}
+    }
+    
+    hasUnsavedChanges.value = false
   } catch (error) {
     ElMessage.error('加载作品失败')
   }
@@ -516,6 +595,11 @@ const handleSubmit = async () => {
         ElMessage.success('创建成功')
       }
       
+      // 清除未保存标记，标记为已保存
+      hasUnsavedChanges.value = false
+      originalData.value = null
+      isSaved.value = true
+      
       router.push('/dashboard/works')
     } catch (error) {
       ElMessage.error(error.response?.data?.message || '保存失败')
@@ -525,9 +609,97 @@ const handleSubmit = async () => {
   })
 }
 
+// 处理取消/返回按钮
+const handleCancel = async () => {
+  if (checkUnsavedChanges()) {
+    try {
+      await ElMessageBox.confirm(
+        '您有未保存的更改，确定要离开吗？',
+        '提示',
+        {
+          confirmButtonText: '确定离开',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      router.back()
+    } catch {
+      // 用户取消，不执行任何操作
+    }
+  } else {
+    router.back()
+  }
+}
+
+// 路由守卫：离开页面前的提示
+onBeforeRouteLeave((to, from, next) => {
+  // 如果已保存成功，直接允许离开
+  if (isSaved.value) {
+    next()
+    return
+  }
+  
+  // 如果正在提交，直接允许离开
+  if (submitting.value) {
+    next()
+    return
+  }
+  
+  if (checkUnsavedChanges()) {
+    ElMessageBox.confirm(
+      '您有未保存的更改，确定要离开吗？',
+      '提示',
+      {
+        confirmButtonText: '确定离开',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      next()
+    }).catch(() => {
+      next(false)
+    })
+  } else {
+    next()
+  }
+})
+
+// 监听页面刷新/关闭
+const handleBeforeUnload = (e) => {
+  // 如果已保存或正在提交，不提示
+  if (isSaved.value || submitting.value) {
+    return
+  }
+  
+  if (checkUnsavedChanges()) {
+    e.preventDefault()
+    e.returnValue = '您有未保存的更改，确定要离开吗？'
+    return e.returnValue
+  }
+}
+
+// 监听表单变化
+watch(
+  [() => form.title, () => form.description, () => form.cover, () => form.status,
+   () => form.link, () => form.github_url, () => form.demo_url, () => form.tech_stack,
+   () => albumMetadata.location, () => albumMetadata.shooting_date,
+   () => photos.value],
+  () => {
+    hasUnsavedChanges.value = checkUnsavedChanges()
+  },
+  { deep: true }
+)
+
 onMounted(() => {
   loadQuota()
   loadWork()
+  // 添加页面刷新/关闭监听
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onUnmounted(() => {
+  // 移除页面刷新/关闭监听
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 

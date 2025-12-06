@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
@@ -151,7 +152,7 @@ func (s *WorkService) GetByID(id uint) (*models.Work, error) {
 	return &work, nil
 }
 
-func (s *WorkService) GetList(page, pageSize int, workType string, status *int) ([]*models.Work, int64, error) {
+func (s *WorkService) GetList(page, pageSize int, workType string, status *int, sortBy string) ([]*models.Work, int64, error) {
 	var works []*models.Work
 	var total int64
 
@@ -172,7 +173,28 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int) 
 	}
 
 	offset := (page - 1) * pageSize
-	if err := db.Preload("Author").Order("sort DESC, created_at DESC").Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {
+	
+	// 根据排序参数决定排序方式
+	orderBy := "sort DESC, created_at DESC" // 默认排序
+	switch sortBy {
+	case "hot":
+		// 热度排序：综合浏览量、评论数、点赞数、收藏数
+		orderBy = "(view_count * 0.4 + comment_count * 0.25 + like_count * 0.2 + favorite_count * 0.1) DESC, created_at DESC"
+	case "time":
+		// 时间排序：最新优先
+		orderBy = "created_at DESC"
+	case "view":
+		// 浏览量排序
+		orderBy = "view_count DESC, created_at DESC"
+	case "like":
+		// 点赞数排序
+		orderBy = "like_count DESC, created_at DESC"
+	default:
+		// 默认：推荐优先，然后按时间
+		orderBy = "sort DESC, created_at DESC"
+	}
+	
+	if err := db.Preload("Author").Order(orderBy).Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -234,45 +256,73 @@ func (s *WorkService) SetRecommend(id uint, isRecommend bool) error {
 		Update("is_recommend", isRecommend).Error
 }
 
-// GetHotWorks 获取热门作品（从Redis读取）
-func (s *WorkService) GetHotWorks(limit int) ([]*models.Work, error) {
-	if limit <= 0 {
-		limit = 4
+// GetHotWorks 获取热门作品（从Redis ZSET读取，支持分页）
+func (s *WorkService) GetHotWorks(page, pageSize int) ([]*models.Work, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
 	}
 
-	// 从Redis获取热门作品ID列表
 	ctx := database.Ctx
-	data, err := database.RDB.Get(ctx, "hot:works").Result()
-	if err != nil {
+	key := "hot:works:zset"
+
+	// 从Redis ZSET获取总数
+	total, err := database.RDB.ZCard(ctx, key).Result()
+	if err != nil || total == 0 {
 		// 如果Redis中没有数据，返回最新作品作为降级方案
 		log.Printf("Redis中没有热门作品数据，使用最新作品作为降级: %v", err)
 		var works []*models.Work
-		err := database.DB.Where("status = ?", 1).
+		var count int64
+		offset := (page - 1) * pageSize
+		err := database.DB.Model(&models.Work{}).Where("status = ?", 1).Count(&count).Error
+		if err != nil {
+			return nil, 0, err
+		}
+		err = database.DB.Where("status = ?", 1).
 			Order("created_at DESC").
-			Limit(limit).
+			Offset(offset).
+			Limit(pageSize).
+			Preload("Author").
 			Find(&works).Error
-		return works, err
+		return works, count, err
 	}
 
-	// 解析作品ID列表
-	var workIDs []uint
-	if err := json.Unmarshal([]byte(data), &workIDs); err != nil {
-		return nil, fmt.Errorf("解析热门作品ID失败: %w", err)
-	}
+	// 计算分页
+	offset := (page - 1) * pageSize
+	start := int64(offset)
+	end := start + int64(pageSize) - 1
 
-	// 限制数量
-	if len(workIDs) > limit {
-		workIDs = workIDs[:limit]
+	// 从ZSET获取作品ID（按分数降序，即从高到低）
+	workIDs, err := database.RDB.ZRevRange(ctx, key, start, end).Result()
+	if err != nil {
+		return nil, 0, fmt.Errorf("从Redis ZSET获取作品ID失败: %w", err)
 	}
 
 	if len(workIDs) == 0 {
-		return []*models.Work{}, nil
+		return []*models.Work{}, total, nil
+	}
+
+	// 将字符串ID转换为uint
+	ids := make([]uint, 0, len(workIDs))
+	for _, idStr := range workIDs {
+		if id, err := strconv.ParseUint(idStr, 10, 32); err == nil {
+			ids = append(ids, uint(id))
+		}
+	}
+
+	if len(ids) == 0 {
+		return []*models.Work{}, total, nil
 	}
 
 	// 从数据库查询作品详情
 	var works []*models.Work
-	if err := database.DB.Where("id IN ?", workIDs).Preload("Author").Find(&works).Error; err != nil {
-		return nil, err
+	if err := database.DB.Where("id IN ?", ids).Preload("Author").Find(&works).Error; err != nil {
+		return nil, 0, err
 	}
 
 	// 按ID顺序排序（保持热度排序）
@@ -281,14 +331,14 @@ func (s *WorkService) GetHotWorks(limit int) ([]*models.Work, error) {
 		workMap[work.ID] = work
 	}
 
-	sortedWorks := make([]*models.Work, 0, len(workIDs))
-	for _, id := range workIDs {
+	sortedWorks := make([]*models.Work, 0, len(ids))
+	for _, id := range ids {
 		if work, ok := workMap[id]; ok {
 			sortedWorks = append(sortedWorks, work)
 		}
 	}
 
-	return sortedWorks, nil
+	return sortedWorks, total, nil
 }
 
 // CheckDailyQuota 检查用户当日是否还能发布摄影作品

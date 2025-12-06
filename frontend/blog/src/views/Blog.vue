@@ -4,6 +4,16 @@
       <div class="blog-header">
         <div class="header-left">
           <h1>博客文章</h1>
+          
+          <!-- 榜单选择器 -->
+          <el-radio-group v-model="rankType" @change="handleRankChange" size="default" class="rank-selector">
+            <el-radio-button label="">全部</el-radio-button>
+            <el-radio-button label="hot">热门</el-radio-button>
+            <el-radio-button label="week">周榜</el-radio-button>
+            <el-radio-button label="month">月榜</el-radio-button>
+            <el-radio-button label="year">年榜</el-radio-button>
+          </el-radio-group>
+          
           <!-- 分类选择器 -->
           <el-dropdown trigger="click" @command="handleCategorySelect" class="category-dropdown">
             <el-button>
@@ -42,16 +52,27 @@
           </el-dropdown>
         </div>
         
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索文章..."
-          class="search-input"
-          @keyup.enter="handleSearch"
-        >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
-          </template>
-        </el-input>
+        <div class="header-right">
+          <!-- 排序选择器 -->
+          <el-select v-model="sortBy" @change="handleSortChange" placeholder="排序方式" class="sort-select" size="default">
+            <el-option label="最热排序" value="hot" />
+            <el-option label="最新发布" value="time" />
+            <el-option label="最多浏览" value="view_count" />
+            <el-option label="最多点赞" value="like_count" />
+            <el-option label="最多评论" value="comment_count" />
+          </el-select>
+          
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索文章..."
+            class="search-input"
+            @keyup.enter="handleSearch"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
+        </div>
       </div>
 
       <el-row :gutter="20">
@@ -77,6 +98,18 @@
                     <span><el-icon><User /></el-icon> {{ article.author?.nickname || article.author?.username }}</span>
                     <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
                     <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
+                    <!-- 书签样式的标签 -->
+                    <div class="article-bookmarks" v-if="article.tags && article.tags.length > 0">
+                      <span 
+                        v-for="tag in article.tags.slice(0, 3)" 
+                        :key="tag.id" 
+                        class="bookmark-tag"
+                        :style="{ backgroundColor: getTagColor(tag.name) }"
+                        @click.stop="handleTagClick(tag.id)"
+                      >
+                        {{ tag.name }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -134,6 +167,8 @@ const total = ref(0)
 const searchKeyword = ref('')
 const selectedCategory = ref(null)
 const selectedTag = ref(null)
+const rankType = ref('') // 默认全部
+const sortBy = ref('time') // 默认最新发布
 
 // 当前选中的分类数据
 const selectedCategoryData = computed(() => {
@@ -152,6 +187,17 @@ const loadArticles = async () => {
     if (searchKeyword.value) params.keyword = searchKeyword.value
     if (selectedCategory.value) params.category_id = selectedCategory.value
     if (selectedTag.value) params.tag_id = selectedTag.value
+    
+    // 榜单类型
+    if (rankType.value) {
+      params.rank_type = rankType.value
+    }
+    
+    // 排序方式（榜单模式下也支持排序）
+    if (sortBy.value) {
+      params.sort_by = sortBy.value
+      params.sort_order = 'desc' // 默认降序
+    }
 
     const response = await api.get('/articles', { params })
     articles.value = response.data.list || []
@@ -196,6 +242,37 @@ const filterByTag = (tagId) => {
   selectedCategory.value = null
   currentPage.value = 1
   loadArticles()
+}
+
+const handleRankChange = () => {
+  currentPage.value = 1
+  loadArticles()
+}
+
+const handleSortChange = () => {
+  currentPage.value = 1
+  loadArticles()
+}
+
+const handleTagClick = (tagId) => {
+  selectedTag.value = tagId
+  selectedCategory.value = null
+  currentPage.value = 1
+  loadArticles()
+}
+
+// 根据标签名称生成颜色（用于书签样式）
+const getTagColor = (tagName) => {
+  const colors = [
+    '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
+    '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'
+  ]
+  // 根据标签名称的hash值选择颜色
+  let hash = 0
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length]
 }
 
 // 监听 URL 参数变化，自动更新筛选条件
@@ -290,6 +367,20 @@ onMounted(() => {
   margin-left: auto;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rank-selector {
+  margin-left: 20px;
+}
+
+.sort-select {
+  width: 140px;
+}
+
 .search-input {
   max-width: 400px;
 }
@@ -302,6 +393,16 @@ onMounted(() => {
   margin-bottom: 20px;
   cursor: pointer;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  height: 140px; /* 进一步减小卡片高度 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  position: relative; /* 为书签定位 */
+}
+
+.article-item :deep(.el-card__body) {
+  height: 100%;
+  padding: 14px; /* 进一步减小内边距 */
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-card {
@@ -310,12 +411,13 @@ onMounted(() => {
 
 .article-content {
   display: flex;
-  gap: 20px;
+  gap: 14px; /* 进一步减小间距 */
+  height: 100%;
 }
 
 .article-cover {
-  width: 200px;
-  height: 150px;
+  width: 140px; /* 进一步按比例缩小 */
+  height: 112px; /* 进一步按比例缩小，保持4:3比例 */
   object-fit: cover;
   border-radius: 4px;
   flex-shrink: 0;
@@ -323,35 +425,49 @@ onMounted(() => {
 
 .article-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0; /* 允许flex子元素收缩 */
 }
 
 .article-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 6px; /* 进一步减小间距 */
+  margin-bottom: 6px; /* 进一步减小间距 */
 }
 
 .article-header h2 {
-  font-size: 1.5rem;
+  font-size: 1.2rem; /* 进一步减小字体 */
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* 标题只显示1行 */
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  margin-bottom: 6px; /* 进一步减小间距 */
 }
 
 .article-summary {
   color: var(--text-secondary);
-  margin-bottom: 15px;
+  margin-bottom: 8px; /* 进一步减小间距 */
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 2; /* 固定显示2行 */
   -webkit-box-orient: vertical;
+  line-height: 1.35; /* 进一步减小行高 */
+  min-height: 2.7em; /* 调整最小高度 */
+  font-size: 13px; /* 进一步减小字体 */
 }
 
 .article-meta {
   display: flex;
-  gap: 15px;
+  gap: 12px; /* 减小间距 */
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px; /* 稍微减小字体 */
   flex-wrap: wrap;
 }
 
@@ -421,6 +537,48 @@ onMounted(() => {
   cursor: pointer;
 }
 
+/* 书签样式标签 */
+.article-bookmarks {
+  display: flex;
+  flex-direction: row; /* 横向排列 */
+  gap: 4px; /* 标签之间的间距 */
+  flex-wrap: wrap;
+  margin-left: auto; /* 自动推到右侧 */
+}
+
+.bookmark-tag {
+  position: relative;
+  padding: 3px 10px 3px 6px;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap; /* 防止文字换行 */
+  /* 书签折角效果 */
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 0 100%);
+}
+
+.bookmark-tag:hover {
+  transform: translateX(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
+}
+
+.bookmark-tag::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 6px 6px;
+  border-color: transparent transparent rgba(0, 0, 0, 0.15) transparent;
+}
+
 @media (max-width: 768px) {
   .article-content {
     flex-direction: column;
@@ -428,6 +586,12 @@ onMounted(() => {
 
   .article-cover {
     width: 100%;
+  }
+  
+  .article-bookmarks {
+    margin-left: 0; /* 移动端取消自动右对齐 */
+    width: 100%; /* 占满整行 */
+    margin-top: 8px; /* 添加顶部间距 */
   }
 }
 </style>

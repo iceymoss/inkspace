@@ -302,6 +302,7 @@ import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
 
 const route = useRoute()
 const router = useRouter()
@@ -322,10 +323,17 @@ const favoriteLoading = ref(false)
 const renderedContent = ref('')
 
 // 渲染 Markdown 内容（支持 Mermaid）
-const renderMarkdown = () => {
+const renderMarkdown = async () => {
   if (!article.value || !article.value.content) {
     return
   }
+  
+  // 加载代码主题配置
+  const codeThemeValue = await loadCodeTheme()
+  // 加载 highlight.js 主题样式
+  await loadHighlightTheme(codeThemeValue)
+  // 加载 Markdown 主题配置
+  const mdTheme = await getMarkdownTheme()
   
   nextTick(() => {
     const previewDiv = document.getElementById('article-preview')
@@ -334,11 +342,11 @@ const renderMarkdown = () => {
       return
     }
     
-    console.log('Rendering with Vditor.preview...')
+    console.log('Rendering with Vditor.preview, code theme:', codeThemeValue, 'markdown theme:', mdTheme)
     
     // 使用 Vditor.preview 进行渲染
     Vditor.preview(previewDiv, article.value.content, {
-      mode: 'light',
+      mode: mdTheme || 'light',
       markdown: {
         toc: true,
         mark: true,
@@ -346,8 +354,9 @@ const renderMarkdown = () => {
         autoSpace: true,
       },
       hljs: {
-        lineNumber: false,
-        style: 'github'
+        lineNumber: true,
+        style: codeThemeValue || 'github', // 使用配置的代码主题
+        enable: true
       },
       speech: {
         enable: false
@@ -1091,6 +1100,15 @@ onMounted(async () => {
 
 #article-preview {
   padding: 20px 0;
+}
+
+/* 内联代码样式 */
+#article-preview :deep(code:not(pre code)) {
+  background-color: rgba(175, 184, 193, 0.2);
+  color: #24292e;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 85%;
 }
 
 /* 加载状态 */
