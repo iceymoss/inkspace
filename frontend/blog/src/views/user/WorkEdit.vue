@@ -36,13 +36,9 @@
         </el-form-item>
 
         <el-form-item label="作品描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="4"
-            placeholder="作品描述"
-            maxlength="500"
-            show-word-limit
+          <VditorEditor 
+            v-model="form.description" 
+            height="400px"
           />
         </el-form-item>
 
@@ -246,6 +242,7 @@ import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
+import VditorEditor from '@/components/VditorEditor.vue'
 
 const route = useRoute()
 const router = useRouter()

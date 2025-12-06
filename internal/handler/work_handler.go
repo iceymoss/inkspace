@@ -101,8 +101,15 @@ func (h *WorkHandler) GetDetail(c *gin.Context) {
 		return
 	}
 
-	// Increment view count
-	go h.service.IncrementViewCount(uint(id))
+	// Increment view count only if not skipping (skip_view=true means skip increment)
+	skipView := c.Query("skip_view") == "true"
+	if !skipView {
+		// 同步增加浏览量，确保返回的数据包含最新的浏览量
+		if err := h.service.IncrementViewCount(uint(id)); err == nil {
+			// 更新返回数据中的浏览量（+1）
+			work.ViewCount++
+		}
+	}
 
 	utils.Success(c, h.toResponse(work))
 }

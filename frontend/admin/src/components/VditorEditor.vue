@@ -3,9 +3,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
 
 const props = defineProps({
   modelValue: {
@@ -23,7 +24,16 @@ const emit = defineEmits(['update:modelValue'])
 const vditorRef = ref(null)
 let vditor = null
 
-onMounted(() => {
+onMounted(async () => {
+  // 等待 DOM 准备好
+  await nextTick()
+  
+  // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
+  const codeThemeValue = await loadCodeTheme()
+  await loadHighlightTheme(codeThemeValue)
+  const mdTheme = await getMarkdownTheme()
+  
+  // 使用加载的配置初始化 Vditor
   vditor = new Vditor(vditorRef.value, {
     height: props.height,
     mode: 'sv', // 分屏预览模式
@@ -42,16 +52,18 @@ onMounted(() => {
       type: 'markdown',
     },
     preview: {
-      delay: 500,
+      mode: mdTheme || 'light', // 使用配置的 Markdown 主题
+      delay: 500, // 增加延迟，确保预览同步稳定
       hljs: {
-        style: 'github',
+        style: codeThemeValue || 'github', // 使用配置的代码主题
         lineNumber: true,
+        enable: true,
       },
       markdown: {
         toc: true,
         mark: true,
         footnotes: true,
-        autoSpace: true, // 自动空格
+        autoSpace: true,
       },
     },
     upload: {
@@ -87,7 +99,33 @@ onMounted(() => {
       }
     },
     after: () => {
-      vditor.setValue(props.modelValue || '')
+      // Vditor 初始化完成后设置初始值
+      // 使用 nextTick 确保 Vditor 完全初始化
+      nextTick(() => {
+        if (props.modelValue && vditor) {
+          vditor.setValue(props.modelValue)
+        }
+        // 确保 sv 模式下的预览区域可见并正确渲染
+        setTimeout(() => {
+          if (vditor && vditor.vditor) {
+            const svElement = vditor.vditor.querySelector('.vditor-sv')
+            const previewElement = vditor.vditor.querySelector('.vditor-sv__preview')
+            if (svElement && previewElement) {
+              // 确保预览区域可见
+              previewElement.style.display = 'block'
+              previewElement.style.visibility = 'visible'
+              previewElement.style.width = '50%'
+              // 触发预览更新
+              if (vditor.getValue) {
+                const content = vditor.getValue()
+                if (content) {
+                  vditor.setValue(content)
+                }
+              }
+            }
+          }
+        }, 100)
+      })
     },
     input: (value) => {
       emit('update:modelValue', value)
@@ -103,10 +141,14 @@ onBeforeUnmount(() => {
 })
 
 watch(() => props.modelValue, (newVal) => {
-  if (vditor && newVal !== vditor.getValue()) {
-    vditor.setValue(newVal || '')
+  if (vditor) {
+    const currentValue = vditor.getValue()
+    // 只有当值真正改变时才更新，避免循环更新
+    if (newVal !== currentValue) {
+      vditor.setValue(newVal || '')
+    }
   }
-})
+}, { immediate: false })
 
 defineExpose({
   getValue: () => vditor?.getValue(),
@@ -118,8 +160,8 @@ defineExpose({
 <style scoped>
 .vditor-container {
   border-radius: 8px;
-  overflow: hidden;
   width: 100%;
+  min-width: 0;
 }
 
 :deep(.vditor) {
@@ -138,6 +180,24 @@ defineExpose({
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Menlo', 'Consolas', 'Source Code Pro', monospace;
   font-size: 15px;
   line-height: 1.8;
+  display: flex;
+  flex-direction: row;
+}
+
+:deep(.vditor-sv textarea) {
+  flex: 1;
+  min-width: 0;
+  width: 50%;
+}
+
+:deep(.vditor-sv .vditor-sv__preview) {
+  flex: 1;
+  min-width: 0;
+  width: 50%;
+  display: block !important;
+  visibility: visible !important;
+  border-left: 1px solid #e4e7ed;
+  overflow-y: auto;
 }
 
 /* 全屏模式下的内边距 */
