@@ -998,6 +998,10 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
+.blog-detail .container {
+  max-width: 1200px;
+}
+
 .article-card {
   margin-bottom: 30px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
@@ -1100,6 +1104,8 @@ onMounted(async () => {
 
 #article-preview {
   padding: 20px 0;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 /* 内联代码样式 */

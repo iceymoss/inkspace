@@ -3,7 +3,7 @@
     <div class="edit-container">
       <div class="edit-header">
         <h1>{{ isEdit ? '编辑文章' : '写文章' }}</h1>
-        <el-button @click="$router.back()" plain>返回</el-button>
+        <el-button @click="handleCancel" plain>返回</el-button>
       </div>
 
       <el-form
@@ -104,7 +104,7 @@
             </el-radio-group>
           </div>
           <div class="action-right">
-            <el-button @click="$router.back()" size="large">取消</el-button>
+            <el-button @click="handleCancel" size="large">取消</el-button>
             <el-button type="primary" @click="handleSubmit" :loading="loading" size="large">
               {{ isEdit ? '保存修改' : (form.status === 1 ? '发布文章' : '保存草稿') }}
             </el-button>
@@ -116,9 +116,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
 import VditorEditor from '@/components/VditorEditor.vue'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
@@ -129,6 +129,9 @@ const formRef = ref(null)
 const loading = ref(false)
 const categories = ref([])
 const tags = ref([])
+const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
+const originalData = ref(null) // 保存原始数据用于对比
+const isSaved = ref(false) // 标记是否已保存成功，用于跳过路由守卫提示
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -213,9 +216,48 @@ const handleTagChange = async (values) => {
   }
 }
 
+// 检查表单是否有未保存的更改
+const checkUnsavedChanges = () => {
+  if (!isEdit.value || !originalData.value) {
+    // 创建模式下，检查是否有任何输入
+    return form.title || form.content || form.summary || form.cover || 
+           form.category_id || (form.tag_ids && form.tag_ids.length > 0)
+  }
+  
+  // 编辑模式下，与原始数据对比
+  const original = originalData.value
+  
+  // 检查所有字段
+  if (form.title !== original.title ||
+      form.content !== original.content ||
+      form.summary !== original.summary ||
+      form.cover !== original.cover ||
+      form.category_id !== original.category_id ||
+      form.status !== original.status) {
+    return true
+  }
+  
+  // 检查标签数组（需要深度比较）
+  const currentTagIds = JSON.stringify([...form.tag_ids].sort())
+  const originalTagIds = JSON.stringify([...(original.tag_ids || [])].sort())
+  if (currentTagIds !== originalTagIds) {
+    return true
+  }
+  
+  return false
+}
+
 // 获取文章详情
 const fetchArticle = async () => {
-  if (!isEdit.value) return
+  // 重置保存状态
+  isSaved.value = false
+  
+  if (!isEdit.value) {
+    // 创建模式下，重置未保存标记
+    hasUnsavedChanges.value = false
+    originalData.value = null
+    return
+  }
   
   try {
     const response = await api.get(`/articles/${route.params.id}`)
@@ -230,6 +272,19 @@ const fetchArticle = async () => {
       content: article.content || '',
       status: article.status || 0  // 0: draft, 1: published
     })
+    
+    // 保存原始数据用于对比
+    originalData.value = {
+      title: article.title || '',
+      category_id: article.category_id || null,
+      tag_ids: article.tags?.map(t => t.id) || [],
+      summary: article.summary || '',
+      cover: article.cover || '',
+      content: article.content || '',
+      status: article.status || 0
+    }
+    
+    hasUnsavedChanges.value = false
   } catch (error) {
     ElMessage.error('获取文章详情失败')
     router.back()
@@ -272,6 +327,11 @@ const handleSubmit = async () => {
         ElMessage.success('发布成功')
       }
       
+      // 清除未保存标记，标记为已保存
+      hasUnsavedChanges.value = false
+      originalData.value = null
+      isSaved.value = true
+      
       // 跳转到文章详情页
       router.push(`/blog/${articleId}`)
     } catch (error) {
@@ -283,10 +343,96 @@ const handleSubmit = async () => {
   })
 }
 
+// 处理取消/返回按钮
+const handleCancel = async () => {
+  if (checkUnsavedChanges()) {
+    try {
+      await ElMessageBox.confirm(
+        '您有未保存的更改，确定要离开吗？',
+        '提示',
+        {
+          confirmButtonText: '确定离开',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      router.back()
+    } catch {
+      // 用户取消，不执行任何操作
+    }
+  } else {
+    router.back()
+  }
+}
+
+// 路由守卫：离开页面前的提示
+onBeforeRouteLeave((to, from, next) => {
+  // 如果已保存成功，直接允许离开
+  if (isSaved.value) {
+    next()
+    return
+  }
+  
+  // 如果正在提交，直接允许离开
+  if (loading.value) {
+    next()
+    return
+  }
+  
+  if (checkUnsavedChanges()) {
+    ElMessageBox.confirm(
+      '您有未保存的更改，确定要离开吗？',
+      '提示',
+      {
+        confirmButtonText: '确定离开',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      next()
+    }).catch(() => {
+      next(false)
+    })
+  } else {
+    next()
+  }
+})
+
+// 监听页面刷新/关闭
+const handleBeforeUnload = (e) => {
+  // 如果已保存或正在提交，不提示
+  if (isSaved.value || loading.value) {
+    return
+  }
+  
+  if (checkUnsavedChanges()) {
+    e.preventDefault()
+    e.returnValue = '您有未保存的更改，确定要离开吗？'
+    return e.returnValue
+  }
+}
+
+// 监听表单变化
+watch(
+  [() => form.title, () => form.content, () => form.summary, () => form.cover,
+   () => form.category_id, () => form.status, () => form.tag_ids],
+  () => {
+    hasUnsavedChanges.value = checkUnsavedChanges()
+  },
+  { deep: true }
+)
+
 onMounted(() => {
   fetchCategories()
   fetchTags()
   fetchArticle()
+  // 添加页面刷新/关闭监听
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onUnmounted(() => {
+  // 移除页面刷新/关闭监听
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
