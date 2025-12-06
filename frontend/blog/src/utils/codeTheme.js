@@ -70,7 +70,24 @@ export const loadHighlightTheme = async (theme) => {
   // 检查是否已经加载
   const existingLink = document.getElementById(`hljs-theme-${theme}`)
   if (existingLink) {
-    return Promise.resolve()
+    // 如果样式表已存在，检查是否已完全加载
+    if (existingLink.sheet) {
+      // 样式表已加载，等待一小段时间确保样式应用
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(), 100)
+      })
+    }
+    // 如果样式表存在但还没完全加载，等待加载完成
+    return new Promise((resolve) => {
+      if (existingLink.complete || existingLink.readyState === 'complete') {
+        setTimeout(() => resolve(), 100)
+      } else {
+        existingLink.onload = () => {
+          setTimeout(() => resolve(), 100)
+        }
+        existingLink.onerror = () => resolve()
+      }
+    })
   }
   
   // 移除之前加载的其他主题（如果有）

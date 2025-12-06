@@ -12,7 +12,7 @@
           v-for="work in works" 
           :key="work.id" 
           class="masonry-item"
-          @click="$router.push(`/works/${work.id}`)"
+          @click="router.push(`/works/${work.id}`)"
         >
           <div class="work-image-container">
             <el-image 
@@ -69,9 +69,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { View, ChatDotRound } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
+const router = useRouter()
 const works = ref([])
 const currentPage = ref(1)
 const pageSize = ref(12)

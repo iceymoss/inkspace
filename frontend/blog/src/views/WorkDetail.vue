@@ -66,7 +66,7 @@
               <!-- 相册信息 -->
               <div class="album-info">
                 <h2>{{ work.title }}</h2>
-                <div class="album-description" id="work-description-preview-photography" v-if="work.description"></div>
+                <div id="work-description-preview-photography" v-if="work.description"></div>
                 <p v-else class="album-description-empty">暂无描述</p>
                 
                 <div class="album-meta" v-if="work.metadata">
@@ -195,7 +195,7 @@
             </div>
 
             <div class="work-content">
-              <div class="work-description" id="work-description-preview-project" v-if="work.description"></div>
+              <div id="work-description-preview-project" v-if="work.description"></div>
               <p v-else class="work-description-empty">暂无描述</p>
               
               <div class="tech-stack" v-if="work.tech_stack">
@@ -505,6 +505,7 @@ import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
 
 const route = useRoute()
 const router = useRouter()
@@ -586,6 +587,16 @@ const renderDescription = async () => {
     return
   }
   
+  // 加载代码主题配置
+  const codeThemeValue = await loadCodeTheme()
+  // 加载 highlight.js 主题样式
+  await loadHighlightTheme(codeThemeValue)
+  // 加载 Markdown 主题配置
+  const mdTheme = await getMarkdownTheme()
+  
+  // 确保样式表完全加载后再渲染
+  await new Promise(resolve => setTimeout(resolve, 150))
+  
   nextTick(() => {
     // 根据作品类型选择不同的预览元素
     const previewId = work.value.type === 'photography' 
@@ -598,15 +609,10 @@ const renderDescription = async () => {
       return
     }
     
-    // 清空之前的内容
+    // 清空之前的内容（仅在刷新时可能需要）
     previewDiv.innerHTML = ''
     
-    // 加载代码主题配置
-    const { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } = await import('@/utils/codeTheme')
-    const codeThemeValue = await loadCodeTheme()
-    await loadHighlightTheme(codeThemeValue)
-    // 加载 Markdown 主题配置
-    const mdTheme = await getMarkdownTheme()
+    console.log('Rendering work description with Vditor.preview, code theme:', codeThemeValue, 'markdown theme:', mdTheme)
     
     // 使用 Vditor.preview 进行渲染
     Vditor.preview(previewDiv, work.value.description, {
@@ -618,8 +624,9 @@ const renderDescription = async () => {
         autoSpace: true,
       },
       hljs: {
-        lineNumber: false,
-        style: codeThemeValue || 'github'
+        lineNumber: true,
+        style: codeThemeValue || 'github', // 使用配置的代码主题
+        enable: true
       },
       speech: {
         enable: false
@@ -1247,8 +1254,13 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateCarouselHeight)
-})
+  })
 </script>
+
+<style>
+/* Vditor渲染样式需要全局作用域 */
+@import 'vditor/dist/index.css';
+</style>
 
 <style scoped>
 .work-detail {
@@ -1370,9 +1382,9 @@ onUnmounted(() => {
 }
 
 .album-description {
-  color: var(--text-secondary);
   margin-bottom: 20px;
   line-height: 1.6;
+  /* 样式由 Vditor 主题控制，不设置 color 避免影响代码块 */
 }
 
 .album-description-empty {
@@ -1548,10 +1560,16 @@ onUnmounted(() => {
   line-height: 1.8;
 }
 
+/* 确保代码块不受父元素 line-height 影响 */
+.work-content :deep(pre) {
+  line-height: 1.45;
+}
+
 .work-description {
   font-size: 1.1rem;
   margin-bottom: 25px;
   line-height: 1.8;
+  /* 样式由 Vditor 主题控制，不设置 color 避免影响代码块 */
 }
 
 .work-description-empty {
@@ -1561,129 +1579,35 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-/* Markdown 渲染样式 */
-:deep(#work-description-preview-photography),
-:deep(#work-description-preview-project) {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.8;
-  color: #24292e;
+#work-description-preview-photography,
+#work-description-preview-project {
+  padding: 20px 0;
 }
 
-:deep(#work-description-preview-photography h1),
-:deep(#work-description-preview-project h1) {
-  font-size: 2em;
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
-}
-
-:deep(#work-description-preview-photography h2),
-:deep(#work-description-preview-project h2) {
-  font-size: 1.5em;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
-}
-
-:deep(#work-description-preview-photography h3),
-:deep(#work-description-preview-project h3) {
-  font-size: 1.25em;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-:deep(#work-description-preview-photography p),
-:deep(#work-description-preview-project p) {
-  margin-top: 0;
-  margin-bottom: 16px;
-  line-height: 1.8;
-}
-
-:deep(#work-description-preview-photography code),
-:deep(#work-description-preview-project code) {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
-  font-size: 85%;
-  padding: 0.2em 0.4em;
-  margin: 0;
+/* 内联代码样式 */
+#work-description-preview-photography :deep(code:not(pre code)),
+#work-description-preview-project :deep(code:not(pre code)) {
   background-color: rgba(175, 184, 193, 0.2);
-  border-radius: 6px;
-}
-
-:deep(#work-description-preview-photography pre),
-:deep(#work-description-preview-project pre) {
-  background-color: #f6f8fa;
-  border-radius: 6px;
-  padding: 16px;
-  overflow: auto;
+  color: #24292e;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
   font-size: 85%;
+}
+
+/* 确保代码块样式不被覆盖，让 highlight.js 样式生效 */
+#work-description-preview-photography :deep(pre),
+#work-description-preview-project :deep(pre) {
+  /* 不设置任何样式，让 highlight.js 主题 CSS 完全控制代码块 */
   line-height: 1.45;
-  margin-bottom: 16px;
 }
 
-:deep(#work-description-preview-photography pre code),
-:deep(#work-description-preview-project pre code) {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
+#work-description-preview-photography :deep(pre code),
+#work-description-preview-project :deep(pre code) {
+  /* 不设置任何样式，让 highlight.js 主题 CSS 完全控制代码块 */
+  line-height: inherit;
 }
 
-:deep(#work-description-preview-photography blockquote),
-:deep(#work-description-preview-project blockquote) {
-  padding: 0 1em;
-  color: #57606a;
-  border-left: 0.25em solid #d0d7de;
-  margin: 0 0 16px;
-}
-
-:deep(#work-description-preview-photography a),
-:deep(#work-description-preview-project a) {
-  color: #0969da;
-  text-decoration: none;
-}
-
-:deep(#work-description-preview-photography a:hover),
-:deep(#work-description-preview-project a:hover) {
-  text-decoration: underline;
-}
-
-:deep(#work-description-preview-photography table),
-:deep(#work-description-preview-project table) {
-  border-spacing: 0;
-  border-collapse: collapse;
-  margin-bottom: 16px;
-  width: 100%;
-}
-
-:deep(#work-description-preview-photography table th,
-#work-description-preview-photography table td),
-:deep(#work-description-preview-project table th,
-#work-description-preview-project table td) {
-  padding: 6px 13px;
-  border: 1px solid #d0d7de;
-}
-
-:deep(#work-description-preview-photography table th),
-:deep(#work-description-preview-project table th) {
-  font-weight: 600;
-  background-color: #f6f8fa;
-}
-
-:deep(#work-description-preview-photography img),
-:deep(#work-description-preview-project img) {
-  max-width: 100%;
-  box-sizing: content-box;
-  background-color: #fff;
-  border-radius: 6px;
-}
+/* vditor-reset样式由全局CSS提供 */
 
 .work-links {
   display: flex;
