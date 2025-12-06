@@ -30,8 +30,34 @@ onMounted(async () => {
   
   // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
   const codeThemeValue = await loadCodeTheme()
+  // 确保 highlight.js 主题 CSS 完全加载完成
   await loadHighlightTheme(codeThemeValue)
+  
   const mdTheme = await getMarkdownTheme()
+  
+  // 加载 Vditor 内容主题 CSS（如果需要）
+  const loadVditorContentTheme = (theme) => {
+    return new Promise((resolve) => {
+      const themeId = `vditor-content-theme-${theme}`
+      if (document.getElementById(themeId)) {
+        resolve()
+        return
+      }
+      
+      const link = document.createElement('link')
+      link.id = themeId
+      link.rel = 'stylesheet'
+      link.href = `https://unpkg.com/vditor@3.10.4/dist/css/content-theme/${theme}.css`
+      link.onload = () => resolve()
+      link.onerror = () => resolve() // 即使失败也继续
+      document.head.appendChild(link)
+    })
+  }
+  
+  // 加载 Vditor 内容主题
+  await loadVditorContentTheme(mdTheme || 'light')
+  // 额外等待一小段时间，确保 CSS 样式已应用
+  await new Promise(resolve => setTimeout(resolve, 100))
   
   // 使用加载的配置初始化 Vditor
   vditor = new Vditor(vditorRef.value, {
@@ -52,12 +78,10 @@ onMounted(async () => {
       type: 'markdown',
     },
     preview: {
-      mode: mdTheme || 'light', // 使用配置的 Markdown 主题
-      delay: 500, // 增加延迟，确保预览同步稳定
+      delay: 500,
       hljs: {
         style: codeThemeValue || 'github', // 使用配置的代码主题
         lineNumber: true,
-        enable: true,
       },
       markdown: {
         toc: true,
@@ -99,33 +123,7 @@ onMounted(async () => {
       }
     },
     after: () => {
-      // Vditor 初始化完成后设置初始值
-      // 使用 nextTick 确保 Vditor 完全初始化
-      nextTick(() => {
-        if (props.modelValue && vditor) {
-          vditor.setValue(props.modelValue)
-        }
-        // 确保 sv 模式下的预览区域可见并正确渲染
-        setTimeout(() => {
-          if (vditor && vditor.vditor) {
-            const svElement = vditor.vditor.querySelector('.vditor-sv')
-            const previewElement = vditor.vditor.querySelector('.vditor-sv__preview')
-            if (svElement && previewElement) {
-              // 确保预览区域可见
-              previewElement.style.display = 'block'
-              previewElement.style.visibility = 'visible'
-              previewElement.style.width = '50%'
-              // 触发预览更新
-              if (vditor.getValue) {
-                const content = vditor.getValue()
-                if (content) {
-                  vditor.setValue(content)
-                }
-              }
-            }
-          }
-        }, 100)
-      })
+      vditor.setValue(props.modelValue || '')
     },
     input: (value) => {
       emit('update:modelValue', value)
@@ -180,24 +178,10 @@ defineExpose({
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Menlo', 'Consolas', 'Source Code Pro', monospace;
   font-size: 15px;
   line-height: 1.8;
-  display: flex;
-  flex-direction: row;
-}
-
-:deep(.vditor-sv textarea) {
-  flex: 1;
-  min-width: 0;
-  width: 50%;
 }
 
 :deep(.vditor-sv .vditor-sv__preview) {
-  flex: 1;
-  min-width: 0;
-  width: 50%;
-  display: block !important;
-  visibility: visible !important;
-  border-left: 1px solid #e4e7ed;
-  overflow-y: auto;
+  padding: 20px 32px;
 }
 
 /* 全屏模式下的内边距 */
@@ -225,16 +209,12 @@ defineExpose({
   padding-right: 40px !important;
 }
 
+:deep(.vditor.vditor--fullscreen .vditor-sv) {
+  padding: 0 !important;
+}
+
 :deep(.vditor-sv .vditor-sv__preview) {
   padding: 20px 32px;
-}
-
-:deep(.vditor.vditor--fullscreen .vditor-sv) {
-  padding: 0 20px;
-}
-
-:deep(.vditor.vditor--fullscreen .vditor-content) {
-  padding: 0 20px;
 }
 
 :deep(.vditor-reset) {
