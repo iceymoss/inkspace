@@ -37,9 +37,8 @@ func main() {
 	// 注册任务
 	sched.RegisterTask("hot_articles", scheduler.NewHotArticlesTask(), 3*time.Minute)
 	sched.RegisterTask("hot_works", scheduler.NewHotWorksTask(), 3*time.Minute)
-	// 可以继续添加其他任务
-	// sched.RegisterTask("daily_stats", scheduler.NewDailyStatsTask(), 24*time.Hour)
-	// sched.RegisterTask("clean_cache", scheduler.NewCleanCacheTask(), 1*time.Hour)
+	// 注册榜单生成任务（每天检查一次，在周日、月初、年初生成榜单）
+	sched.RegisterTask("article_rank", scheduler.NewArticleRankTask(), 24*time.Hour)
 
 	log.Println("========================================")
 	log.Println("✅ 定时任务调度器启动成功")
@@ -55,4 +54,3 @@ func main() {
 	// 阻止程序退出
 	select {}
 }
-

@@ -86,19 +86,57 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 		for key, value := range settings {
 			var setting models.Setting
 			err := tx.Where("`key` = ?", key).First(&setting).Error
+
+			// 根据 key 确定 group 和 is_public
+			group := setting.Group       // 默认使用原有分组
+			isPublic := setting.IsPublic // 默认使用原有公开设置
+
+			// 预定义的配置分组（仅在创建新记录时设置）
+			if err != nil {
+				group = "general"
+				isPublic = false
+
+				if key == models.SettingSiteName || key == models.SettingSiteDescription ||
+					key == models.SettingSiteKeywords || key == models.SettingSiteICP ||
+					key == models.SettingSiteCopyright || key == models.SettingSiteLogo ||
+					key == models.SettingSiteFavicon {
+					group = "site"
+					isPublic = true
+				} else if key == models.SettingCommentAudit || key == models.SettingRegisterEnabled {
+					group = "feature"
+					isPublic = false
+				} else if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme {
+					group = "markdown"
+					isPublic = true // Markdown 相关设置需要公开，前端才能使用
+				}
+			} else {
+				// 更新现有记录时，如果是 code_theme，确保设置正确
+				if key == models.SettingCodeTheme {
+					group = "markdown"
+					isPublic = true
+				}
+			}
+
 			if err != nil {
 				// 创建新记录
 				setting = models.Setting{
-					Key:   key,
-					Value: value,
-					Type:  "string",
+					Key:      key,
+					Value:    value,
+					Type:     "string",
+					Group:    group,
+					IsPublic: isPublic,
 				}
 				if err := tx.Create(&setting).Error; err != nil {
 					return err
 				}
 			} else {
-				// 更新现有记录
-				if err := tx.Model(&setting).Update("value", value).Error; err != nil {
+				// 更新现有记录（保留原有的 group 和 is_public，除非是 code_theme）
+				if key == models.SettingCodeTheme {
+					setting.Group = group
+					setting.IsPublic = isPublic
+				}
+				setting.Value = value
+				if err := tx.Save(&setting).Error; err != nil {
 					return err
 				}
 			}

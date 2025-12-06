@@ -58,6 +58,7 @@ import adminApi from '@/utils/adminApi'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import dayjs from 'dayjs'
+import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,8 +72,15 @@ const handleEdit = () => {
   router.push(`/articles/${route.params.id}/edit`)
 }
 
-const renderMarkdown = () => {
+const renderMarkdown = async () => {
   if (!article.value || !article.value.content) return
+  
+  // 加载代码主题配置
+  const codeThemeValue = await loadCodeTheme()
+  // 加载 highlight.js 主题样式
+  await loadHighlightTheme(codeThemeValue)
+  // 加载 Markdown 主题配置
+  const mdTheme = await getMarkdownTheme()
   
   nextTick(() => {
     const previewDiv = document.getElementById('article-preview')
@@ -82,7 +90,7 @@ const renderMarkdown = () => {
     }
     
     Vditor.preview(previewDiv, article.value.content, {
-      mode: 'light',
+      mode: mdTheme || 'light',
       markdown: {
         toc: true,
         mark: true,
@@ -91,7 +99,7 @@ const renderMarkdown = () => {
       },
       hljs: {
         lineNumber: false,
-        style: 'github'
+        style: codeThemeValue || 'github'
       },
       speech: {
         enable: false
