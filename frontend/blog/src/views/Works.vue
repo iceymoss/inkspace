@@ -3,7 +3,18 @@
     <div class="container">
       <div class="works-header">
         <h1>作品展示</h1>
-        <el-segmented v-model="filterType" :options="typeOptions" @change="handleTypeFilter" />
+      </div>
+      
+      <!-- 筛选条件 -->
+      <div class="works-filters">
+        <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
+        <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" style="width: 150px; margin-left: 15px;">
+          <el-option label="默认排序" value="" />
+          <el-option label="🔥 热度排序" value="hot" />
+          <el-option label="⏰ 最新发布" value="time" />
+          <el-option label="👁️ 最多浏览" value="view" />
+          <el-option label="❤️ 最多点赞" value="like" />
+        </el-select>
       </div>
       
       <!-- 瀑布流布局 -->
@@ -26,10 +37,7 @@
               <div class="overlay-content">
                 <div class="work-type-badge">
                   <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
-                    {{ work.type === 'photography' ? '📷 摄影' : '💻 项目' }}
-                  </el-tag>
-                  <el-tag v-if="work.type === 'photography' && work.metadata?.photo_count" type="info" size="small">
-                    {{ work.metadata.photo_count }} 张
+                    {{ work.type === 'photography' ? '📷' : '💻' }}
                   </el-tag>
                 </div>
               </div>
@@ -38,15 +46,17 @@
           
           <div class="work-info">
             <h3 class="work-title">{{ work.title }}</h3>
-            <div class="work-author">
-              <el-avatar :size="24" :src="work.author?.avatar" />
-              <span>{{ work.author?.nickname || work.author?.username }}</span>
-            </div>
-            <div class="work-stats">
-              <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
-              <span v-if="work.comment_count > 0">
-                <el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}
-              </span>
+            <div class="work-meta">
+              <div class="work-author">
+                <el-avatar :size="20" :src="work.author?.avatar" />
+                <span>{{ work.author?.nickname || work.author?.username }}</span>
+              </div>
+              <div class="work-stats">
+                <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
+                <span v-if="work.like_count > 0">
+                  <el-icon><Star /></el-icon> {{ work.like_count }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -70,7 +80,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { View, ChatDotRound } from '@element-plus/icons-vue'
+import { View, Star } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
 const router = useRouter()
@@ -79,6 +89,7 @@ const currentPage = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
 const filterType = ref('all')
+const sortBy = ref('time') // 默认最新发布
 
 const typeOptions = [
   { label: '全部', value: 'all' },
@@ -98,6 +109,10 @@ const loadWorks = async () => {
       params.type = filterType.value
     }
     
+    if (sortBy.value) {
+      params.sort = sortBy.value
+    }
+    
     const response = await api.get('/works', { params })
     works.value = response.data.list || []
     total.value = response.data.total || 0
@@ -106,7 +121,7 @@ const loadWorks = async () => {
   }
 }
 
-const handleTypeFilter = () => {
+const handleFilterChange = () => {
   currentPage.value = 1
   loadWorks()
 }
@@ -124,15 +139,22 @@ onMounted(() => {
 }
 
 .works-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .works-header h1 {
   margin: 0;
   font-size: 2rem;
+}
+
+.works-filters {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* 瀑布流布局 */
@@ -146,28 +168,29 @@ onMounted(() => {
 .masonry-item {
   cursor: pointer;
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
 
 .masonry-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
 .work-image-container {
   position: relative;
   width: 100%;
   overflow: hidden;
+  aspect-ratio: 4 / 3;
 }
 
 .work-image {
   width: 100%;
-  height: auto;
-  min-height: 200px;
+  height: 100%;
   display: block;
+  object-fit: cover;
 }
 
 .work-overlay {
@@ -211,28 +234,45 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.4;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.work-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
 
 .work-author {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
   font-size: 0.85rem;
   color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+
+.work-author span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .work-stats {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   font-size: 0.85rem;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .work-stats span {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
 }
 
 .pagination {
@@ -247,10 +287,21 @@ onMounted(() => {
     gap: 15px;
   }
   
-  .works-header {
+  .works-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .works-filters .el-select {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+  
+  .work-meta {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: 8px;
   }
 }
 </style>

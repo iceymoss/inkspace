@@ -118,6 +118,7 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	workType := c.Query("type")
+	sortBy := c.DefaultQuery("sort", "") // 排序方式：hot, time, view, like
 
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
@@ -125,7 +126,7 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 		status = &s
 	}
 
-	works, total, err := h.service.GetList(page, pageSize, workType, status)
+	works, total, err := h.service.GetList(page, pageSize, workType, status, sortBy)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return
@@ -233,19 +234,22 @@ func (h *WorkHandler) SetRecommend(c *gin.Context) {
 	utils.SuccessWithMessage(c, "设置成功", nil)
 }
 
-// GetHotWorks 获取热门作品
-// GET /api/works/hot
+// GetHotWorks 获取热门作品（支持分页）
+// GET /api/works/hot?page=1&page_size=10
 func (h *WorkHandler) GetHotWorks(c *gin.Context) {
-	limitStr := c.DefaultQuery("limit", "4")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 4
-	}
-	if limit > 10 {
-		limit = 10
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	
+	// 兼容旧的limit参数
+	if limitStr := c.Query("limit"); limitStr != "" {
+		limit, _ := strconv.Atoi(limitStr)
+		if limit > 0 {
+			pageSize = limit
+			page = 1
+		}
 	}
 
-	works, err := h.service.GetHotWorks(limit)
+	works, total, err := h.service.GetHotWorks(page, pageSize)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return
@@ -256,7 +260,13 @@ func (h *WorkHandler) GetHotWorks(c *gin.Context) {
 		workResponses[i] = h.toResponse(work)
 	}
 
-	utils.Success(c, workResponses)
+	// 如果使用limit参数，返回数组格式（兼容旧接口）
+	if c.Query("limit") != "" {
+		utils.Success(c, workResponses)
+	} else {
+		// 使用分页格式
+		utils.PageResponse(c, workResponses, total, page, pageSize)
+	}
 }
 
 // GetMyWorks 获取我的作品列表

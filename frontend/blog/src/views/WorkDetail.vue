@@ -34,6 +34,9 @@
                       :alt="photo.description || work.title"
                       fit="contain"
                       class="main-photo"
+                      :preview-src-list="photoUrlList"
+                      :initial-index="index"
+                      preview-teleported
                       @load="handleImageLoad"
                     />
                   </el-carousel-item>
@@ -534,6 +537,11 @@ const favoriting = ref(false)
 const photos = computed(() => {
   if (!work.value || work.value.type !== 'photography') return []
   return work.value.images || []
+})
+
+// 所有图片的URL列表，用于图片预览
+const photoUrlList = computed(() => {
+  return photos.value.map(photo => photo.url)
 })
 
 const currentPhoto = computed(() => {
