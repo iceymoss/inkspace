@@ -101,12 +101,13 @@
             <el-radio-group v-model="form.status" size="default">
               <el-radio-button :label="0">保存草稿</el-radio-button>
               <el-radio-button :label="1">立即发布</el-radio-button>
+              <el-radio-button :label="2">保存为私有</el-radio-button>
             </el-radio-group>
           </div>
           <div class="action-right">
             <el-button @click="handleCancel" size="large">取消</el-button>
             <el-button type="primary" @click="handleSubmit" :loading="loading" size="large">
-              {{ isEdit ? '保存修改' : (form.status === 1 ? '发布文章' : '保存草稿') }}
+              {{ isEdit ? '保存修改' : (form.status === 1 ? '发布文章' : form.status === 2 ? '保存为私有' : '保存草稿') }}
             </el-button>
           </div>
         </div>
@@ -120,11 +121,13 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
+import { useUserStore } from '@/stores/user'
 import VditorEditor from '@/components/VditorEditor.vue'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const formRef = ref(null)
 const loading = ref(false)
 const categories = ref([])
@@ -253,14 +256,28 @@ const fetchArticle = async () => {
   isSaved.value = false
   
   if (!isEdit.value) {
-    // 创建模式下，重置未保存标记
+    // 创建模式下，检查是否登录
+    if (!userStore.isLoggedIn) {
+      ElMessage.warning('请先登录')
+      router.push('/login')
+      return
+    }
     hasUnsavedChanges.value = false
     originalData.value = null
     return
   }
   
+  // 编辑模式下，先检查是否登录
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
+  loading.value = true
   try {
-    const response = await api.get(`/articles/${route.params.id}`)
+    // 使用编辑专用API，后端会进行权限检查
+    const response = await api.get(`/articles/${route.params.id}/edit`)
     const article = response.data
     
     Object.assign(form, {
@@ -270,7 +287,7 @@ const fetchArticle = async () => {
       summary: article.summary || '',
       cover: article.cover || '',
       content: article.content || '',
-      status: article.status || 0  // 0: draft, 1: published
+      status: article.status || 0  // 0: draft, 1: published, 2: private
     })
     
     // 保存原始数据用于对比
@@ -286,8 +303,26 @@ const fetchArticle = async () => {
     
     hasUnsavedChanges.value = false
   } catch (error) {
-    ElMessage.error('获取文章详情失败')
-    router.back()
+    // 处理各种错误情况
+    const status = error.response?.status
+    if (status === 403) {
+      ElMessage.error('无权限编辑此文章')
+    } else if (status === 404) {
+      ElMessage.error('文章不存在')
+    } else if (status === 401) {
+      ElMessage.error('请先登录')
+      router.push('/login')
+      return
+    } else {
+      ElMessage.error('获取文章详情失败')
+    }
+    
+    // 标记为已保存，避免路由守卫拦截
+    isSaved.value = true
+    // 统一跳转到文章列表页，避免使用 router.back() 可能的问题
+    router.push('/dashboard/articles')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -320,11 +355,23 @@ const handleSubmit = async () => {
       
       if (isEdit.value) {
         await api.put(`/articles/${articleId}`, submitData)
-        ElMessage.success('保存成功')
+        if (form.status === 0) {
+          ElMessage.success('草稿保存成功')
+        } else if (form.status === 2) {
+          ElMessage.success('私有文章保存成功')
+        } else {
+          ElMessage.success('文章更新成功')
+        }
       } else {
         const response = await api.post('/articles', submitData)
         articleId = response.data.id
-        ElMessage.success('发布成功')
+        if (form.status === 0) {
+          ElMessage.success('草稿保存成功')
+        } else if (form.status === 2) {
+          ElMessage.success('私有文章保存成功')
+        } else {
+          ElMessage.success('文章发布成功')
+        }
       }
       
       // 清除未保存标记，标记为已保存
@@ -332,8 +379,12 @@ const handleSubmit = async () => {
       originalData.value = null
       isSaved.value = true
       
-      // 跳转到文章详情页
-      router.push(`/blog/${articleId}`)
+      // 如果是草稿或私有，跳转到我的文章列表；如果是已发布，跳转到文章详情页
+      if (form.status === 0 || form.status === 2) {
+        router.push('/dashboard/articles')
+      } else {
+        router.push(`/blog/${articleId}`)
+      }
     } catch (error) {
       console.error('Submit error:', error)
       ElMessage.error(error.message || '操作失败')
@@ -375,6 +426,12 @@ onBeforeRouteLeave((to, from, next) => {
   
   // 如果正在提交，直接允许离开
   if (loading.value) {
+    next()
+    return
+  }
+  
+  // 如果跳转到文章列表页（可能是权限错误导致的跳转），直接允许离开
+  if (to.path === '/dashboard/articles') {
     next()
     return
   }

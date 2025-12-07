@@ -56,7 +56,12 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+	
 	user, err := h.service.GetUserByID(userID.(uint))
 	if err != nil {
 		utils.NotFound(c, "用户不存在")
@@ -73,7 +78,12 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+	
 	user, err := h.service.UpdateUser(userID.(uint), &req)
 	if err != nil {
 		utils.Error(c, 400, err.Error())
@@ -92,7 +102,12 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+	
 	if err := h.service.ChangePassword(userID.(uint), req.OldPassword, req.NewPassword); err != nil {
 		utils.Error(c, 400, err.Error())
 		return

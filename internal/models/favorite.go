@@ -34,8 +34,11 @@ type FavoriteListQuery struct {
 type FavoriteResponse struct {
 	ID        uint             `json:"id"`
 	UserID    uint             `json:"user_id"`
-	ArticleID uint             `json:"article_id"`
+	ArticleID uint             `json:"article_id,omitempty"`
+	WorkID    uint             `json:"work_id,omitempty"`
+	Type      string           `json:"type"` // "article" or "work"
 	Article   *ArticleResponse `json:"article,omitempty"`
+	Work      *WorkResponse    `json:"work,omitempty"`
 	CreatedAt time.Time        `json:"created_at"`
 }
 

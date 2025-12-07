@@ -234,6 +234,7 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 }
 
 func (s *CommentService) Delete(id uint, userID uint, role string) error {
+	// 先查询评论以获取相关信息
 	var comment models.Comment
 	if err := database.DB.First(&comment, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -247,25 +248,23 @@ func (s *CommentService) Delete(id uint, userID uint, role string) error {
 		isCommentAuthor := comment.UserID > 0 && comment.UserID == userID
 		isContentAuthor := false
 
-		// 检查是否是文章作者
+		// 检查是否是文章作者（使用WHERE条件确保权限）
 		if comment.ArticleID != nil && *comment.ArticleID > 0 {
-			var articleAuthorID uint
+			var count int64
 			if err := database.DB.Model(&models.Article{}).
-				Where("id = ?", *comment.ArticleID).
-				Select("author_id").
-				Scan(&articleAuthorID).Error; err == nil {
-				isContentAuthor = articleAuthorID == userID
+				Where("id = ? AND author_id = ?", *comment.ArticleID, userID).
+				Count(&count).Error; err == nil && count > 0 {
+				isContentAuthor = true
 			}
 		}
 
-		// 检查是否是作品作者
+		// 检查是否是作品作者（使用WHERE条件确保权限）
 		if !isContentAuthor && comment.WorkID != nil && *comment.WorkID > 0 {
-			var workAuthorID uint
+			var count int64
 			if err := database.DB.Model(&models.Work{}).
-				Where("id = ?", *comment.WorkID).
-				Select("author_id").
-				Scan(&workAuthorID).Error; err == nil {
-				isContentAuthor = workAuthorID == userID
+				Where("id = ? AND author_id = ?", *comment.WorkID, userID).
+				Count(&count).Error; err == nil && count > 0 {
+				isContentAuthor = true
 			}
 		}
 
@@ -280,8 +279,23 @@ func (s *CommentService) Delete(id uint, userID uint, role string) error {
 	}
 
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		// 删除评论
-		if err := tx.Delete(&comment).Error; err != nil {
+		// 删除评论 - 使用WHERE条件确保权限
+		// 管理员可以删除任何评论，普通用户只能删除自己的评论或自己内容下的评论
+		deleteQuery := tx.Where("id = ?", id)
+		if role != "admin" {
+			// 非管理员：只能删除自己的评论，或者自己内容下的评论
+			// 这里已经在上面检查过权限，所以直接删除
+			// 但为了安全，我们再次确认：如果是评论作者，使用user_id条件
+			if comment.UserID > 0 && comment.UserID == userID {
+				// 评论作者删除自己的评论
+				deleteQuery = deleteQuery.Where("user_id = ?", userID)
+			} else {
+				// 内容作者删除自己内容下的评论（已经在上面验证过）
+				// 这里直接删除，因为权限已经验证
+			}
+		}
+		
+		if err := deleteQuery.Delete(&models.Comment{}).Error; err != nil {
 			return err
 		}
 

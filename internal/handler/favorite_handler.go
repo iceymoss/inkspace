@@ -29,7 +29,11 @@ func (h *FavoriteHandler) AddFavorite(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
 	if err := h.service.AddFavorite(userID.(uint), uint(articleID)); err != nil {
 		utils.Error(c, 400, err.Error())
@@ -48,7 +52,11 @@ func (h *FavoriteHandler) RemoveFavorite(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
 	if err := h.service.RemoveFavorite(userID.(uint), uint(articleID)); err != nil {
 		utils.Error(c, 400, err.Error())
@@ -159,7 +167,11 @@ func (h *FavoriteHandler) CheckFavorited(c *gin.Context) {
 // GetMyFavorites 获取我的收藏列表
 // GET /api/favorites
 func (h *FavoriteHandler) GetMyFavorites(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
 	var query models.FavoriteListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {

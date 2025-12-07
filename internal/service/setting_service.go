@@ -39,12 +39,20 @@ func (s *SettingService) Set(req *models.SettingRequest) (*models.Setting, error
 		}
 	} else {
 		// 已存在，更新
-		setting.Value = req.Value
-		setting.Type = req.Type
-		setting.Description = req.Description
-		setting.Group = req.Group
-		setting.IsPublic = req.IsPublic
-		if err := database.DB.Save(&setting).Error; err != nil {
+		updateData := map[string]interface{}{
+			"value":       req.Value,
+			"type":        req.Type,
+			"description": req.Description,
+			"group":       req.Group,
+			"is_public":   req.IsPublic,
+		}
+		if err := database.DB.Model(&models.Setting{}).
+			Where("`key` = ?", req.Key).
+			Updates(updateData).Error; err != nil {
+			return nil, err
+		}
+		// 重新加载以返回最新数据
+		if err := database.DB.Where("`key` = ?", req.Key).First(&setting).Error; err != nil {
 			return nil, err
 		}
 	}
@@ -131,12 +139,16 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				}
 			} else {
 				// 更新现有记录（保留原有的 group 和 is_public，除非是 code_theme）
-				if key == models.SettingCodeTheme {
-					setting.Group = group
-					setting.IsPublic = isPublic
+				updateData := map[string]interface{}{
+					"value": value,
 				}
-				setting.Value = value
-				if err := tx.Save(&setting).Error; err != nil {
+				if key == models.SettingCodeTheme {
+					updateData["group"] = group
+					updateData["is_public"] = isPublic
+				}
+				if err := tx.Model(&models.Setting{}).
+					Where("`key` = ?", key).
+					Updates(updateData).Error; err != nil {
 					return err
 				}
 			}

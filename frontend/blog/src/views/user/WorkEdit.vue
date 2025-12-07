@@ -44,10 +44,15 @@
         </el-form-item>
 
         <el-form-item label="作品描述" prop="description">
+          <!-- 只有在非编辑模式或编辑模式下权限验证通过后才渲染VditorEditor -->
           <VditorEditor 
+            v-if="!loading && (!isEdit || (isEdit && !permissionError))"
             v-model="form.description" 
             height="400px"
           />
+          <div v-else style="height: 400px; display: flex; align-items: center; justify-content: center;">
+            <el-icon class="is-loading"><Loading /></el-icon>
+          </div>
         </el-form-item>
 
         <!-- 开源项目字段 -->
@@ -247,7 +252,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 import VditorEditor from '@/components/VditorEditor.vue'
@@ -258,6 +263,8 @@ const userStore = useUserStore()
 
 const formRef = ref()
 const submitting = ref(false)
+const loading = ref(true) // 页面加载状态，用于控制VditorEditor的渲染
+const permissionError = ref(false) // 标记是否有权限错误，用于防止渲染VditorEditor
 const quotaUsed = ref(0)
 const activePhotoIndex = ref(0)
 const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
@@ -468,18 +475,37 @@ const checkUnsavedChanges = () => {
 }
 
 const loadWork = async () => {
-  // 重置保存状态
+  // 重置保存状态和权限错误状态
   isSaved.value = false
+  permissionError.value = false
   
   if (!isEdit.value) {
-    // 创建模式下，重置未保存标记
+    // 创建模式下，检查是否登录
+    if (!userStore.isLoggedIn) {
+      ElMessage.warning('请先登录')
+      router.push('/login')
+      return
+    }
     hasUnsavedChanges.value = false
     originalData.value = null
+    loading.value = false // 创建模式不需要加载数据，可以直接渲染VditorEditor
     return
   }
 
+  // 编辑模式下，先检查是否登录
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  // 确保在权限检查完成之前，loading保持为true，防止VditorEditor被渲染
+  loading.value = true
+  permissionError.value = false
+  submitting.value = true
   try {
-    const response = await api.get(`/works/${route.params.id}`)
+    // 使用编辑专用API，后端会进行权限检查
+    const response = await api.get(`/works/${route.params.id}/edit`)
     const work = response.data
 
     Object.assign(form, {
@@ -531,8 +557,33 @@ const loadWork = async () => {
     }
     
     hasUnsavedChanges.value = false
+    loading.value = false // 加载成功，允许渲染VditorEditor
   } catch (error) {
-    ElMessage.error('加载作品失败')
+    // 标记权限错误，防止渲染VditorEditor
+    permissionError.value = true
+    loading.value = true // 保持loading为true，确保不渲染VditorEditor
+    
+    // 处理各种错误情况
+    const status = error.response?.status
+    if (status === 403) {
+      ElMessage.error('无权限编辑此作品')
+    } else if (status === 404) {
+      ElMessage.error('作品不存在')
+    } else if (status === 401) {
+      ElMessage.error('请先登录')
+      router.push('/login')
+      return
+    } else {
+      ElMessage.error('加载作品失败')
+    }
+    
+    // 标记为已保存，避免路由守卫拦截
+    isSaved.value = true
+    // 立即跳转，不等待任何异步操作，避免VditorEditor被渲染
+    router.push('/dashboard/works')
+    return // 立即返回，不执行 finally 中的代码
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -641,6 +692,12 @@ onBeforeRouteLeave((to, from, next) => {
   
   // 如果正在提交，直接允许离开
   if (submitting.value) {
+    next()
+    return
+  }
+  
+  // 如果跳转到作品列表页（可能是权限错误导致的跳转），直接允许离开
+  if (to.path === '/dashboard/works') {
     next()
     return
   }

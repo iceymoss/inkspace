@@ -23,6 +23,12 @@ func NewArticleService() *ArticleService {
 }
 
 func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*models.Article, error) {
+	// 确保 status 正确设置：0=草稿, 1=已发布, 2=私有
+	status := req.Status
+	if status != 0 && status != 1 && status != 2 {
+		status = 1 // 默认已发布
+	}
+	
 	article := &models.Article{
 		Title:       req.Title,
 		Content:     req.Content,
@@ -30,7 +36,7 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 		Cover:       req.Cover,
 		CategoryID:  req.CategoryID,
 		AuthorID:    authorID,
-		Status:      req.Status,
+		Status:      status,
 		IsTop:       req.IsTop,
 		IsRecommend: req.IsRecommend,
 	}
@@ -91,14 +97,20 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 }
 
 func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint, role string) (*models.Article, error) {
-	article, err := s.GetByID(id)
-	if err != nil {
-		return nil, err
+	// 先查询文章，但使用WHERE条件确保权限（非管理员只能查询自己的文章）
+	var article models.Article
+	query := database.DB.Where("id = ?", id)
+	
+	// 非管理员只能更新自己的文章
+	if role != "admin" {
+		query = query.Where("author_id = ?", userID)
 	}
-
-	// Check permission
-	if role != "admin" && article.AuthorID != userID {
-		return nil, errors.New("无权限修改")
+	
+	if err := query.Preload("Category").Preload("Tags").First(&article).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("文章不存在或无权限修改")
+		}
+		return nil, err
 	}
 
 	// 获取旧的标签IDs和分类ID
@@ -108,7 +120,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 	}
 	oldCategoryID := article.CategoryID
 
-	err = database.DB.Transaction(func(tx *gorm.DB) error {
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		// 如果分类改变，更新旧分类的文章数
 		if oldCategoryID > 0 && oldCategoryID != req.CategoryID {
 			if err := tx.Model(&models.Category{}).
@@ -127,48 +139,107 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 			}
 		}
 
-		// 更新旧标签的文章数（减少）
-		if len(oldTagIDs) > 0 {
-			if err := tx.Model(&models.Tag{}).
-				Where("id IN ?", oldTagIDs).
-				UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
-				return err
+		// 注意：标签计数的更新移到后面，在更新标签关联时根据差集来处理
+		// 这样可以避免重复计算（如果标签没有变化）
+
+		// Update article - 使用WHERE条件确保权限（非管理员只能更新自己的文章）
+		updateData := map[string]interface{}{
+			"title":        req.Title,
+			"content":      req.Content,
+			"summary":      req.Summary,
+			"cover":        req.Cover,
+			"category_id":  req.CategoryID,
+			"is_top":       req.IsTop,
+			"is_recommend": req.IsRecommend,
+		}
+		
+		// 确保 status 正确设置：0=草稿, 1=已发布, 2=私有
+		status := req.Status
+		if status == 0 || status == 1 || status == 2 {
+			updateData["status"] = status
+		}
+		
+		updateQuery := tx.Model(&models.Article{}).Where("id = ?", id)
+		// 非管理员只能更新自己的文章
+		if role != "admin" {
+			updateQuery = updateQuery.Where("author_id = ?", userID)
+		}
+		
+		if err := updateQuery.Updates(updateData).Error; err != nil {
+			return err
+		}
+		
+		// 重新加载文章以获取最新数据（用于 Association 操作）
+		var updatedArticle models.Article
+		if err := tx.First(&updatedArticle, id).Error; err != nil {
+			return err
+		}
+		
+		// 计算需要更新计数的标签ID（旧标签和新标签的差集）
+		oldTagIDSet := make(map[uint]bool)
+		for _, tagID := range oldTagIDs {
+			oldTagIDSet[tagID] = true
+		}
+		newTagIDSet := make(map[uint]bool)
+		for _, tagID := range req.TagIDs {
+			newTagIDSet[tagID] = true
+		}
+		
+		// 找出需要减少计数的标签（在旧标签中但不在新标签中）
+		tagsToDecrease := make([]uint, 0)
+		for tagID := range oldTagIDSet {
+			if !newTagIDSet[tagID] {
+				tagsToDecrease = append(tagsToDecrease, tagID)
 			}
 		}
-
-		// Update article
-		article.Title = req.Title
-		article.Content = req.Content
-		article.Summary = req.Summary
-		article.Cover = req.Cover
-		article.CategoryID = req.CategoryID
-		article.Status = req.Status
-		article.IsTop = req.IsTop
-		article.IsRecommend = req.IsRecommend
-
-		if err := tx.Save(article).Error; err != nil {
+		
+		// 找出需要增加计数的标签（在新标签中但不在旧标签中）
+		tagsToIncrease := make([]uint, 0)
+		for tagID := range newTagIDSet {
+			if !oldTagIDSet[tagID] {
+				tagsToIncrease = append(tagsToIncrease, tagID)
+			}
+		}
+		
+		// 更新标签关联
+		if err := tx.Model(&updatedArticle).Association("Tags").Clear(); err != nil {
 			return err
 		}
-
-		// Update tags
-		if err := tx.Model(article).Association("Tags").Clear(); err != nil {
-			return err
-		}
+		
+		// 如果有新标签，添加关联
 		if len(req.TagIDs) > 0 {
 			var tags []models.Tag
 			if err := tx.Where("id IN ?", req.TagIDs).Find(&tags).Error; err != nil {
 				return err
 			}
-			if err := tx.Model(article).Association("Tags").Append(tags); err != nil {
+			if len(tags) > 0 {
+				if err := tx.Model(&updatedArticle).Association("Tags").Append(tags); err != nil {
+					return err
+				}
+			}
+		}
+		
+		// 更新标签文章数（减少旧标签的计数）
+		if len(tagsToDecrease) > 0 {
+			if err := tx.Model(&models.Tag{}).
+				Where("id IN ?", tagsToDecrease).
+				UpdateColumn("article_count", gorm.Expr("article_count - ?", 1)).Error; err != nil {
 				return err
 			}
-
-			// 更新新标签的文章数（增加）
+		}
+		
+		// 更新标签文章数（增加新标签的计数）
+		if len(tagsToIncrease) > 0 {
 			if err := tx.Model(&models.Tag{}).
-				Where("id IN ?", req.TagIDs).
+				Where("id IN ?", tagsToIncrease).
 				UpdateColumn("article_count", gorm.Expr("article_count + ?", 1)).Error; err != nil {
 				return err
 			}
+		}
+		
+		// 重新加载文章以获取最新数据（包括标签）
+		if err := tx.Preload("Category").Preload("Tags").First(&article, id).Error; err != nil {
+			return err
 		}
 
 		return nil
@@ -182,18 +253,24 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 	utils.DeleteCache(fmt.Sprintf("article:%d", id))
 	utils.DeleteCachePattern("article:list:*")
 
-	return article, nil
+	return &article, nil
 }
 
 func (s *ArticleService) Delete(id uint, userID uint, role string) error {
-	article, err := s.GetByID(id)
-	if err != nil {
-		return err
+	// 先查询文章以获取相关信息（用于更新计数）
+	var article models.Article
+	query := database.DB.Where("id = ?", id)
+	
+	// 非管理员只能查询自己的文章
+	if role != "admin" {
+		query = query.Where("author_id = ?", userID)
 	}
-
-	// Check permission
-	if role != "admin" && article.AuthorID != userID {
-		return errors.New("无权限删除")
+	
+	if err := query.Preload("Tags").First(&article).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("文章不存在或无权限删除")
+		}
+		return err
 	}
 
 	// 获取标签IDs
@@ -202,10 +279,19 @@ func (s *ArticleService) Delete(id uint, userID uint, role string) error {
 		tagIDs[i] = tag.ID
 	}
 
-	err = database.DB.Transaction(func(tx *gorm.DB) error {
-		// 删除文章
-		if err := tx.Delete(article).Error; err != nil {
-			return err
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// 删除文章 - 使用WHERE条件确保权限（非管理员只能删除自己的文章）
+		deleteQuery := tx.Where("id = ?", id)
+		if role != "admin" {
+			deleteQuery = deleteQuery.Where("author_id = ?", userID)
+		}
+		
+		result := deleteQuery.Delete(&models.Article{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("文章不存在或无权限删除")
 		}
 
 		// 更新用户文章数
@@ -284,12 +370,14 @@ func (s *ArticleService) GetList(query *models.ArticleListQuery) ([]*models.Arti
 	if query.Status != nil {
 		db = db.Where("status = ?", *query.Status)
 	} else {
-		// Default: only show published
-		// But if author_id is specified (viewing own articles), show all statuses
-		if query.AuthorID == 0 {
+		// Default: only show published (status=1)
+		// But if author_id is specified (viewing own articles) or ShowAll is true (admin), show all statuses
+		if query.AuthorID == 0 && !query.ShowAll {
+			// 查看所有用户的文章列表，只显示公开的（status=1）
 			db = db.Where("status = ?", 1)
 		}
-		// If author_id > 0, don't filter by status (show all: draft and published)
+		// If author_id > 0 (viewing own articles) or ShowAll is true (admin), don't filter by status
+		// 这样可以显示所有状态：草稿(0)、公开(1)、私有(2)
 	}
 
 	// Filter by category
@@ -594,9 +682,9 @@ func (s *ArticleService) GetHotArticles(limit int) ([]*models.Article, error) {
 		return []*models.Article{}, nil
 	}
 
-	// 从数据库查询文章详情
+	// 从数据库查询文章详情 - 只查询公开的文章（status=1），不包含草稿和私有文章
 	var articles []*models.Article
-	if err := database.DB.Where("id IN ?", articleIDs).
+	if err := database.DB.Where("id IN ? AND status = ?", articleIDs, 1).
 		Preload("Category").Preload("Tags").Preload("Author").
 		Find(&articles).Error; err != nil {
 		return nil, err

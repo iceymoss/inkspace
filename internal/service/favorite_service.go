@@ -133,37 +133,150 @@ func (s *FavoriteService) IsFavorited(userID, articleID uint) (bool, error) {
 	return count > 0, err
 }
 
-// GetFavoriteList 获取用户收藏列表
+// GetFavoriteList 获取用户收藏列表（包含文章和作品）
+// 数据安全：只返回用户自己的收藏，并且只返回公开的内容
 func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*models.FavoriteResponse, int64, error) {
-	var favorites []*models.ArticleFavorite
-	var total int64
-
-	// 查询收藏列表
-	db := database.DB.Model(&models.ArticleFavorite{}).
-		Where("user_id = ?", userID).
-		Preload("Article").
-		Preload("Article.Category").
-		Preload("Article.Tags").
-		Preload("Article.Author")
-
-	if err := db.Count(&total).Error; err != nil {
+	var allFavorites []*models.FavoriteResponse
+	
+	// 1. 获取文章收藏
+	articleDB := database.DB.Model(&models.ArticleFavorite{}).
+		Joins("JOIN articles ON articles.id = article_favorites.article_id").
+		Where("article_favorites.user_id = ?", userID).
+		Where("(articles.status = ? OR (articles.status = ? AND articles.author_id = ?))", 1, 2, userID)
+	
+	var articleTotal int64
+	if err := articleDB.Count(&articleTotal).Error; err != nil {
 		return nil, 0, err
 	}
-
+	
+	// 获取所有文章收藏（不分页，用于合并排序）
+	var articleFavorites []*models.ArticleFavorite
+	if err := articleDB.Select("article_favorites.*").
+		Order("article_favorites.created_at DESC").
+		Find(&articleFavorites).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// 预加载文章信息
+	if len(articleFavorites) > 0 {
+		articleIDs := make([]uint, len(articleFavorites))
+		for i, f := range articleFavorites {
+			articleIDs[i] = f.ArticleID
+		}
+		
+		var articles []*models.Article
+		if err := database.DB.Where("id IN ?", articleIDs).
+			Preload("Category").Preload("Tags").Preload("Author").
+			Find(&articles).Error; err != nil {
+			return nil, 0, err
+		}
+		
+		articleMap := make(map[uint]*models.Article)
+		for _, article := range articles {
+			articleMap[article.ID] = article
+		}
+		for i := range articleFavorites {
+			if article, ok := articleMap[articleFavorites[i].ArticleID]; ok {
+				articleFavorites[i].Article = article
+			}
+		}
+		
+		// 转换为响应格式
+		for _, favorite := range articleFavorites {
+			resp := favorite.ToResponse()
+			resp.Type = "article"
+			allFavorites = append(allFavorites, resp)
+		}
+	}
+	
+	// 2. 获取作品收藏
+	workDB := database.DB.Model(&models.Favorite{}).
+		Where("user_id = ? AND work_id IS NOT NULL", userID)
+	
+	var workTotal int64
+	if err := workDB.Count(&workTotal).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// 获取所有作品收藏（不分页，用于合并排序）
+	var workFavorites []*models.Favorite
+	if err := workDB.Order("created_at DESC").
+		Find(&workFavorites).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// 预加载作品信息
+	if len(workFavorites) > 0 {
+		workIDs := make([]uint, 0, len(workFavorites))
+		for _, f := range workFavorites {
+			if f.WorkID != nil {
+				workIDs = append(workIDs, *f.WorkID)
+			}
+		}
+		
+		if len(workIDs) > 0 {
+			var works []*models.Work
+			if err := database.DB.Where("id IN ? AND status = ?", workIDs, 1).
+				Preload("Author").
+				Find(&works).Error; err != nil {
+				return nil, 0, err
+			}
+			
+			workMap := make(map[uint]*models.Work)
+			for _, work := range works {
+				workMap[work.ID] = work
+			}
+			for i := range workFavorites {
+				if workFavorites[i].WorkID != nil {
+					if work, ok := workMap[*workFavorites[i].WorkID]; ok {
+						workFavorites[i].Work = work
+					}
+				}
+			}
+			
+			// 转换为响应格式
+			for _, favorite := range workFavorites {
+				if favorite.WorkID != nil && favorite.Work != nil {
+					resp := &models.FavoriteResponse{
+						ID:        favorite.ID,
+						UserID:    favorite.UserID,
+						WorkID:    *favorite.WorkID,
+						Type:      "work",
+						CreatedAt: favorite.CreatedAt,
+					}
+					// 转换为WorkResponse
+					workResp := favorite.Work.ToResponse()
+					resp.Work = workResp
+					allFavorites = append(allFavorites, resp)
+				}
+			}
+		}
+	}
+	
+	// 3. 按创建时间降序排序（使用简单的冒泡排序，数据量不大时性能可接受）
+	for i := 0; i < len(allFavorites)-1; i++ {
+		for j := i + 1; j < len(allFavorites); j++ {
+			if allFavorites[i].CreatedAt.Before(allFavorites[j].CreatedAt) {
+				allFavorites[i], allFavorites[j] = allFavorites[j], allFavorites[i]
+			}
+		}
+	}
+	
+	// 4. 应用分页
+	total := articleTotal + workTotal
 	offset := (page - 1) * pageSize
-	if err := db.Offset(offset).Limit(pageSize).
-		Order("created_at DESC").
-		Find(&favorites).Error; err != nil {
-		return nil, 0, err
+	start := offset
+	end := offset + pageSize
+	
+	if start >= len(allFavorites) {
+		allFavorites = []*models.FavoriteResponse{}
+	} else if end > len(allFavorites) {
+		allFavorites = allFavorites[start:]
+	} else {
+		allFavorites = allFavorites[start:end]
 	}
-
-	// 转换为响应格式
-	responses := make([]*models.FavoriteResponse, len(favorites))
-	for i, favorite := range favorites {
-		responses[i] = favorite.ToResponse()
-	}
-
-	return responses, total, nil
+	
+	return allFavorites, total, nil
 }
 
 // GetFavoriteCount 获取文章的收藏数
