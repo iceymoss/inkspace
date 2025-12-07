@@ -495,7 +495,7 @@ onUnmounted(() => {
 
 <style scoped>
 .article-edit {
-  background: #f5f7fa;
+  background: var(--theme-bg-secondary);
   min-height: calc(100vh - 60px);
   padding: 20px 0;
 }
@@ -526,7 +526,7 @@ onUnmounted(() => {
 }
 
 .article-form {
-  background: #fff;
+  background: var(--theme-bg-card);
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);

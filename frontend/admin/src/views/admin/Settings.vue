@@ -46,6 +46,25 @@
         </el-form>
       </el-tab-pane>
 
+      <el-tab-pane label="网站主题" name="theme">
+        <el-form :model="themeSettings" label-width="150px">
+          <el-form-item label="整体主题">
+            <el-select v-model="themeSettings.site_theme" placeholder="选择网站整体主题" style="width: 300px">
+              <el-option label="白天" value="day" />
+              <el-option label="黑夜" value="night" />
+              <el-option label="节假日" value="holiday" />
+              <el-option label="哀悼日" value="mourning" />
+            </el-select>
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              设置博客系统的整体主题风格，影响整个网站的配色方案
+            </div>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="saveThemeSettings" :loading="saving">保存</el-button>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+
       <el-tab-pane label="Markdown设置" name="markdown">
         <el-form :model="markdownSettings" label-width="150px">
           <el-form-item label="Markdown 主题风格">
@@ -178,6 +197,10 @@ const featureSettings = reactive({
   comment_audit: false
 })
 
+const themeSettings = reactive({
+  site_theme: 'day' // 默认使用白天主题
+})
+
 const markdownSettings = reactive({
   markdown_theme: 'light', // 默认使用浅色主题
   code_theme: 'github' // 默认使用 github 主题
@@ -207,6 +230,8 @@ const loadAllSettings = async () => {
         siteSettings[setting.key] = setting.value
       } else if (setting.group === 'feature') {
         featureSettings[setting.key] = setting.value === '1' || setting.value === 'true'
+      } else if (setting.group === 'theme') {
+        themeSettings[setting.key] = setting.value || 'day'
       } else if (setting.group === 'markdown') {
         markdownSettings[setting.key] = setting.value
       }
@@ -236,6 +261,24 @@ const saveFeatureSettings = async () => {
     const settings = {}
     Object.keys(featureSettings).forEach(key => {
       settings[key] = featureSettings[key] ? '1' : '0'
+    })
+    
+    await adminApi.put('/admin/settings/batch', settings)
+    ElMessage.success('保存成功')
+    loadAllSettings()
+  } catch (error) {
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+const saveThemeSettings = async () => {
+  saving.value = true
+  try {
+    const settings = {}
+    Object.keys(themeSettings).forEach(key => {
+      settings[key] = themeSettings[key]
     })
     
     await adminApi.put('/admin/settings/batch', settings)

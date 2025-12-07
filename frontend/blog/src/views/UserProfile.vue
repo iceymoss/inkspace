@@ -405,7 +405,7 @@ const onTabChange = () => {
 <style scoped>
 .user-profile {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
@@ -458,7 +458,7 @@ const onTabChange = () => {
 }
 
 .stat-item.clickable:hover .stat-value {
-  color: #409eff;
+  color: var(--theme-primary);
 }
 
 .stat-value {

@@ -116,11 +116,17 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				} else if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme {
 					group = "markdown"
 					isPublic = true // Markdown 相关设置需要公开，前端才能使用
+				} else if key == models.SettingSiteTheme {
+					group = "theme"
+					isPublic = true // 主题设置需要公开，前端才能使用
 				}
 			} else {
-				// 更新现有记录时，如果是 code_theme，确保设置正确
+				// 更新现有记录时，如果是 code_theme 或 site_theme，确保设置正确
 				if key == models.SettingCodeTheme {
 					group = "markdown"
+					isPublic = true
+				} else if key == models.SettingSiteTheme {
+					group = "theme"
 					isPublic = true
 				}
 			}
@@ -138,11 +144,11 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					return err
 				}
 			} else {
-				// 更新现有记录（保留原有的 group 和 is_public，除非是 code_theme）
+				// 更新现有记录（保留原有的 group 和 is_public，除非是 code_theme 或 site_theme）
 				updateData := map[string]interface{}{
 					"value": value,
 				}
-				if key == models.SettingCodeTheme {
+				if key == models.SettingCodeTheme || key == models.SettingSiteTheme {
 					updateData["group"] = group
 					updateData["is_public"] = isPublic
 				}

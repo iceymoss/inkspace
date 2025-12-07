@@ -1290,7 +1290,7 @@ onUnmounted(() => {
 <style scoped>
 .work-detail {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary, #f5f7fa);
   min-height: 100vh;
 }
 
@@ -1819,7 +1819,7 @@ onUnmounted(() => {
 .reply-input {
   margin-top: 15px;
   padding: 15px;
-  background: #f5f7fa;
+  background: var(--theme-bg-secondary);
   border-radius: 6px;
 }
 
@@ -1902,7 +1902,7 @@ onUnmounted(() => {
   color: var(--text-secondary);
   font-size: 14px;
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   border-radius: 4px;
 }
 

@@ -212,7 +212,7 @@ onMounted(() => {
 <style scoped>
 .follow-list {
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
@@ -253,7 +253,7 @@ onMounted(() => {
 }
 
 .user-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   transform: translateX(5px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -269,7 +269,7 @@ onMounted(() => {
 
 .user-info .bio {
   margin: 0 0 8px 0;
-  color: #909399;
+  color: var(--theme-text-tertiary);
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -280,7 +280,7 @@ onMounted(() => {
   display: flex;
   gap: 15px;
   font-size: 13px;
-  color: #606266;
+  color: var(--theme-text-secondary);
 }
 
 .user-actions {

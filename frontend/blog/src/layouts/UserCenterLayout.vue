@@ -159,12 +159,13 @@ const handleCommand = (command) => {
 <style scoped>
 .user-center-layout {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
 }
 
 .sidebar {
-  background-color: #fff;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  background-color: var(--theme-bg-card);
+  box-shadow: 2px 0 8px var(--theme-shadow);
+  border-right: 1px solid var(--theme-border);
 }
 
 .logo {
@@ -174,22 +175,25 @@ const handleCommand = (command) => {
   justify-content: center;
   font-size: 20px;
   font-weight: bold;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-card);
 }
 
 .logo a {
-  color: #409eff;
+  color: var(--theme-primary);
   text-decoration: none;
 }
 
 .menu {
   border-right: none;
+  background-color: var(--theme-bg-card);
 }
 
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: var(--theme-bg-card);
+  border-bottom: 1px solid var(--theme-border);
   padding: 0 20px;
+  color: var(--theme-text-primary);
 }
 
 .header-content {

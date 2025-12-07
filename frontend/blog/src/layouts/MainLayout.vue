@@ -128,11 +128,13 @@ onMounted(() => {
 }
 
 .header {
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--theme-bg-card);
+  box-shadow: 0 2px 8px var(--theme-shadow);
+  border-bottom: 1px solid var(--theme-border);
   position: sticky;
   top: 0;
   z-index: 1000;
+  color: var(--theme-text-primary);
 }
 
 .header-content {
@@ -145,7 +147,8 @@ onMounted(() => {
 .logo a {
   font-size: 24px;
   font-weight: bold;
-  color: var(--primary-color);
+  color: var(--theme-primary);
+  text-decoration: none;
 }
 
 .nav {
@@ -154,14 +157,15 @@ onMounted(() => {
 }
 
 .nav a {
-  color: var(--text-regular);
+  color: var(--theme-text-secondary);
   font-size: 16px;
   transition: color 0.3s;
+  text-decoration: none;
 }
 
 .nav a:hover,
 .nav a.router-link-active {
-  color: var(--primary-color);
+  color: var(--theme-primary);
 }
 
 .header-actions {
@@ -178,7 +182,7 @@ onMounted(() => {
 }
 
 .username {
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
 }
 
 .main-content {
@@ -187,15 +191,21 @@ onMounted(() => {
 }
 
 .footer {
-  background: #2c3e50;
-  color: white;
+  background: var(--theme-bg-card);
+  border-top: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
   padding: 30px 0;
   text-align: center;
+  margin-top: auto;
 }
 
 .footer p {
   margin: 5px 0;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--theme-text-secondary);
+}
+
+.footer a {
+  color: var(--theme-primary);
 }
 
 @media (max-width: 768px) {
