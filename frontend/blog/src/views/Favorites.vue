@@ -220,7 +220,7 @@ onMounted(() => {
 <style scoped>
 .favorites {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
@@ -285,7 +285,7 @@ onMounted(() => {
 .cover-placeholder {
   width: 100%;
   height: 200px;
-  background-color: #f0f0f0;
+  background-color: var(--theme-bg-hover);
   border-radius: 4px;
   margin-bottom: 15px;
   display: flex;

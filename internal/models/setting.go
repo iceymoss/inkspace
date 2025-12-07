@@ -54,6 +54,7 @@ const (
 	SettingUploadMaxSize   = "upload_max_size"  // 上传文件最大大小
 	SettingCodeTheme       = "code_theme"       // Markdown 代码高亮主题
 	SettingMarkdownTheme   = "markdown_theme"   // Markdown 主题风格（light/dark）
+	SettingSiteTheme       = "site_theme"       // 网站整体主题（day/night/holiday/mourning）
 )
 
 func (s *Setting) ToResponse() *SettingResponse {

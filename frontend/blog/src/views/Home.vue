@@ -311,12 +311,12 @@ onMounted(() => {
 
 <style scoped>
 .home {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
 }
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--theme-hero-gradient);
   color: white;
   padding: 40px 0;
   text-align: center;
@@ -360,7 +360,7 @@ onMounted(() => {
 
 .section-header h2 {
   font-size: 1.5rem;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -371,7 +371,7 @@ onMounted(() => {
   content: '';
   width: 4px;
   height: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--theme-hero-gradient);
   border-radius: 2px;
 }
 
@@ -422,7 +422,7 @@ onMounted(() => {
 .article-title {
   font-size: 1.15rem;
   margin: 0 0 8px 0;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -432,7 +432,7 @@ onMounted(() => {
 }
 
 .article-summary {
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
   font-size: 0.85rem;
   margin-bottom: 10px;
   overflow: hidden;
@@ -448,7 +448,7 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -464,7 +464,6 @@ onMounted(() => {
   flex-shrink: 0;
   border-radius: 8px;
   overflow: hidden;
-  align-self: center;
 }
 
 .article-cover .el-image {
@@ -555,7 +554,7 @@ onMounted(() => {
 .work-info h4 {
   margin: 0 0 8px 0;
   font-size: 1.1rem;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -565,7 +564,7 @@ onMounted(() => {
 }
 
 .work-desc {
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
   font-size: 0.85rem;
   margin: 0 0 12px 0;
   overflow: hidden;
@@ -604,7 +603,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
 }
 
 /* Stats Card */
@@ -617,20 +616,21 @@ onMounted(() => {
 .stat-item {
   text-align: center;
   padding: 15px;
-  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  background: var(--theme-bg-card);
+  border: 1px solid var(--theme-border-light);
   border-radius: 8px;
 }
 
 .stat-value {
   font-size: 1.8rem;
   font-weight: bold;
-  color: #667eea;
+  color: var(--theme-primary);
   margin-bottom: 5px;
 }
 
 .stat-label {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
 }
 
 /* Tags Cloud */
@@ -661,18 +661,19 @@ onMounted(() => {
   padding: 12px;
   border-radius: 8px;
   transition: all 0.3s;
-  background: #f5f7fa;
+  background: var(--theme-bg-secondary);
+  border: 1px solid var(--theme-border-light);
 }
 
 .recommended-item:hover {
-  background: #e8eaed;
+  background: var(--theme-bg-hover);
   transform: translateX(3px);
 }
 
 .recommended-item h4 {
   margin: 0 0 8px 0;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -685,7 +686,7 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
 }
 
 .recommended-meta span {
@@ -721,7 +722,7 @@ onMounted(() => {
 
 .work-title {
   font-size: 0.85rem;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   padding: 0 8px 8px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -734,7 +735,7 @@ onMounted(() => {
 }
 
 .about-content p {
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
   margin-bottom: 15px;
   line-height: 1.6;
 }

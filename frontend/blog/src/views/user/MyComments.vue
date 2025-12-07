@@ -152,7 +152,7 @@ onMounted(() => {
 
 .comment-content {
   padding: 15px;
-  background: #f5f7fa;
+  background: var(--theme-bg-secondary);
   border-radius: 8px;
   margin-bottom: 10px;
   line-height: 1.6;

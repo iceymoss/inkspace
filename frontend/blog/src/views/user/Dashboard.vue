@@ -244,7 +244,7 @@ onMounted(() => {
 .stat-value {
   font-size: 1.8rem;
   font-weight: 600;
-  color: #409eff;
+  color: var(--theme-primary);
 }
 
 .stat-label {
@@ -293,7 +293,7 @@ onMounted(() => {
 }
 
 .recent-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
 }
 
 .item-info {

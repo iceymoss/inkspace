@@ -47,7 +47,7 @@ const skills = ref([
 <style scoped>
 .about {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 

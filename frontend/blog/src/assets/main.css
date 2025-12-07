@@ -14,11 +14,28 @@
   --border-lighter: #ebeef5;
   --border-extra-light: #f2f6fc;
   --background-base: #f5f7fa;
+  
+  /* 主题变量（默认值，会被主题系统覆盖） */
+  --theme-bg-primary: #ffffff;
+  --theme-bg-secondary: #f5f7fa;
+  --theme-bg-card: #ffffff;
+  --theme-text-primary: #303133;
+  --theme-text-secondary: #606266;
+  --theme-text-tertiary: #909399;
+  --theme-border: #dcdfe6;
+  --theme-primary: #409eff;
+  --theme-shadow: rgba(0, 0, 0, 0.1);
+  --theme-bg-hover: #fafbfc;
+  --theme-border-light: #ebeef5;
+  --theme-primary-hover: #66b1ff;
+  --theme-content-bg: #ffffff;
+  --theme-hero-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --theme-accent: #409eff;
 }
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   font-weight: 600;
   line-height: 1.5;
 }
@@ -31,19 +48,19 @@ h5 { font-size: 1.25rem; }
 h6 { font-size: 1rem; }
 
 p {
-  color: var(--text-regular);
+  color: var(--theme-text-secondary);
   line-height: 1.8;
   margin-bottom: 1rem;
 }
 
 a {
-  color: var(--primary-color);
+  color: var(--theme-primary);
   text-decoration: none;
   transition: color 0.3s;
 }
 
 a:hover {
-  color: #66b1ff;
+  color: var(--theme-primary-hover);
 }
 
 /* Container */
@@ -55,11 +72,297 @@ a:hover {
 
 /* Card */
 .card {
-  background: white;
+  background: var(--theme-bg-card);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 var(--theme-shadow);
   margin-bottom: 20px;
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
+}
+
+/* 主题样式 */
+body {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* 全局页面背景使用主题变量 */
+body {
+  background-color: var(--theme-bg-primary);
+}
+
+/* 所有页面容器使用主题背景 */
+.blog-detail,
+.work-detail,
+.favorites,
+.blog,
+.works,
+.home,
+.user-profile,
+.notifications-page,
+.about-page,
+.links-page,
+.follow-list-page {
+  background-color: var(--theme-bg-secondary) !important;
+}
+
+/* 所有卡片使用主题背景 */
+.el-card {
+  background-color: var(--theme-bg-card) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* 所有输入框使用主题背景 */
+.el-input__inner,
+.el-textarea__inner,
+.el-select .el-input__inner {
+  background-color: var(--theme-bg-card) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* 所有下拉菜单使用主题背景 */
+.el-select-dropdown,
+.el-dropdown-menu {
+  background-color: var(--theme-bg-card) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.el-select-dropdown__item,
+.el-dropdown-menu__item {
+  color: var(--theme-text-primary) !important;
+}
+
+.el-select-dropdown__item:hover,
+.el-dropdown-menu__item:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+/* 所有分割线使用主题颜色 */
+.el-divider {
+  border-color: var(--theme-border-light) !important;
+}
+
+/* 黑夜主题特殊处理 */
+body.theme-night {
+  color-scheme: dark;
+}
+
+body.theme-night .header {
+  background-color: var(--theme-bg-card);
+  border-bottom: 1px solid var(--theme-border);
+}
+
+body.theme-night .footer {
+  background-color: var(--theme-bg-card);
+  border-top: 1px solid var(--theme-border);
+}
+
+body.theme-night .el-card {
+  background-color: var(--theme-bg-card);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+body.theme-night .el-card :deep(.el-card__body) {
+  background-color: var(--theme-bg-card);
+  color: var(--theme-text-primary);
+}
+
+body.theme-night .el-input__inner,
+body.theme-night .el-textarea__inner {
+  background-color: var(--theme-bg-secondary);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+/* 文章内容区域 - 黑夜主题 */
+body.theme-night #article-preview,
+body.theme-night .article-content,
+body.theme-night .work-content,
+body.theme-night #work-description-preview-photography {
+  background-color: var(--theme-content-bg);
+  color: var(--theme-text-primary);
+  padding: 20px;
+  border-radius: 8px;
+}
+
+body.theme-night #article-preview :deep(p),
+body.theme-night #article-preview :deep(h1),
+body.theme-night #article-preview :deep(h2),
+body.theme-night #article-preview :deep(h3),
+body.theme-night #article-preview :deep(h4),
+body.theme-night #article-preview :deep(h5),
+body.theme-night #article-preview :deep(h6),
+body.theme-night #article-preview :deep(li),
+body.theme-night #article-preview :deep(blockquote) {
+  color: var(--theme-text-primary);
+}
+
+body.theme-night #article-preview :deep(code:not(pre code)) {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--theme-text-primary);
+}
+
+body.theme-night #article-preview :deep(pre) {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
+}
+
+body.theme-night #article-preview :deep(blockquote) {
+  border-left-color: var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+}
+
+/* 哀悼日主题特殊处理 - 减少灰度，保持可读性 */
+body.theme-mourning {
+  filter: grayscale(50%);
+  color-scheme: dark;
+}
+
+body.theme-mourning .header {
+  background-color: var(--theme-bg-card);
+  border-bottom: 1px solid var(--theme-border);
+}
+
+body.theme-mourning .footer {
+  background-color: var(--theme-bg-card);
+  border-top: 1px solid var(--theme-border);
+}
+
+body.theme-mourning img {
+  filter: grayscale(60%);
+}
+
+body.theme-mourning .el-card {
+  background-color: var(--theme-bg-card);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+body.theme-mourning .el-card :deep(.el-card__body) {
+  background-color: var(--theme-bg-card);
+  color: var(--theme-text-primary);
+}
+
+/* 文章内容区域 - 哀悼日主题 */
+body.theme-mourning #article-preview,
+body.theme-mourning .article-content,
+body.theme-mourning .work-content,
+body.theme-mourning #work-description-preview-photography {
+  background-color: var(--theme-content-bg);
+  color: var(--theme-text-primary);
+  padding: 20px;
+  border-radius: 8px;
+  filter: grayscale(0%);
+}
+
+body.theme-mourning #article-preview :deep(p),
+body.theme-mourning #article-preview :deep(h1),
+body.theme-mourning #article-preview :deep(h2),
+body.theme-mourning #article-preview :deep(h3),
+body.theme-mourning #article-preview :deep(h4),
+body.theme-mourning #article-preview :deep(h5),
+body.theme-mourning #article-preview :deep(h6),
+body.theme-mourning #article-preview :deep(li),
+body.theme-mourning #article-preview :deep(blockquote) {
+  color: var(--theme-text-primary);
+  filter: grayscale(0%);
+}
+
+body.theme-mourning #article-preview :deep(code:not(pre code)) {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--theme-text-primary);
+}
+
+body.theme-mourning #article-preview :deep(pre) {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
+}
+
+body.theme-mourning #article-preview :deep(blockquote) {
+  border-left-color: var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+}
+
+/* 节假日主题特殊处理 - 红红火火 */
+body.theme-holiday {
+  background: linear-gradient(135deg, var(--theme-bg-primary) 0%, var(--theme-bg-secondary) 50%, var(--theme-bg-primary) 100%);
+  background-attachment: fixed;
+}
+
+body.theme-holiday .el-card {
+  background-color: var(--theme-bg-card);
+  border-color: var(--theme-border);
+  box-shadow: 0 4px 20px var(--theme-shadow);
+}
+
+body.theme-holiday .el-button--primary {
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-hover) 100%);
+  border-color: var(--theme-primary);
+  box-shadow: 0 2px 8px var(--theme-shadow);
+}
+
+body.theme-holiday .el-button--primary:hover {
+  background: linear-gradient(135deg, var(--theme-primary-hover) 0%, var(--theme-primary) 100%);
+  box-shadow: 0 4px 12px var(--theme-shadow);
+}
+
+/* 文章内容区域 - 节假日主题 */
+body.theme-holiday #article-preview,
+body.theme-holiday .article-content,
+body.theme-holiday .work-content,
+body.theme-holiday #work-description-preview-photography {
+  background-color: var(--theme-content-bg);
+  color: var(--theme-text-primary);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--theme-border);
+}
+
+body.theme-holiday #article-preview :deep(p),
+body.theme-holiday #article-preview :deep(h1),
+body.theme-holiday #article-preview :deep(h2),
+body.theme-holiday #article-preview :deep(h3),
+body.theme-holiday #article-preview :deep(h4),
+body.theme-holiday #article-preview :deep(h5),
+body.theme-holiday #article-preview :deep(h6) {
+  color: var(--theme-text-primary);
+}
+
+body.theme-holiday #article-preview :deep(h1),
+body.theme-holiday #article-preview :deep(h2) {
+  color: var(--theme-text-primary);
+  text-shadow: 0 1px 2px rgba(196, 30, 58, 0.15);
+}
+
+body.theme-holiday #article-preview :deep(code:not(pre code)) {
+  background-color: rgba(255, 51, 51, 0.15);
+  color: var(--theme-text-primary);
+}
+
+body.theme-holiday #article-preview :deep(pre) {
+  background-color: var(--theme-content-bg);
+  border: 1px solid var(--theme-border);
+}
+
+body.theme-holiday #article-preview :deep(blockquote) {
+  border-left-color: var(--theme-primary);
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+}
+
+body.theme-holiday #article-preview :deep(a) {
+  color: var(--theme-primary);
+}
+
+body.theme-holiday #article-preview :deep(a:hover) {
+  color: var(--theme-primary-hover);
 }
 
 /* Button styles */

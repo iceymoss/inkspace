@@ -266,15 +266,15 @@ onMounted(() => {
 }
 
 .notification-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
 }
 
 .notification-item.unread {
-  background-color: #ecf5ff;
+  background-color: var(--theme-bg-hover);
 }
 
 .notification-item.unread:hover {
-  background-color: #d9ecff;
+  background-color: var(--theme-bg-hover);
 }
 
 .notification-content {
