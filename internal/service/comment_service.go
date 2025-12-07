@@ -236,12 +236,47 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 func (s *CommentService) Delete(id uint, userID uint, role string) error {
 	var comment models.Comment
 	if err := database.DB.First(&comment, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("评论不存在")
+		}
 		return err
 	}
 
-	// Check permission
-	if role != "admin" && comment.UserID != userID {
-		return errors.New("无权限删除")
+	// Check permission: 评论作者、文章/作品作者或管理员可以删除
+	if role != "admin" {
+		isCommentAuthor := comment.UserID > 0 && comment.UserID == userID
+		isContentAuthor := false
+
+		// 检查是否是文章作者
+		if comment.ArticleID != nil && *comment.ArticleID > 0 {
+			var articleAuthorID uint
+			if err := database.DB.Model(&models.Article{}).
+				Where("id = ?", *comment.ArticleID).
+				Select("author_id").
+				Scan(&articleAuthorID).Error; err == nil {
+				isContentAuthor = articleAuthorID == userID
+			}
+		}
+
+		// 检查是否是作品作者
+		if !isContentAuthor && comment.WorkID != nil && *comment.WorkID > 0 {
+			var workAuthorID uint
+			if err := database.DB.Model(&models.Work{}).
+				Where("id = ?", *comment.WorkID).
+				Select("author_id").
+				Scan(&workAuthorID).Error; err == nil {
+				isContentAuthor = workAuthorID == userID
+			}
+		}
+
+		// 如果既不是评论作者，也不是内容作者，则无权限
+		if !isCommentAuthor && !isContentAuthor {
+			if comment.UserID == 0 {
+				// 游客评论，只有内容作者或管理员可以删除
+				return errors.New("无权限删除游客评论")
+			}
+			return errors.New("只能删除自己发表的评论或自己内容下的评论")
+		}
 	}
 
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
