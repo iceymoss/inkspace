@@ -3,6 +3,179 @@
     <h2>系统配置</h2>
 
     <el-tabs v-model="activeGroup">
+      <el-tab-pane label="首页轮播" name="carousel">
+        <el-form :model="carouselSettings" label-width="150px">
+          <el-form-item>
+            <el-button type="primary" @click="addCarouselItem">添加轮播项</el-button>
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              配置首页轮播图（广告位/公告栏），支持多个轮播项，每个轮播项可以设置标题、副标题、背景、跳转链接等。点击整个轮播图区域会跳转到设置的链接
+            </div>
+          </el-form-item>
+          
+          <el-form-item v-for="(item, index) in carouselSettings.items" :key="index" :label="`轮播项 ${index + 1}`">
+            <el-card style="margin-bottom: 20px;">
+              <template #header>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>轮播项 {{ index + 1 }}</span>
+                  <el-button type="danger" size="small" @click="removeCarouselItem(index)">删除</el-button>
+                </div>
+              </template>
+              
+              <el-form-item label="标题">
+                <el-input v-model="item.title" placeholder="例如：欢迎来到我的个人网站" />
+              </el-form-item>
+              
+              <el-form-item label="副标题">
+                <el-input v-model="item.subtitle" placeholder="例如：分享技术、记录生活、展示作品" />
+              </el-form-item>
+              
+              <el-form-item label="背景图片">
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                  <ImageCropUpload
+                    v-model="item.backgroundImage"
+                    :aspect-ratio="3.75"
+                    :output-width="1200"
+                    :output-height="320"
+                    preview-size="300px"
+                    placeholder="点击上传轮播图"
+                    tip="上传图片将按照轮播图比例（1200x320）自动裁剪"
+                    :max-size="5"
+                  />
+                  <div style="flex: 1;">
+                    <el-input 
+                      v-model="item.backgroundImage" 
+                      placeholder="或直接输入图片URL" 
+                      style="margin-bottom: 8px;"
+                    />
+                    <div style="font-size: 12px; color: #909399;">
+                      支持上传图片或直接输入图片URL。上传的图片将按照轮播图比例（1200x320）自动裁剪
+                    </div>
+                  </div>
+                </div>
+              </el-form-item>
+              
+              <el-form-item label="背景渐变">
+                <el-input v-model="item.backgroundGradient" placeholder="例如：linear-gradient(135deg, #667eea 0%, #764ba2 100%)" />
+                <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                  如果设置了背景图片，背景渐变将作为遮罩层使用
+                </div>
+              </el-form-item>
+              
+              <el-form-item label="跳转链接">
+                <el-input v-model="item.link" placeholder="点击轮播图跳转的链接地址（可选，留空则不跳转）" />
+                <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                  支持相对路径（如：/blog）或绝对URL（如：https://example.com），点击整个轮播图区域会跳转到此链接
+                </div>
+              </el-form-item>
+            </el-card>
+          </el-form-item>
+          
+          <el-form-item>
+            <el-button type="primary" @click="saveCarouselSettings" :loading="saving">保存</el-button>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+
+      <el-tab-pane label="关于页面" name="about">
+        <el-form :model="aboutSettings" label-width="150px">
+          <el-form-item label="页面标题">
+            <el-input v-model="aboutSettings.title" placeholder="例如：关于我" />
+          </el-form-item>
+          
+          <el-form-item label="头像">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <ImageCropUpload
+                v-model="aboutSettings.avatar"
+                :aspect-ratio="1"
+                :output-width="200"
+                :output-height="200"
+                preview-size="100px"
+                placeholder="点击上传头像"
+                tip="上传正方形头像，系统会自动裁剪为200x200"
+                :max-size="2"
+              />
+              <div style="flex: 1;">
+                <el-input 
+                  v-model="aboutSettings.avatar" 
+                  placeholder="或直接输入头像URL" 
+                  style="margin-bottom: 8px;"
+                />
+              </div>
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="姓名">
+            <el-input v-model="aboutSettings.name" placeholder="例如：张三" />
+          </el-form-item>
+          
+          <el-form-item label="个人简介">
+            <el-input v-model="aboutSettings.bio" placeholder="例如：全栈开发工程师 | 技术爱好者" />
+          </el-form-item>
+          
+          <el-form-item label="详细介绍">
+            <el-input 
+              v-model="aboutSettings.introduction" 
+              type="textarea" 
+              :rows="6"
+              placeholder="输入详细介绍内容，支持换行"
+            />
+          </el-form-item>
+          
+          <el-form-item label="技能标签">
+            <div style="margin-bottom: 10px;">
+              <el-tag
+                v-for="(skill, index) in aboutSettings.skills"
+                :key="index"
+                closable
+                @close="removeSkill(index)"
+                style="margin-right: 8px; margin-bottom: 8px;"
+              >
+                {{ skill }}
+              </el-tag>
+              <el-input
+                v-if="skillInputVisible"
+                ref="skillInputRef"
+                v-model="skillInputValue"
+                size="small"
+                style="width: 120px;"
+                @keyup.enter="addSkill"
+                @blur="addSkill"
+              />
+              <el-button v-else size="small" @click="showSkillInput">+ 添加技能</el-button>
+            </div>
+            <div style="font-size: 12px; color: #909399;">
+              点击"添加技能"按钮或按回车键添加技能标签
+            </div>
+          </el-form-item>
+          
+          <el-divider content-position="left">联系方式</el-divider>
+          
+          <el-form-item label="邮箱">
+            <el-input v-model="aboutSettings.email" placeholder="例如：your.email@example.com" />
+          </el-form-item>
+          
+          <el-form-item label="GitHub">
+            <el-input v-model="aboutSettings.github" placeholder="例如：github.com/username 或 @username" />
+          </el-form-item>
+          
+          <el-form-item label="微信">
+            <el-input v-model="aboutSettings.wechat" placeholder="例如：your_wechat_id" />
+          </el-form-item>
+          
+          <el-form-item label="QQ">
+            <el-input v-model="aboutSettings.qq" placeholder="例如：123456789" />
+          </el-form-item>
+          
+          <el-form-item label="微博">
+            <el-input v-model="aboutSettings.weibo" placeholder="例如：weibo.com/username 或 @username" />
+          </el-form-item>
+          
+          <el-form-item>
+            <el-button type="primary" @click="saveAboutSettings" :loading="saving">保存</el-button>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+
       <el-tab-pane label="网站信息" name="site">
         <el-form :model="siteSettings" label-width="120px">
           <el-form-item label="网站名称">
@@ -59,6 +232,57 @@
               设置博客系统的整体主题风格，影响整个网站的配色方案
             </div>
           </el-form-item>
+          
+          <!-- 节假日主题自定义设置 -->
+          <template v-if="themeSettings.site_theme === 'holiday'">
+            <el-divider content-position="left">节假日主题设置</el-divider>
+            
+            <el-form-item label="节日类型">
+              <el-select v-model="themeSettings.holiday_type" placeholder="选择节日类型" style="width: 300px">
+                <el-option label="春节" value="spring_festival" />
+                <el-option label="国庆节" value="national_day" />
+                <el-option label="中秋节" value="mid_autumn" />
+                <el-option label="元旦" value="new_year" />
+                <el-option label="自定义" value="custom" />
+              </el-select>
+              <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                选择节日类型，系统会自动应用对应的配色方案
+              </div>
+            </el-form-item>
+
+            <el-form-item label="背景主色">
+              <el-color-picker v-model="themeSettings.holiday_bg_primary" />
+              <el-input v-model="themeSettings.holiday_bg_primary" style="width: 200px; margin-left: 10px;" placeholder="#fff5f5" />
+              <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                设置节假日主题的背景主色
+              </div>
+            </el-form-item>
+
+            <el-form-item label="背景次色">
+              <el-color-picker v-model="themeSettings.holiday_bg_secondary" />
+              <el-input v-model="themeSettings.holiday_bg_secondary" style="width: 200px; margin-left: 10px;" placeholder="#ffe8e8" />
+              <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                设置节假日主题的背景次色
+              </div>
+            </el-form-item>
+
+            <el-form-item label="文字主色">
+              <el-color-picker v-model="themeSettings.holiday_text_primary" />
+              <el-input v-model="themeSettings.holiday_text_primary" style="width: 200px; margin-left: 10px;" placeholder="#8b1a1a" />
+              <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                设置节假日主题的文字主色
+              </div>
+            </el-form-item>
+
+            <el-form-item label="主色调">
+              <el-color-picker v-model="themeSettings.holiday_primary" />
+              <el-input v-model="themeSettings.holiday_primary" style="width: 200px; margin-left: 10px;" placeholder="#ff3333" />
+              <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+                设置节假日主题的主色调（按钮、链接等）
+              </div>
+            </el-form-item>
+          </template>
+
           <el-form-item>
             <el-button type="primary" @click="saveThemeSettings" :loading="saving">保存</el-button>
           </el-form-item>
@@ -169,7 +393,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
+import ImageCropUpload from '@/components/ImageCropUpload.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import adminApi from '@/utils/adminApi'
@@ -181,6 +406,9 @@ const editDialogVisible = ref(false)
 const editFormRef = ref()
 const editLoading = ref(false)
 const isEditMode = ref(false)
+const skillInputVisible = ref(false)
+const skillInputValue = ref('')
+const skillInputRef = ref(null)
 
 const siteSettings = reactive({
   site_name: '',
@@ -198,7 +426,38 @@ const featureSettings = reactive({
 })
 
 const themeSettings = reactive({
-  site_theme: 'day' // 默认使用白天主题
+  site_theme: 'day', // 默认使用白天主题
+  holiday_type: 'spring_festival', // 节假日类型
+  holiday_bg_primary: '#fff5f5', // 节假日背景主色
+  holiday_bg_secondary: '#ffe8e8', // 节假日背景次色
+  holiday_text_primary: '#8b1a1a', // 节假日文字主色
+  holiday_primary: '#ff3333' // 节假日主色调
+})
+
+const carouselSettings = reactive({
+  items: [
+    {
+      title: '欢迎来到我的个人网站',
+      subtitle: '分享技术、记录生活、展示作品',
+      backgroundImage: '',
+      backgroundGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      link: ''
+    }
+  ]
+})
+
+const aboutSettings = reactive({
+  title: '关于我',
+  avatar: '',
+  name: '',
+  bio: '',
+  introduction: '',
+  skills: [],
+  email: '',
+  github: '',
+  wechat: '',
+  qq: '',
+  weibo: ''
 })
 
 const markdownSettings = reactive({
@@ -231,9 +490,52 @@ const loadAllSettings = async () => {
       } else if (setting.group === 'feature') {
         featureSettings[setting.key] = setting.value === '1' || setting.value === 'true'
       } else if (setting.group === 'theme') {
-        themeSettings[setting.key] = setting.value || 'day'
+        if (setting.key === 'site_theme') {
+          themeSettings.site_theme = setting.value || 'day'
+        } else if (setting.key === 'holiday_type') {
+          themeSettings.holiday_type = setting.value || 'spring_festival'
+        } else if (setting.key === 'holiday_bg_primary') {
+          themeSettings.holiday_bg_primary = setting.value || '#fff5f5'
+        } else if (setting.key === 'holiday_bg_secondary') {
+          themeSettings.holiday_bg_secondary = setting.value || '#ffe8e8'
+        } else if (setting.key === 'holiday_text_primary') {
+          themeSettings.holiday_text_primary = setting.value || '#8b1a1a'
+        } else if (setting.key === 'holiday_primary') {
+          themeSettings.holiday_primary = setting.value || '#ff3333'
+        } else {
+          themeSettings[setting.key] = setting.value
+        }
       } else if (setting.group === 'markdown') {
         markdownSettings[setting.key] = setting.value
+      } else if (setting.group === 'carousel' || setting.key === 'home_carousel') {
+        if (setting.key === 'home_carousel' && setting.value) {
+          try {
+            carouselSettings.items = JSON.parse(setting.value)
+          } catch (e) {
+            console.error('Failed to parse carousel data:', e)
+          }
+        }
+      } else if (setting.group === 'about' || setting.key === 'about_page') {
+        if (setting.key === 'about_page' && setting.value) {
+          try {
+            const data = JSON.parse(setting.value)
+            Object.assign(aboutSettings, {
+              title: data.title || '关于我',
+              avatar: data.avatar || '',
+              name: data.name || '',
+              bio: data.bio || '',
+              introduction: data.introduction || '',
+              skills: data.skills || [],
+              email: data.email || '',
+              github: data.github || '',
+              wechat: data.wechat || '',
+              qq: data.qq || '',
+              weibo: data.weibo || ''
+            })
+          } catch (e) {
+            console.error('Failed to parse about page data:', e)
+          }
+        }
       }
     })
   } catch (error) {
@@ -355,6 +657,114 @@ const handleDelete = async (setting) => {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
     }
+  }
+}
+
+// 节日类型预设颜色方案
+const holidayPresets = {
+  spring_festival: {
+    holiday_bg_primary: '#fff5f5',
+    holiday_bg_secondary: '#ffe8e8',
+    holiday_text_primary: '#8b1a1a',
+    holiday_primary: '#ff3333'
+  },
+  national_day: {
+    holiday_bg_primary: '#fff0f0',
+    holiday_bg_secondary: '#ffe0e0',
+    holiday_text_primary: '#8b0000',
+    holiday_primary: '#ff0000'
+  },
+  mid_autumn: {
+    holiday_bg_primary: '#fff8e1',
+    holiday_bg_secondary: '#ffecb3',
+    holiday_text_primary: '#e65100',
+    holiday_primary: '#ff9800'
+  },
+  new_year: {
+    holiday_bg_primary: '#fff5f5',
+    holiday_bg_secondary: '#ffe8e8',
+    holiday_text_primary: '#c41e3a',
+    holiday_primary: '#ff4444'
+  }
+}
+
+// 监听节日类型变化，自动填充颜色
+watch(() => themeSettings.holiday_type, (newType) => {
+  if (newType && newType !== 'custom' && holidayPresets[newType]) {
+    const preset = holidayPresets[newType]
+    themeSettings.holiday_bg_primary = preset.holiday_bg_primary
+    themeSettings.holiday_bg_secondary = preset.holiday_bg_secondary
+    themeSettings.holiday_text_primary = preset.holiday_text_primary
+    themeSettings.holiday_primary = preset.holiday_primary
+  }
+})
+
+// 轮播图管理函数
+const addCarouselItem = () => {
+  carouselSettings.items.push({
+    title: '',
+    subtitle: '',
+    backgroundImage: '',
+    backgroundGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    link: ''
+  })
+}
+
+const removeCarouselItem = (index) => {
+  carouselSettings.items.splice(index, 1)
+}
+
+const saveCarouselSettings = async () => {
+  saving.value = true
+  try {
+    const settings = {
+      home_carousel: JSON.stringify(carouselSettings.items)
+    }
+    await adminApi.put('/admin/settings/batch', settings)
+    ElMessage.success('保存成功')
+    loadAllSettings()
+  } catch (error) {
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+// 关于页面管理函数
+const showSkillInput = () => {
+  skillInputVisible.value = true
+  skillInputValue.value = ''
+  nextTick(() => {
+    skillInputRef.value?.focus()
+  })
+}
+
+const addSkill = () => {
+  const value = skillInputValue.value.trim()
+  if (value && !aboutSettings.skills.includes(value)) {
+    aboutSettings.skills.push(value)
+  }
+  skillInputVisible.value = false
+  skillInputValue.value = ''
+}
+
+const removeSkill = (index) => {
+  aboutSettings.skills.splice(index, 1)
+}
+
+const saveAboutSettings = async () => {
+  saving.value = true
+  try {
+    const settings = {
+      about_page: JSON.stringify(aboutSettings)
+    }
+    await adminApi.put('/admin/settings/batch', settings)
+    ElMessage.success('保存成功')
+    loadAllSettings()
+  } catch (error) {
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
   }
 }
 

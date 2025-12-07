@@ -4,7 +4,7 @@
       <el-image 
         v-if="modelValue" 
         :src="modelValue" 
-        :style="{ width: previewSize, height: previewSize }"
+        :style="previewStyle"
         fit="cover"
         class="preview-image"
       >
@@ -14,7 +14,7 @@
           </div>
         </template>
       </el-image>
-      <div v-else class="upload-placeholder" :style="{ width: previewSize, height: previewSize }">
+      <div v-else class="upload-placeholder" :style="previewStyle">
         <el-icon class="upload-icon"><Plus /></el-icon>
         <div class="upload-text">{{ placeholder }}</div>
       </div>
@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Picture, RefreshLeft, RefreshRight, Refresh, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import Cropper from 'cropperjs'
@@ -103,6 +103,14 @@ const props = defineProps({
   aspectRatio: {
     type: Number,
     default: 1 // 1:1 正方形
+  },
+  outputWidth: {
+    type: Number,
+    default: 800 // 输出宽度
+  },
+  outputHeight: {
+    type: Number,
+    default: 800 // 输出高度
   }
 })
 
@@ -114,6 +122,23 @@ const cropDialogVisible = ref(false)
 const tempImageUrl = ref('')
 const uploading = ref(false)
 let cropper = null
+
+// 计算预览样式
+const previewStyle = computed(() => {
+  if (props.aspectRatio && props.aspectRatio !== 1) {
+    // 如果不是正方形，根据宽高比计算预览尺寸
+    const width = parseInt(props.previewSize) || 120
+    const height = width / props.aspectRatio
+    return {
+      width: `${width}px`,
+      height: `${height}px`
+    }
+  }
+  return {
+    width: props.previewSize,
+    height: props.previewSize
+  }
+})
 
 const openFileDialog = () => {
   fileInput.value?.click()
@@ -198,10 +223,10 @@ const handleCropConfirm = async () => {
 
   uploading.value = true
   try {
-    // 获取裁剪后的canvas
+    // 获取裁剪后的canvas，使用自定义输出尺寸
     const canvas = cropper.getCroppedCanvas({
-      width: 800,
-      height: 800,
+      width: props.outputWidth,
+      height: props.outputHeight,
       imageSmoothingEnabled: true,
       imageSmoothingQuality: 'high'
     })
@@ -226,8 +251,8 @@ const handleCropConfirm = async () => {
         })
 
         if (response.code === 0 && response.data) {
-          const imageUrl = `http://localhost:8083${response.data.url}`
-          emit('update:modelValue', imageUrl)
+          // 直接使用相对路径，不拼接域名
+          emit('update:modelValue', response.data.url)
           ElMessage.success('上传成功')
           cropDialogVisible.value = false
         } else {

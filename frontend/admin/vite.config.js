@@ -15,6 +15,10 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8083',  // 管理后台服务
         changeOrigin: true
+      },
+      '/uploads': {
+        target: 'http://localhost:8083',  // 静态文件代理
+        changeOrigin: true
       }
     }
   }
