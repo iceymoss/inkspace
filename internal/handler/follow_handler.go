@@ -29,7 +29,11 @@ func (h *FollowHandler) Follow(c *gin.Context) {
 		return
 	}
 
-	followerID, _ := c.Get("user_id")
+	followerID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
 	if err := h.service.Follow(followerID.(uint), uint(followingID)); err != nil {
 		utils.Error(c, 400, err.Error())
@@ -48,7 +52,11 @@ func (h *FollowHandler) Unfollow(c *gin.Context) {
 		return
 	}
 
-	followerID, _ := c.Get("user_id")
+	followerID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
 	if err := h.service.Unfollow(followerID.(uint), uint(followingID)); err != nil {
 		utils.Error(c, 400, err.Error())

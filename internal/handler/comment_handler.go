@@ -50,10 +50,21 @@ func (h *CommentHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	// 确保用户已登录（middleware 已经验证，但这里再次确认）
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+
 	role, _ := c.Get("role")
-	if err := h.service.Delete(uint(id), userID.(uint), role.(string)); err != nil {
-		utils.Error(c, 400, err.Error())
+	roleStr := "user"
+	if role != nil {
+		roleStr = role.(string)
+	}
+
+	if err := h.service.Delete(uint(id), userID.(uint), roleStr); err != nil {
+		utils.Error(c, 403, err.Error()) // 使用 403 Forbidden 表示权限不足
 		return
 	}
 

@@ -2,13 +2,16 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 
+	"mysite/internal/database"
 	"mysite/internal/models"
 	"mysite/internal/service"
 	"mysite/internal/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type WorkHandler struct {
@@ -58,12 +61,26 @@ func (h *WorkHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
-	work, err := h.service.Update(uint(id), &req, userID.(uint), role.(string))
+	role, _ := c.Get("role")
+	roleStr := "user"
+	if role != nil {
+		roleStr = role.(string)
+	}
+
+	work, err := h.service.Update(uint(id), &req, userID.(uint), roleStr)
 	if err != nil {
-		utils.Error(c, 400, err.Error())
+		// 权限错误返回403
+		if err.Error() == "无权限修改此作品" {
+			utils.Error(c, 403, err.Error())
+		} else {
+			utils.Error(c, 400, err.Error())
+		}
 		return
 	}
 
@@ -77,11 +94,25 @@ func (h *WorkHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
 
-	if err := h.service.Delete(uint(id), userID.(uint), role.(string)); err != nil {
-		utils.Error(c, 400, err.Error())
+	role, _ := c.Get("role")
+	roleStr := "user"
+	if role != nil {
+		roleStr = role.(string)
+	}
+
+	if err := h.service.Delete(uint(id), userID.(uint), roleStr); err != nil {
+		// 权限错误返回403
+		if err.Error() == "无权限删除此作品" {
+			utils.Error(c, 403, err.Error())
+		} else {
+			utils.Error(c, 400, err.Error())
+		}
 		return
 	}
 
@@ -101,6 +132,22 @@ func (h *WorkHandler) GetDetail(c *gin.Context) {
 		return
 	}
 
+	// 权限检查：如果是草稿（status=0），只有作者或管理员可以查看
+	if work.Status == 0 {
+		userID, exists := c.Get("user_id")
+		role, _ := c.Get("role")
+		roleStr := "user"
+		if role != nil {
+			roleStr = role.(string)
+		}
+
+		// 如果不是管理员，且不是作者，则无权限查看
+		if roleStr != "admin" && (!exists || userID.(uint) != work.AuthorID) {
+			utils.Error(c, 403, "无权限查看此作品")
+			return
+		}
+	}
+
 	// Increment view count only if not skipping (skip_view=true means skip increment)
 	skipView := c.Query("skip_view") == "true"
 	if !skipView {
@@ -112,6 +159,50 @@ func (h *WorkHandler) GetDetail(c *gin.Context) {
 	}
 
 	utils.Success(c, h.toResponse(work))
+}
+
+// GetEdit 获取作品详情用于编辑（需要认证，且只允许作者或管理员访问）
+// GET /api/works/:id/edit
+func (h *WorkHandler) GetEdit(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的ID")
+		return
+	}
+
+	// 必须登录
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+
+	role, _ := c.Get("role")
+	roleStr := "user"
+	if role != nil {
+		roleStr = role.(string)
+	}
+
+	// 查询作品，但使用WHERE条件确保权限（非管理员只能查询自己的作品）
+	var work models.Work
+	query := database.DB.Where("id = ?", uint(id))
+	
+	// 非管理员只能查询自己的作品
+	if roleStr != "admin" {
+		query = query.Where("author_id = ?", userID.(uint))
+	}
+	
+	if err := query.Preload("Author").First(&work).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.Error(c, 403, "作品不存在或无权限编辑")
+		} else {
+			utils.InternalServerError(c, err.Error())
+		}
+		return
+	}
+
+	// 返回作品数据（不增加浏览量）
+	utils.Success(c, h.toResponse(&work))
 }
 
 func (h *WorkHandler) GetList(c *gin.Context) {

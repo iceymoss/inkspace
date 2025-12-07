@@ -34,6 +34,7 @@ onMounted(async () => {
   const mdTheme = await getMarkdownTheme()
   
   // 使用加载的配置初始化 Vditor
+  // 已手动设置window.VditorI18n，Vditor不会尝试动态加载i18n文件
   vditor = new Vditor(vditorRef.value, {
     height: props.height,
     mode: 'sv', // 分屏预览模式
@@ -41,6 +42,8 @@ onMounted(async () => {
     theme: 'classic',
     icon: 'material',
     typewriterMode: false,
+    lang: 'zh_CN', // 设置语言为中文（已通过window.VditorI18n设置）
+    cdn: '', // 禁用CDN，使用本地资源
     toolbarConfig: {
       pin: true,
     },
@@ -65,13 +68,11 @@ onMounted(async () => {
       },
     },
     upload: {
-      url: '/api/upload/image',
+      url: '/api/upload/markdown-image',
       max: 5 * 1024 * 1024, // 5MB
       accept: 'image/*',
       fieldName: 'file',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('user_token')}`
-      },
+      // 不需要Authorization header，这是公开API
       format(files, responseText) {
         const response = JSON.parse(responseText)
         if (response.code === 0) {

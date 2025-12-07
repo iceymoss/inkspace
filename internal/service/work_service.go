@@ -78,14 +78,20 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 }
 
 func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role string) (*models.Work, error) {
-	work, err := s.GetByID(id)
-	if err != nil {
-		return nil, err
+	// 先查询作品，但使用WHERE条件确保权限（非管理员只能查询自己的作品）
+	var work models.Work
+	query := database.DB.Where("id = ?", id)
+	
+	// 非管理员只能更新自己的作品
+	if role != "admin" {
+		query = query.Where("author_id = ?", userID)
 	}
-
-	// 权限检查：只有作者本人或管理员可以修改
-	if role != "admin" && work.AuthorID != userID {
-		return nil, errors.New("无权限修改此作品")
+	
+	if err := query.First(&work).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("作品不存在或无权限修改")
+		}
+		return nil, err
 	}
 
 	// 验证照片数量限制
@@ -108,40 +114,60 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 	imagesJSON, _ := json.Marshal(req.Images)
 	metadataJSON, _ := json.Marshal(req.Metadata)
 
-	work.Title = req.Title
-	work.Type = req.Type
-	work.Metadata = string(metadataJSON)
-	work.DailyQuota = req.Type == "photography"
-	work.Description = req.Description
-	work.Cover = req.Cover
-	work.Images = string(imagesJSON)
-	work.Link = req.Link
-	work.GithubURL = req.GithubURL
-	work.DemoURL = req.DemoURL
-	work.TechStack = req.TechStack
-	work.Sort = req.Sort
-	work.Status = req.Status
-	work.IsRecommend = req.IsRecommend
-
-	if err := database.DB.Save(work).Error; err != nil {
+	// 使用WHERE条件更新，确保权限（非管理员只能更新自己的作品）
+	updateData := map[string]interface{}{
+		"title":        req.Title,
+		"type":         req.Type,
+		"metadata":     string(metadataJSON),
+		"daily_quota":  req.Type == "photography",
+		"description": req.Description,
+		"cover":        req.Cover,
+		"images":       string(imagesJSON),
+		"link":         req.Link,
+		"github_url":   req.GithubURL,
+		"demo_url":     req.DemoURL,
+		"tech_stack":   req.TechStack,
+		"sort":         req.Sort,
+		"status":       req.Status,
+		"is_recommend": req.IsRecommend,
+	}
+	
+	updateQuery := database.DB.Model(&models.Work{}).Where("id = ?", id)
+	// 非管理员只能更新自己的作品
+	if role != "admin" {
+		updateQuery = updateQuery.Where("author_id = ?", userID)
+	}
+	
+	if err := updateQuery.Updates(updateData).Error; err != nil {
+		return nil, err
+	}
+	
+	// 重新加载作品以获取最新数据
+	if err := database.DB.Preload("Author").First(&work, id).Error; err != nil {
 		return nil, err
 	}
 
-	return work, nil
+	return &work, nil
 }
 
 func (s *WorkService) Delete(id uint, userID uint, role string) error {
-	work, err := s.GetByID(id)
-	if err != nil {
-		return err
+	// 使用WHERE条件删除，确保权限（非管理员只能删除自己的作品）
+	deleteQuery := database.DB.Where("id = ?", id)
+	
+	// 非管理员只能删除自己的作品
+	if role != "admin" {
+		deleteQuery = deleteQuery.Where("author_id = ?", userID)
 	}
-
-	// 权限检查：只有作者本人或管理员可以删除
-	if role != "admin" && work.AuthorID != userID {
-		return errors.New("无权限删除此作品")
+	
+	result := deleteQuery.Delete(&models.Work{})
+	if result.Error != nil {
+		return result.Error
 	}
-
-	return database.DB.Delete(&models.Work{}, id).Error
+	if result.RowsAffected == 0 {
+		return errors.New("作品不存在或无权限删除")
+	}
+	
+	return nil
 }
 
 func (s *WorkService) GetByID(id uint) (*models.Work, error) {

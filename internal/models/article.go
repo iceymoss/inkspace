@@ -27,7 +27,7 @@ type Article struct {
 	FavoriteCount int            `gorm:"default:0;not null" json:"favorite_count"` // 收藏数
 	WordCount     int            `gorm:"default:0;not null" json:"word_count"`
 	ReadingTime   int            `gorm:"default:0;not null" json:"reading_time"`                                // 阅读时间（分钟）
-	Status        int            `gorm:"default:1;index:idx_status;index:idx_top_status_created" json:"status"` // 1: published, 0: draft
+	Status        int            `gorm:"default:1;index:idx_status;index:idx_top_status_created" json:"status"` // 0: draft, 1: published, 2: private
 	IsTop         bool           `gorm:"default:false;index:idx_top_status_created" json:"is_top"`
 	IsRecommend   bool           `gorm:"default:false" json:"is_recommend"`
 	IsOriginal    bool           `gorm:"default:true" json:"is_original"`
@@ -58,6 +58,7 @@ type ArticleListQuery struct {
 	SortBy     string `form:"sort_by"`    // 排序字段: hot, time, view_count, like_count, comment_count
 	SortOrder  string `form:"sort_order"` // 排序方向: asc, desc
 	RankType   string `form:"rank_type"`  // 榜单类型: hot, week, month, year
+	ShowAll    bool   `form:"show_all"`   // 是否显示所有状态（管理后台使用）
 }
 
 type ArticleResponse struct {

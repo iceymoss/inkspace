@@ -43,12 +43,13 @@ func SetupUserRouter() *gin.Engine {
 			public.GET("/articles", articleHandler.GetList)
 			public.GET("/articles/recommended", articleHandler.GetRecommended)
 			public.GET("/articles/hot", articleHandler.GetHotArticles)
-			public.GET("/articles/:id", articleHandler.GetDetail)
 
 			// 状态检查API（可选认证）
 			publicWithOptionalAuth := api.Group("")
 			publicWithOptionalAuth.Use(middleware.OptionalAuthMiddleware())
 			{
+				// 文章详情（需要可选认证，以便作者可以查看自己的私有/草稿文章）
+				publicWithOptionalAuth.GET("/articles/:id", articleHandler.GetDetail)
 				publicWithOptionalAuth.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
 				publicWithOptionalAuth.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
 				publicWithOptionalAuth.GET("/works/:id/liked", likeHandler.CheckWorkLiked)
@@ -63,6 +64,9 @@ func SetupUserRouter() *gin.Engine {
 			// Comment likes (public, can be done by guests)
 			public.POST("/comments/:id/like", likeHandler.LikeComment)
 			public.DELETE("/comments/:id/like", likeHandler.UnlikeComment)
+
+			// Markdown image upload (public, but rate limited)
+			public.POST("/upload/markdown-image", uploadHandler.UploadMarkdownImage)
 
 			// Categories and Tags
 			public.GET("/categories", categoryHandler.GetList)
@@ -107,11 +111,13 @@ func SetupUserRouter() *gin.Engine {
 			protected.POST("/upload/photo", uploadHandler.UploadPhoto) // 摄影作品原图上传
 
 			// Articles (author can manage their own articles)
+			protected.GET("/articles/:id/edit", articleHandler.GetEdit) // 编辑页专用API，需要权限检查
 			protected.POST("/articles", articleHandler.Create)
 			protected.PUT("/articles/:id", articleHandler.Update)
 			protected.DELETE("/articles/:id", articleHandler.Delete)
 
 			// Works (author can manage their own works)
+			protected.GET("/works/:id/edit", workHandler.GetEdit) // 编辑页专用API，需要权限检查
 			protected.POST("/works", workHandler.Create)
 			protected.PUT("/works/:id", workHandler.Update)
 			protected.DELETE("/works/:id", workHandler.Delete)

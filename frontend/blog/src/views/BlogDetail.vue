@@ -509,8 +509,24 @@ const loadMoreComments = async () => {
 }
 
 const canDeleteComment = (comment) => {
-  if (!userStore.isLoggedIn) return false
-  return userStore.user.id === comment.user_id || userStore.user.role === 'admin'
+  if (!userStore.isLoggedIn || !userStore.user) return false
+  
+  // 管理员可以删除所有评论
+  if (userStore.user.role === 'admin') return true
+  
+  // 文章作者可以删除自己文章下的所有评论
+  if (isArticleOwner.value) return true
+  
+  // 获取评论的用户ID（支持多种格式）
+  const commentUserId = comment.user_id || comment.user?.id || comment.userId
+  
+  // 如果评论没有用户ID（游客评论），只有管理员或文章作者可以删除
+  if (!commentUserId || commentUserId === 0) {
+    return false // 游客评论只能由管理员或文章作者删除（上面已检查）
+  }
+  
+  // 检查是否是评论作者
+  return Number(userStore.user.id) === Number(commentUserId)
 }
 
 const submitComment = async () => {
@@ -835,9 +851,12 @@ const handleDeleteComment = async (comment) => {
     // 重置为第一页并重新加载
     commentsPage.value = 1
     await loadComments(false)
+    // 重新加载文章以更新评论数
+    await loadArticle()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      const errorMessage = error.response?.data?.message || error.message || '删除失败'
+      ElMessage.error(errorMessage)
     }
   }
 }
@@ -998,6 +1017,10 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
+.blog-detail .container {
+  max-width: 1200px;
+}
+
 .article-card {
   margin-bottom: 30px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
@@ -1100,6 +1123,8 @@ onMounted(async () => {
 
 #article-preview {
   padding: 20px 0;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 /* 内联代码样式 */

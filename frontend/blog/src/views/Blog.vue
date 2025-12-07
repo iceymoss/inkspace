@@ -95,7 +95,10 @@
                   <p class="article-summary">{{ article.summary }}</p>
                   <div class="article-meta">
                     <el-tag v-if="article.category" size="small">{{ article.category.name }}</el-tag>
-                    <span><el-icon><User /></el-icon> {{ article.author?.nickname || article.author?.username }}</span>
+                    <span class="author-info">
+                      <el-avatar :size="20" :src="article.author?.avatar" />
+                      <span>{{ article.author?.nickname || article.author?.username }}</span>
+                    </span>
                     <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
                     <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
                     <!-- 书签样式的标签 -->
@@ -475,6 +478,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pagination {
