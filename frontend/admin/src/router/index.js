@@ -71,6 +71,11 @@ const routes = [
         path: 'users',
         name: 'Users',
         component: () => import('@/views/admin/Users.vue')
+      },
+      {
+        path: 'ads',
+        name: 'Ads',
+        component: () => import('@/views/admin/Ads.vue')
       }
     ]
   }

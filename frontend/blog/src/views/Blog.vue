@@ -146,6 +146,21 @@
               </el-tag>
             </div>
           </el-card>
+
+          <!-- 广告位 -->
+          <div class="ad-slots" v-if="ads.length > 0">
+            <div
+              v-for="(ad, index) in ads"
+              :key="`ad-${ad.id || index}`"
+              class="ad-slot"
+              @click="handleAdClick(ad)"
+            >
+              <div class="ad-content">
+                <img :src="ad.image" :alt="ad.title" @load="recordAdView(ad.id)" />
+                <div v-if="ad.title" class="ad-title">{{ ad.title }}</div>
+              </div>
+            </div>
+          </div>
         </el-col>
       </el-row>
     </div>
@@ -164,6 +179,7 @@ const route = useRoute()
 const articles = ref([])
 const categories = ref([])
 const tags = ref([])
+const ads = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -225,6 +241,33 @@ const loadTags = async () => {
     tags.value = response.data || []
   } catch (error) {
     console.error('Failed to load tags:', error)
+  }
+}
+
+const loadAds = async () => {
+  try {
+    // 加载博客列表右侧广告位，根据API返回的数量动态显示
+    const response = await api.get('/ads', { params: { code: 'blog_right_ad' } })
+    ads.value = response.data || []
+  } catch (error) {
+    console.error('Failed to load ads:', error)
+    ads.value = []
+  }
+}
+
+const handleAdClick = (ad) => {
+  if (ad && ad.link) {
+    // 记录点击
+    if (ad.id) {
+      api.post(`/ads/${ad.id}/click`).catch(() => {})
+    }
+    window.open(ad.link, '_blank')
+  }
+}
+
+const recordAdView = (adId) => {
+  if (adId) {
+    api.post(`/ads/${adId}/view`).catch(() => {})
   }
 }
 
@@ -294,6 +337,7 @@ watch(() => route.query, (newQuery) => {
 onMounted(() => {
   loadCategories()
   loadTags()
+  loadAds()
   
   // 从 URL 参数初始化筛选条件
   if (route.query.category_id) {
@@ -604,6 +648,59 @@ onMounted(() => {
   border-width: 0 0 6px 6px;
   border-color: transparent transparent rgba(0, 0, 0, 0.15) transparent;
 }
+
+/* 广告位样式 */
+.ad-slots {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ad-slot {
+  width: 100%;
+  aspect-ratio: 3 / 2; /* 宽度:高度 = 3:2，即高度是宽度的 2/3 */
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: var(--theme-bg-primary);
+}
+
+.ad-slot:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.ad-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.ad-content img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.ad-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  color: white;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 @media (max-width: 768px) {
   .article-content {

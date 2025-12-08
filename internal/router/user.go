@@ -28,6 +28,7 @@ func SetupUserRouter() *gin.Engine {
 	settingHandler := handler.NewSettingHandler()
 	notificationHandler := handler.NewNotificationHandler()
 	uploadHandler := handler.NewUploadHandler()
+	adHandler := handler.NewAdHandler()
 
 	// API routes
 	api := r.Group("/api")
@@ -94,6 +95,11 @@ func SetupUserRouter() *gin.Engine {
 
 			// Settings (public)
 			public.GET("/settings/public", settingHandler.GetPublicSettings)
+
+			// Ads (public)
+			public.GET("/ads", adHandler.GetAdsByPositionCode)
+			public.POST("/ads/:id/click", adHandler.RecordAdClick)
+			public.POST("/ads/:id/view", adHandler.RecordAdView)
 		}
 
 		// Protected routes (require authentication)
