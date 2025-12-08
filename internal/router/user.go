@@ -28,6 +28,7 @@ func SetupUserRouter() *gin.Engine {
 	settingHandler := handler.NewSettingHandler()
 	notificationHandler := handler.NewNotificationHandler()
 	uploadHandler := handler.NewUploadHandler()
+	adHandler := handler.NewAdHandler()
 
 	// API routes
 	api := r.Group("/api")
@@ -84,16 +85,29 @@ func SetupUserRouter() *gin.Engine {
 			// User Profile (public)
 			public.GET("/users/:id", userHandler.GetUserProfile)
 			public.GET("/users/:id/articles", articleHandler.GetUserArticles)
-			public.GET("/users/:id/follow-stats", followHandler.GetFollowStats)
-			public.GET("/users/:id/following", followHandler.GetFollowingList)
-			public.GET("/users/:id/followers", followHandler.GetFollowerList)
 			public.GET("/users/:id/favorites", favoriteHandler.GetUserFavorites)
+		}
+
+		// 可选认证的路由（支持未登录访问，但登录后会有额外信息）
+		publicWithOptionalAuth := api.Group("")
+		publicWithOptionalAuth.Use(middleware.OptionalAuthMiddleware())
+		{
+			// 关注统计（支持可选认证，以便显示当前用户的关注状态）
+			publicWithOptionalAuth.GET("/users/:id/follow-stats", followHandler.GetFollowStats)
+			// 关注/粉丝列表（支持可选认证，以便显示当前用户的关注状态）
+			publicWithOptionalAuth.GET("/users/:id/following", followHandler.GetFollowingList)
+			publicWithOptionalAuth.GET("/users/:id/followers", followHandler.GetFollowerList)
 
 			// Links
 			public.GET("/links", linkHandler.GetList)
 
 			// Settings (public)
 			public.GET("/settings/public", settingHandler.GetPublicSettings)
+
+			// Ads (public)
+			public.GET("/ads", adHandler.GetAdsByPositionCode)
+			public.POST("/ads/:id/click", adHandler.RecordAdClick)
+			public.POST("/ads/:id/view", adHandler.RecordAdView)
 		}
 
 		// Protected routes (require authentication)

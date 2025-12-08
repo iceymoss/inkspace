@@ -119,6 +119,11 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				} else if key == models.SettingSiteTheme {
 					group = "theme"
 					isPublic = true // 主题设置需要公开，前端才能使用
+				} else if key == "holiday_type" || key == "holiday_bg_primary" || 
+					key == "holiday_bg_secondary" || key == "holiday_text_primary" || 
+					key == "holiday_primary" {
+					group = "theme"
+					isPublic = true // 节假日主题设置需要公开，前端才能使用
 				}
 			} else {
 				// 更新现有记录时，如果是 code_theme 或 site_theme，确保设置正确
@@ -127,6 +132,20 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					isPublic = true
 				} else if key == models.SettingSiteTheme {
 					group = "theme"
+					isPublic = true
+				} else if key == "holiday_type" || key == "holiday_bg_primary" || 
+					key == "holiday_bg_secondary" || key == "holiday_text_primary" || 
+					key == "holiday_primary" {
+					group = "theme"
+					isPublic = true
+				} else if key == "home_carousel" {
+					group = "carousel"
+					isPublic = true
+				} else if key == "about_page" {
+					group = "about"
+					isPublic = true
+				} else if key == "about_page" {
+					group = "about"
 					isPublic = true
 				}
 			}

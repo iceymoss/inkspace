@@ -32,11 +32,12 @@ type FollowListQuery struct {
 }
 
 type FollowResponse struct {
-	ID          uint          `json:"id"`
-	FollowerID  uint          `json:"follower_id"`
-	FollowingID uint          `json:"following_id"`
-	User        *UserResponse `json:"user,omitempty"` // 用户信息（根据查询类型返回follower或following）
-	CreatedAt   time.Time     `json:"created_at"`
+	ID          uint                 `json:"id"`
+	FollowerID  uint                 `json:"follower_id"`
+	FollowingID uint                 `json:"following_id"`
+	User        *PublicUserResponse  `json:"user,omitempty"` // 用户信息（根据查询类型返回follower或following，只包含公开信息）
+	IsFollowing bool                `json:"is_following"`  // 当前登录用户是否已关注该用户
+	CreatedAt   time.Time            `json:"created_at"`
 }
 
 // FollowStats 关注统计

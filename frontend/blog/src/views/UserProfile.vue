@@ -28,7 +28,16 @@
               </div>
             </div>
 
-            <div class="profile-actions" v-if="!isCurrentUser">
+            <!-- 未登录用户：不显示任何操作按钮 -->
+            <!-- 登录用户查看自己的主页：显示编辑资料按钮 -->
+            <div class="profile-actions" v-if="isCurrentUser && userStore.isLoggedIn">
+              <el-button @click="$router.push('/profile/edit')">
+                <el-icon><Edit /></el-icon> 编辑资料
+              </el-button>
+            </div>
+            
+            <!-- 登录用户查看他人的主页：显示关注/已关注按钮 -->
+            <div class="profile-actions" v-else-if="!isCurrentUser && userStore.isLoggedIn">
               <el-button 
                 v-if="!followStats?.is_following"
                 type="primary" 
@@ -49,18 +58,12 @@
                 <el-icon><Star /></el-icon> 关注了你
               </el-tag>
             </div>
-            
-            <div class="profile-actions" v-else>
-              <el-button @click="$router.push('/profile/edit')">
-                <el-icon><Edit /></el-icon> 编辑资料
-              </el-button>
-            </div>
           </div>
         </div>
       </el-card>
 
       <!-- 标签页 -->
-      <el-tabs v-model="activeTab" class="profile-tabs">
+      <el-tabs v-model="activeTab" class="profile-tabs" @tab-change="onTabChange">
         <el-tab-pane label="文章" name="articles">
           <el-row :gutter="20">
             <el-col :xs="24" :sm="12" :md="8" v-for="article in articles" :key="article.id">
@@ -128,13 +131,28 @@
               v-for="follow in following" 
               :key="follow.id" 
               class="user-card"
-              @click="$router.push(`/users/${follow.user.id}`)"
             >
-              <div class="user-info">
-                <el-avatar :size="60" :src="follow.user?.avatar" />
-                <div class="user-details">
-                  <h4>{{ follow.user?.nickname || follow.user?.username }}</h4>
-                  <p>{{ follow.user?.bio || '这个人很懒，什么都没写' }}</p>
+              <div class="user-card-content">
+                <div class="user-info" @click="goToUserProfile(follow.user?.id)">
+                  <el-avatar :size="60" :src="follow.user?.avatar" />
+                  <div class="user-details">
+                    <h4>{{ follow.user?.nickname || follow.user?.username }}</h4>
+                    <p>{{ follow.user?.bio || '这个人很懒，什么都没写' }}</p>
+                    <div class="user-stats">
+                      <span>文章 {{ follow.user?.article_count || 0 }}</span>
+                      <span>粉丝 {{ follow.user?.follower_count || 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="user-actions" v-if="userStore.isLoggedIn && follow.user?.id !== userStore.user?.id">
+                  <el-button
+                    :type="follow.is_following ? 'default' : 'primary'"
+                    size="small"
+                    :loading="followLoading"
+                    @click.stop="handleFollowToggle(follow)"
+                  >
+                    {{ follow.is_following ? '已关注' : '关注' }}
+                  </el-button>
                 </div>
               </div>
             </el-card>
@@ -159,13 +177,28 @@
               v-for="follower in followers" 
               :key="follower.id" 
               class="user-card"
-              @click="$router.push(`/users/${follower.user.id}`)"
             >
-              <div class="user-info">
-                <el-avatar :size="60" :src="follower.user?.avatar" />
-                <div class="user-details">
-                  <h4>{{ follower.user?.nickname || follower.user?.username }}</h4>
-                  <p>{{ follower.user?.bio || '这个人很懒，什么都没写' }}</p>
+              <div class="user-card-content">
+                <div class="user-info" @click="goToUserProfile(follower.user?.id)">
+                  <el-avatar :size="60" :src="follower.user?.avatar" />
+                  <div class="user-details">
+                    <h4>{{ follower.user?.nickname || follower.user?.username }}</h4>
+                    <p>{{ follower.user?.bio || '这个人很懒，什么都没写' }}</p>
+                    <div class="user-stats">
+                      <span>文章 {{ follower.user?.article_count || 0 }}</span>
+                      <span>粉丝 {{ follower.user?.follower_count || 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="user-actions" v-if="userStore.isLoggedIn && follower.user?.id !== userStore.user?.id">
+                  <el-button
+                    :type="follower.is_following ? 'default' : 'primary'"
+                    size="small"
+                    :loading="followLoading"
+                    @click.stop="handleFollowToggle(follower)"
+                  >
+                    {{ follower.is_following ? '已关注' : '关注' }}
+                  </el-button>
                 </div>
               </div>
             </el-card>
@@ -226,16 +259,30 @@ const followers = ref([])
 const followersPage = ref(1)
 const followersTotal = ref(0)
 
-const userId = computed(() => parseInt(route.params.id))
-const isCurrentUser = computed(() => userStore.user?.id === userId.value)
+const userId = computed(() => {
+  const id = route.params.id
+  return id ? Number(id) : null
+})
+const isCurrentUser = computed(() => {
+  // 严格比较：确保类型一致
+  if (!userStore.user?.id || !userId.value) return false
+  return Number(userStore.user.id) === Number(userId.value)
+})
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
 // 加载用户信息
 const loadUser = async () => {
   try {
-    const response = await api.get(`/users/${userId.value}`)
-    user.value = response.data
+    // 查看自己的主页：使用 /api/profile（需要认证，返回完整信息）
+    // 查看他人的主页：使用 /api/users/:id（公开API，只返回公开信息）
+    if (isCurrentUser.value) {
+      const response = await api.get('/profile')
+      user.value = response.data
+    } else {
+      const response = await api.get(`/users/${userId.value}`)
+      user.value = response.data
+    }
   } catch (error) {
     ElMessage.error('用户加载失败')
   }
@@ -322,13 +369,36 @@ const handleFollow = async () => {
     return
   }
 
+  // 不能关注自己
+  if (userId.value === userStore.user?.id) {
+    ElMessage.warning('不能关注自己')
+    return
+  }
+
   followLoading.value = true
   try {
     await api.post(`/users/${userId.value}/follow`)
     ElMessage.success('关注成功')
+    // 更新关注统计
     await loadFollowStats()
+    // 重新加载用户信息（更新粉丝数）
+    await loadUser()
+    // 如果当前在关注/粉丝标签页，重新加载列表
+    if (activeTab.value === 'following' || activeTab.value === 'followers') {
+      if (activeTab.value === 'following') {
+        await loadFollowing()
+      } else {
+        await loadFollowers()
+      }
+    }
   } catch (error) {
-    ElMessage.error('关注失败')
+    const errorMsg = error.response?.data?.message || '关注失败'
+    ElMessage.error(errorMsg)
+    // 如果错误是"已经关注过该用户"或"不能关注自己"，刷新关注状态
+    if (errorMsg.includes('已经关注过') || errorMsg.includes('不能关注自己')) {
+      await loadFollowStats()
+      await loadUser()
+    }
   } finally {
     followLoading.value = false
   }
@@ -336,13 +406,35 @@ const handleFollow = async () => {
 
 // 取消关注
 const handleUnfollow = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
   followLoading.value = true
   try {
     await api.delete(`/users/${userId.value}/follow`)
     ElMessage.success('取消关注成功')
+    // 更新关注统计
     await loadFollowStats()
+    // 重新加载用户信息（更新粉丝数）
+    await loadUser()
+    // 如果当前在关注/粉丝标签页，重新加载列表
+    if (activeTab.value === 'following' || activeTab.value === 'followers') {
+      if (activeTab.value === 'following') {
+        await loadFollowing()
+      } else {
+        await loadFollowers()
+      }
+    }
   } catch (error) {
-    ElMessage.error('操作失败')
+    const errorMsg = error.response?.data?.message || '操作失败'
+    ElMessage.error(errorMsg)
+    // 如果错误是"未关注该用户"，刷新状态
+    if (errorMsg.includes('未关注')) {
+      await loadFollowStats()
+      await loadUser()
+    }
   } finally {
     followLoading.value = false
   }
@@ -362,14 +454,28 @@ const goToArticles = () => {
   }
 }
 
-// 跳转到粉丝列表
+// 跳转到粉丝列表（切换到粉丝标签页）
 const goToFollowers = () => {
-  router.push(`/users/${userId.value}/follows?tab=followers`)
+  activeTab.value = 'followers'
+  // 每次点击都重新加载数据，确保数据是最新的
+  loadFollowers()
+  // 同时更新关注统计
+  loadFollowStats()
+  setTimeout(() => {
+    document.querySelector('.profile-tabs')?.scrollIntoView({ behavior: 'smooth' })
+  }, 100)
 }
 
-// 跳转到关注列表
+// 跳转到关注列表（切换到关注标签页）
 const goToFollowing = () => {
-  router.push(`/users/${userId.value}/follows?tab=following`)
+  activeTab.value = 'following'
+  // 每次点击都重新加载数据，确保数据是最新的
+  loadFollowing()
+  // 同时更新关注统计
+  loadFollowStats()
+  setTimeout(() => {
+    document.querySelector('.profile-tabs')?.scrollIntoView({ behavior: 'smooth' })
+  }, 100)
 }
 
 // 跳转到收藏列表
@@ -388,16 +494,112 @@ onMounted(async () => {
     loadFollowStats(),
     loadArticles()
   ])
+  
+  // 如果URL中有tab参数，切换到对应的标签页
+  if (route.query.tab) {
+    activeTab.value = route.query.tab
+    // 根据tab参数加载对应的数据，确保数据是最新的
+    if (activeTab.value === 'following') {
+      loadFollowing()
+      loadFollowStats()
+    } else if (activeTab.value === 'followers') {
+      loadFollowers()
+      loadFollowStats()
+    } else if (activeTab.value === 'favorites') {
+      loadFavorites()
+    }
+  }
 })
 
 // 监听tab切换
-const onTabChange = () => {
-  if (activeTab.value === 'favorites' && favorites.value.length === 0) {
+const onTabChange = (tabName) => {
+  // 每次切换标签页都重新加载数据，确保数据是最新的
+  if (tabName === 'favorites') {
     loadFavorites()
-  } else if (activeTab.value === 'following' && following.value.length === 0) {
+  } else if (tabName === 'following') {
     loadFollowing()
-  } else if (activeTab.value === 'followers' && followers.value.length === 0) {
+    // 切换关注列表时，更新关注统计
+    loadFollowStats()
+  } else if (tabName === 'followers') {
     loadFollowers()
+    // 切换粉丝列表时，更新关注统计
+    loadFollowStats()
+  }
+}
+
+// 跳转到用户主页
+const goToUserProfile = (targetUserId) => {
+  if (targetUserId) {
+    router.push(`/users/${targetUserId}`)
+  }
+}
+
+// 在关注/粉丝列表中关注/取消关注
+const handleFollowToggle = async (item) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  
+  const targetUserId = item.user?.id
+  if (!targetUserId) {
+    ElMessage.error('用户ID无效')
+    return
+  }
+  
+  // 不能关注自己
+  if (targetUserId === userStore.user?.id) {
+    ElMessage.warning('不能关注自己')
+    return
+  }
+  
+  followLoading.value = true
+  try {
+    if (item.is_following) {
+      // 取消关注
+      await api.delete(`/users/${targetUserId}/follow`)
+      ElMessage.success('已取消关注')
+      item.is_following = false
+      // 更新关注统计
+      await loadFollowStats()
+      // 重新加载用户信息（更新关注数）
+      await loadUser()
+      // 如果当前在关注列表，重新加载列表（因为取消关注后，该用户会从关注列表中消失）
+      if (activeTab.value === 'following') {
+        await loadFollowing()
+      } else if (activeTab.value === 'followers') {
+        // 如果在粉丝列表，也需要重新加载（因为粉丝数可能变化）
+        await loadFollowers()
+      }
+    } else {
+      // 关注
+      await api.post(`/users/${targetUserId}/follow`)
+      ElMessage.success('关注成功')
+      item.is_following = true
+      // 更新关注统计
+      await loadFollowStats()
+      // 重新加载用户信息（更新关注数）
+      await loadUser()
+      // 如果在粉丝列表，重新加载（因为关注状态变化）
+      if (activeTab.value === 'followers') {
+        await loadFollowers()
+      }
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || '操作失败'
+    ElMessage.error(errorMsg)
+    // 如果错误是"已经关注过该用户"，刷新状态
+    if (errorMsg.includes('已经关注过')) {
+      item.is_following = true
+      await loadFollowStats()
+      await loadUser()
+    } else if (errorMsg.includes('未关注')) {
+      item.is_following = false
+      await loadFollowStats()
+      await loadUser()
+    }
+  } finally {
+    followLoading.value = false
   }
 }
 </script>
@@ -530,7 +732,6 @@ const onTabChange = () => {
 }
 
 .user-card {
-  cursor: pointer;
   transition: transform 0.3s;
 }
 
@@ -538,10 +739,31 @@ const onTabChange = () => {
   transform: translateY(-3px);
 }
 
+.user-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
 .user-info {
   display: flex;
   gap: 20px;
   align-items: center;
+  flex: 1;
+  cursor: pointer;
+}
+
+.user-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+}
+
+.user-actions {
+  flex-shrink: 0;
 }
 
 .user-details {

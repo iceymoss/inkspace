@@ -201,7 +201,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
-// GetUserProfile 获取用户主页信息
+// GetUserProfile 获取用户主页信息（公开API，只返回公开信息）
 // GET /api/users/:id
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -216,6 +216,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, user.ToResponse())
+	// 只返回公开信息，不包含Email、Role、Status等敏感信息
+	utils.Success(c, user.ToPublicResponse())
 }
 

@@ -48,6 +48,10 @@
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </el-menu-item>
+          <el-menu-item index="/ads">
+            <el-icon><Promotion /></el-icon>
+            <span>广告管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -95,7 +99,8 @@ import {
   ChatDotRound,
   Link,
   Setting,
-  User
+  User,
+  Promotion
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -114,7 +119,8 @@ const breadcrumbTitle = computed(() => {
     '/comments': '评论管理',
     '/links': '友链管理',
     '/settings': '系统配置',
-    '/users': '用户管理'
+    '/users': '用户管理',
+    '/ads': '广告管理'
   }
   return titles[route.path] || '管理'
 })

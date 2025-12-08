@@ -1023,11 +1023,15 @@ onMounted(async () => {
 
 .article-card {
   margin-bottom: 30px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 var(--theme-shadow);
+  background-color: var(--theme-bg-card);
+  border: 1px solid var(--theme-border-light);
 }
 
 .comments-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 var(--theme-shadow);
+  background-color: var(--theme-bg-card);
+  border: 1px solid var(--theme-border-light);
 }
 
 .article-header {
@@ -1122,9 +1126,13 @@ onMounted(async () => {
 }
 
 #article-preview {
-  padding: 20px 0;
+  padding: 30px;
   max-width: 920px;
   margin: 0 auto;
+  background-color: var(--theme-content-bg);
+  border-radius: 8px;
+  border: 1px solid var(--theme-border-light);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 内联代码样式 */

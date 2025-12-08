@@ -112,7 +112,13 @@ func (h *FollowHandler) GetFollowingList(c *gin.Context) {
 		query.PageSize = 20
 	}
 
-	list, total, err := h.service.GetFollowingList(uint(userID), query.Page, query.PageSize)
+	// 获取当前登录用户ID（可能为0，表示未登录）
+	currentUserID := uint(0)
+	if uid, exists := c.Get("user_id"); exists {
+		currentUserID = uid.(uint)
+	}
+
+	list, total, err := h.service.GetFollowingList(uint(userID), query.Page, query.PageSize, currentUserID)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return
@@ -143,7 +149,13 @@ func (h *FollowHandler) GetFollowerList(c *gin.Context) {
 		query.PageSize = 20
 	}
 
-	list, total, err := h.service.GetFollowerList(uint(userID), query.Page, query.PageSize)
+	// 获取当前登录用户ID（可能为0，表示未登录）
+	currentUserID := uint(0)
+	if uid, exists := c.Get("user_id"); exists {
+		currentUserID = uid.(uint)
+	}
+
+	list, total, err := h.service.GetFollowerList(uint(userID), query.Page, query.PageSize, currentUserID)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return

@@ -166,6 +166,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 		
 		var articles []*models.Article
 		if err := database.DB.Where("id IN ?", articleIDs).
+			Where("(status = ? OR (status = ? AND author_id = ?))", 1, 2, userID).
 			Preload("Category").Preload("Tags").Preload("Author").
 			Find(&articles).Error; err != nil {
 			return nil, 0, err
@@ -181,17 +182,22 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 			}
 		}
 		
-		// 转换为响应格式
+		// 转换为响应格式，只添加有文章数据的收藏项
 		for _, favorite := range articleFavorites {
-			resp := favorite.ToResponse()
-			resp.Type = "article"
-			allFavorites = append(allFavorites, resp)
+			// 只处理有文章数据的收藏项
+			if favorite.Article != nil {
+				resp := favorite.ToResponse()
+				resp.Type = "article"
+				allFavorites = append(allFavorites, resp)
+			}
 		}
 	}
 	
-	// 2. 获取作品收藏
+	// 2. 获取作品收藏（只获取已发布的作品）
 	workDB := database.DB.Model(&models.Favorite{}).
-		Where("user_id = ? AND work_id IS NOT NULL", userID)
+		Joins("JOIN works ON works.id = favorites.work_id").
+		Where("favorites.user_id = ? AND favorites.work_id IS NOT NULL", userID).
+		Where("works.status = ?", 1)
 	
 	var workTotal int64
 	if err := workDB.Count(&workTotal).Error; err != nil {
@@ -263,7 +269,8 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 	}
 	
 	// 4. 应用分页
-	total := articleTotal + workTotal
+	// 使用实际过滤后的数量作为总数，确保总数和实际返回的数据一致
+	total := int64(len(allFavorites))
 	offset := (page - 1) * pageSize
 	start := offset
 	end := offset + pageSize

@@ -107,7 +107,24 @@ export async function loadTheme() {
   try {
     const response = await api.get('/settings/public')
     const themeName = response.data?.site_theme || 'day'
-    applyTheme(themeName)
+    
+    // 如果是节假日主题，应用自定义颜色
+    if (themeName === 'holiday' && response.data) {
+      const holidayTheme = {
+        ...themes.holiday,
+        cssVars: {
+          ...themes.holiday.cssVars,
+          '--theme-bg-primary': response.data.holiday_bg_primary || themes.holiday.cssVars['--theme-bg-primary'],
+          '--theme-bg-secondary': response.data.holiday_bg_secondary || themes.holiday.cssVars['--theme-bg-secondary'],
+          '--theme-text-primary': response.data.holiday_text_primary || themes.holiday.cssVars['--theme-text-primary'],
+          '--theme-primary': response.data.holiday_primary || themes.holiday.cssVars['--theme-primary'],
+          '--theme-primary-hover': response.data.holiday_primary ? adjustBrightness(response.data.holiday_primary, 20) : themes.holiday.cssVars['--theme-primary-hover']
+        }
+      }
+      applyCustomTheme('holiday', holidayTheme.cssVars)
+    } else {
+      applyTheme(themeName)
+    }
     return themeName
   } catch (error) {
     console.error('Failed to load theme:', error)
@@ -121,6 +138,33 @@ export async function loadTheme() {
     applyTheme('day')
     return 'day'
   }
+}
+
+// 调整颜色亮度（用于生成hover颜色）
+function adjustBrightness(color, percent) {
+  const num = parseInt(color.replace('#', ''), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt))
+  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt))
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt))
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
+}
+
+// 应用自定义主题
+function applyCustomTheme(themeName, customVars) {
+  const root = document.documentElement
+  
+  // 应用自定义CSS变量
+  Object.keys(customVars).forEach(key => {
+    root.style.setProperty(key, customVars[key])
+  })
+  
+  // 添加主题类名到body
+  document.body.className = document.body.className.replace(/theme-\w+/g, '')
+  document.body.classList.add(`theme-${themeName}`)
+  
+  // 保存到localStorage
+  localStorage.setItem('site_theme', themeName)
 }
 
 // 初始化主题（在应用启动时调用）
