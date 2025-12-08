@@ -416,6 +416,7 @@ onMounted(() => {
   display: flex;
   gap: 14px;
   height: 100%;
+  align-items: center; /* 垂直居中对齐 */
 }
 
 .article-cover {
@@ -431,7 +432,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0; /* 允许flex收缩 */
   min-height: 0;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 .article-header {
@@ -452,6 +455,9 @@ onMounted(() => {
   line-height: 1.3;
   margin-bottom: 6px;
   color: var(--theme-text-primary);
+  word-break: break-word;
+  max-height: 1.3em; /* 确保只显示1行 */
+  flex-shrink: 0; /* 防止标题被压缩 */
 }
 
 .article-summary {
@@ -462,9 +468,12 @@ onMounted(() => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.35;
-  min-height: 2.7em;
+  line-height: 1.5; /* 使用标准行高 */
   font-size: 13px;
+  word-break: break-word;
+  max-height: 3em; /* 确保只显示2行 (1.5 * 2 = 3em) */
+  flex: 1;
+  min-height: 0; /* 允许flex收缩 */
 }
 
 .article-meta {

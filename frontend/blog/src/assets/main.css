@@ -181,13 +181,23 @@ body.theme-night .el-textarea__inner {
 
 /* 文章内容区域 - 黑夜主题 */
 body.theme-night #article-preview,
-body.theme-night .article-content,
 body.theme-night .work-content,
 body.theme-night #work-description-preview-photography {
   background-color: var(--theme-content-bg);
   color: var(--theme-text-primary);
-  padding: 20px;
+  padding: 30px;
   border-radius: 8px;
+  border: 1px solid var(--theme-border);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 开源项目的描述区域使用父容器样式，不单独设置 */
+body.theme-night #work-description-preview-project {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 body.theme-night #article-preview :deep(p),
@@ -251,14 +261,25 @@ body.theme-mourning .el-card :deep(.el-card__body) {
 
 /* 文章内容区域 - 哀悼日主题 */
 body.theme-mourning #article-preview,
-body.theme-mourning .article-content,
 body.theme-mourning .work-content,
 body.theme-mourning #work-description-preview-photography {
   background-color: var(--theme-content-bg);
   color: var(--theme-text-primary);
-  padding: 20px;
+  padding: 30px;
   border-radius: 8px;
+  border: 1px solid var(--theme-border);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
   filter: grayscale(0%);
+}
+
+/* 开源项目的描述区域使用父容器样式，不单独设置 */
+body.theme-mourning #work-description-preview-project {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  filter: none;
 }
 
 body.theme-mourning #article-preview :deep(p),
@@ -302,6 +323,24 @@ body.theme-holiday .el-card {
   box-shadow: 0 4px 20px var(--theme-shadow);
 }
 
+/* 节假日主题 - 文章项图片对齐修复 */
+body.theme-holiday .article-content {
+  align-items: center !important;
+}
+
+body.theme-holiday .article-cover,
+body.theme-holiday .article-cover img {
+  align-self: center;
+  object-fit: cover;
+  display: block;
+}
+
+body.theme-holiday .article-cover .el-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 body.theme-holiday .el-button--primary {
   background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-hover) 100%);
   border-color: var(--theme-primary);
@@ -315,14 +354,28 @@ body.theme-holiday .el-button--primary:hover {
 
 /* 文章内容区域 - 节假日主题 */
 body.theme-holiday #article-preview,
-body.theme-holiday .article-content,
 body.theme-holiday .work-content,
 body.theme-holiday #work-description-preview-photography {
   background-color: var(--theme-content-bg);
   color: var(--theme-text-primary);
-  padding: 20px;
+  padding: 30px;
   border-radius: 8px;
   border: 1px solid var(--theme-border);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 开源项目的描述区域使用父容器样式，不单独设置 */
+body.theme-holiday #work-description-preview-project {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* 节假日主题 - 文章列表项内容区域（不应用背景和padding，避免影响图片对齐） */
+body.theme-holiday .article-content {
+  /* 不设置背景和padding，保持原有布局 */
 }
 
 body.theme-holiday #article-preview :deep(p),

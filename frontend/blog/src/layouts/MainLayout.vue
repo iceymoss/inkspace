@@ -4,7 +4,7 @@
       <div class="container">
         <div class="header-content">
           <div class="logo">
-            <router-link to="/">My Site</router-link>
+            <router-link to="/">InkSpace</router-link>
           </div>
           <nav class="nav">
             <router-link to="/">首页</router-link>
@@ -56,7 +56,7 @@
 
     <footer class="footer">
       <div class="container">
-        <p>{{ siteSettings.site_copyright || '© 2024 My Site. All rights reserved.' }}</p>
+        <p>{{ siteSettings.site_copyright || '© 2024 InkSpace. All rights reserved.' }}</p>
         <p>{{ siteSettings.site_description || 'Powered by Go + Gin + Vue' }}</p>
         <p v-if="siteSettings.site_icp">
           <a :href="`https://beian.miit.gov.cn/`" target="_blank" rel="noopener">
@@ -145,10 +145,36 @@ onMounted(() => {
 }
 
 .logo a {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--theme-primary);
+  font-size: 28px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-decoration: none;
+  letter-spacing: 2px;
+  position: relative;
+  display: inline-block;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-style: italic;
+  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+  animation: gradientShift 3s ease infinite;
+}
+
+.logo a:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.15);
+  letter-spacing: 3px;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .nav {
@@ -191,21 +217,50 @@ onMounted(() => {
 }
 
 .footer {
-  background: var(--theme-bg-card);
-  border-top: 1px solid var(--theme-border);
-  color: var(--theme-text-primary);
+  background: #2c3e50; /* 默认灰黑色背景 */
+  border-top: 1px solid #34495e;
+  color: rgba(255, 255, 255, 0.8);
   padding: 30px 0;
   text-align: center;
   margin-top: auto;
 }
 
-.footer p {
-  margin: 5px 0;
-  color: var(--theme-text-secondary);
+/* 哀悼日主题 - 底部栏使用哀悼主题 */
+body.theme-mourning .footer {
+  background: var(--theme-bg-card) !important;
+  border-top: 1px solid var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
 }
 
-.footer a {
-  color: var(--theme-primary);
+body.theme-mourning .footer p {
+  color: var(--theme-text-secondary) !important;
+}
+
+body.theme-mourning .footer a {
+  color: var(--theme-text-primary) !important;
+}
+
+body.theme-mourning .footer a:hover {
+  color: var(--theme-primary) !important;
+}
+
+/* 其他主题保持灰黑色 */
+body:not(.theme-mourning) .footer {
+  background: #2c3e50 !important;
+  border-top: 1px solid #34495e !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+body:not(.theme-mourning) .footer p {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+body:not(.theme-mourning) .footer a {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+body:not(.theme-mourning) .footer a:hover {
+  color: #ffffff !important;
 }
 
 @media (max-width: 768px) {

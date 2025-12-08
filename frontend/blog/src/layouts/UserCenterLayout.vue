@@ -3,7 +3,7 @@
     <el-container>
       <el-aside width="200px" class="sidebar">
         <div class="logo">
-          <router-link to="/">My Site</router-link>
+          <router-link to="/">InkSpace</router-link>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -180,8 +180,36 @@ const handleCommand = (command) => {
 }
 
 .logo a {
-  color: var(--theme-primary);
+  font-size: 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-decoration: none;
+  letter-spacing: 2px;
+  position: relative;
+  display: inline-block;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-style: italic;
+  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+  animation: gradientShift 3s ease infinite;
+}
+
+.logo a:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.15);
+  letter-spacing: 3px;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .menu {

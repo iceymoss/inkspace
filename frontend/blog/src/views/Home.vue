@@ -1,17 +1,38 @@
 <template>
   <div class="home">
-    <!-- Hero Section -->
-    <section class="hero">
+    <!-- Hero Carousel Section -->
+    <section class="hero-carousel">
       <div class="container">
-        <h1 class="hero-title">欢迎来到我的个人网站</h1>
-        <p class="hero-subtitle">分享技术、记录生活、展示作品</p>
-        <div class="hero-actions">
-          <el-button type="primary" size="large" @click="$router.push('/blog')">
-            <el-icon><Reading /></el-icon> 阅读博客
-          </el-button>
-          <el-button size="large" @click="$router.push('/works')">
-            <el-icon><Picture /></el-icon> 查看作品
-          </el-button>
+        <el-carousel 
+          v-if="carouselItems.length > 0"
+          :height="carouselHeight"
+          :interval="5000"
+          :arrow="carouselItems.length > 1 ? 'always' : 'never'"
+          indicator-position="outside"
+        >
+          <el-carousel-item v-for="(item, index) in carouselItems" :key="index">
+            <div 
+              class="hero-slide" 
+              :class="{ 'hero-slide-clickable': item.link }"
+              :style="{
+                background: item.background || item.backgroundGradient || 'var(--theme-hero-gradient)',
+                backgroundImage: item.backgroundImage ? `url(${item.backgroundImage})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }"
+              @click="handleHeroSlideClick(item)"
+            >
+              <div class="hero-content">
+                <h1 class="hero-title" v-if="item.title">{{ item.title }}</h1>
+                <p class="hero-subtitle" v-if="item.subtitle">{{ item.subtitle }}</p>
+              </div>
+            </div>
+          </el-carousel-item>
+        </el-carousel>
+        <!-- 默认内容（当没有配置轮播图时） -->
+        <div v-else class="hero-default">
+          <h1 class="hero-title">欢迎来到我的个人网站</h1>
+          <p class="hero-subtitle">分享技术、记录生活、展示作品</p>
         </div>
       </div>
     </section>
@@ -244,6 +265,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   Reading, 
   Picture, 
@@ -258,6 +280,7 @@ import {
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 
+const router = useRouter()
 const articles = ref([])
 const works = ref([])
 const tags = ref([])
@@ -268,6 +291,8 @@ const stats = ref({
   workCount: 0,
   categoryCount: 0
 })
+const carouselItems = ref([])
+const carouselHeight = ref('320px')
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -275,6 +300,33 @@ const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 const getTechStack = (techStack) => {
   if (!techStack) return []
   return techStack.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0)
+}
+
+const loadCarousel = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    const carouselData = response.data?.home_carousel
+    if (carouselData) {
+      try {
+        carouselItems.value = JSON.parse(carouselData)
+      } catch (e) {
+        console.error('Failed to parse carousel data:', e)
+        carouselItems.value = []
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load carousel:', error)
+  }
+}
+
+const handleCarouselClick = (item) => {
+  if (item.link) {
+    if (item.link.startsWith('http')) {
+      window.open(item.link, '_blank')
+    } else {
+      router.push(item.link)
+    }
+  }
 }
 
 const loadData = async () => {
@@ -305,6 +357,7 @@ const loadData = async () => {
 }
 
 onMounted(() => {
+  loadCarousel()
   loadData()
 })
 </script>
@@ -314,12 +367,81 @@ onMounted(() => {
   background-color: var(--theme-bg-secondary);
 }
 
-/* Hero Section */
-.hero {
+/* Hero Carousel Section */
+.hero-carousel {
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.hero-carousel {
+  padding: 20px 0 0 0;
+}
+
+.hero-carousel .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.hero-carousel :deep(.el-carousel) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px var(--theme-shadow);
+}
+
+.hero-carousel :deep(.el-carousel__container) {
+  height: 320px;
+}
+
+.hero-slide {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  color: white;
+  text-align: center;
+}
+
+.hero-slide-clickable {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.hero-slide-clickable:hover {
+  transform: scale(1.01);
+}
+
+.hero-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  padding: 0 20px;
+}
+
+.hero-default {
   background: var(--theme-hero-gradient);
   color: white;
   padding: 40px 0;
   text-align: center;
+  border-radius: 8px;
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .hero-title {
@@ -334,11 +456,6 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.hero-actions {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-}
 
 /* Main Content */
 .main-content {
@@ -397,12 +514,15 @@ onMounted(() => {
 .article-item :deep(.el-card__body) {
   height: 100%;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 .article-content {
   display: flex;
   gap: 20px;
   height: 100%;
+  align-items: center; /* 垂直居中对齐 */
 }
 
 .article-main {
@@ -411,6 +531,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 .article-header-info {
@@ -429,6 +550,8 @@ onMounted(() => {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   line-height: 1.4;
+  word-break: break-word;
+  max-height: 1.4em; /* 确保只显示1行 */
 }
 
 .article-summary {
@@ -442,6 +565,8 @@ onMounted(() => {
   -webkit-box-orient: vertical;
   line-height: 1.5;
   flex: 1;
+  word-break: break-word;
+  max-height: 3em; /* 确保只显示2行 (1.5 * 2 = 3em) */
 }
 
 .article-meta {
@@ -749,8 +874,17 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .hero {
-    padding: 30px 0;
+  .hero-carousel {
+    padding: 15px 0 0 0;
+  }
+
+  .hero-carousel :deep(.el-carousel__container) {
+    height: 240px !important;
+  }
+
+  .hero-default {
+    height: 240px;
+    padding: 30px 20px;
   }
   
   .hero-title {

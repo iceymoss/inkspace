@@ -28,6 +28,12 @@ onMounted(async () => {
   // 等待 DOM 准备好
   await nextTick()
   
+  // 检查 ref 是否存在
+  if (!vditorRef.value) {
+    console.error('VditorEditor: vditorRef.value is null')
+    return
+  }
+  
   // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
   const codeThemeValue = await loadCodeTheme()
   await loadHighlightTheme(codeThemeValue)
@@ -35,7 +41,8 @@ onMounted(async () => {
   
   // 使用加载的配置初始化 Vditor
   // 已手动设置window.VditorI18n，Vditor不会尝试动态加载i18n文件
-  vditor = new Vditor(vditorRef.value, {
+  try {
+    vditor = new Vditor(vditorRef.value, {
     height: props.height,
     mode: 'sv', // 分屏预览模式
     placeholder: '请输入文章内容，支持 Markdown 语法...',
@@ -43,7 +50,7 @@ onMounted(async () => {
     icon: 'material',
     typewriterMode: false,
     lang: 'zh_CN', // 设置语言为中文（已通过window.VditorI18n设置）
-    cdn: '', // 禁用CDN，使用本地资源
+    // 不设置 cdn，使用 Vditor 默认的 CDN（unpkg.com）
     toolbarConfig: {
       pin: true,
     },
@@ -104,7 +111,10 @@ onMounted(async () => {
     input: (value) => {
       emit('update:modelValue', value)
     },
-  })
+    })
+  } catch (error) {
+    console.error('VditorEditor: Failed to initialize Vditor', error)
+  }
 })
 
 onBeforeUnmount(() => {

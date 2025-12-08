@@ -1297,6 +1297,9 @@ onUnmounted(() => {
 .detail-card {
   max-width: 1400px;
   margin: 0 auto;
+  box-shadow: 0 2px 12px 0 var(--theme-shadow);
+  background-color: var(--theme-bg-card);
+  border: 1px solid var(--theme-border-light);
 }
 
 .card-header-actions {
@@ -1583,6 +1586,12 @@ onUnmounted(() => {
 
 .work-content {
   line-height: 1.8;
+  padding: 30px;
+  background-color: var(--theme-content-bg);
+  border-radius: 8px;
+  border: 1px solid var(--theme-border-light);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: 20px 0;
 }
 
 /* 确保代码块不受父元素 line-height 影响 */
@@ -1604,9 +1613,20 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-#work-description-preview-photography,
+/* 摄影作品的描述区域 - 独立样式 */
+#work-description-preview-photography {
+  padding: 30px;
+  background-color: var(--theme-content-bg);
+  border-radius: 8px;
+  border: 1px solid var(--theme-border-light);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: 20px 0;
+}
+
+/* 开源项目的描述区域 - 不设置独立样式，使用父容器 .work-content 的样式 */
 #work-description-preview-project {
-  padding: 20px 0;
+  padding: 0;
+  margin: 0;
 }
 
 /* 内联代码样式 */
