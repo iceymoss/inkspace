@@ -390,10 +390,17 @@ onMounted(() => {
 
 .article-list {
   margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px !important;
+}
+
+.article-list :deep(.el-card) {
+  margin-bottom: 0 !important;
 }
 
 .article-item {
-  margin-bottom: 20px;
+  margin-bottom: 0 !important;
   cursor: pointer;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   height: 140px;

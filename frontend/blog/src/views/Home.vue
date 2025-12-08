@@ -8,7 +8,7 @@
           :height="carouselHeight"
           :interval="5000"
           :arrow="carouselItems.length > 1 ? 'always' : 'never'"
-          indicator-position="outside"
+          indicator-position="inside"
         >
           <el-carousel-item v-for="(item, index) in carouselItems" :key="index">
             <div 
@@ -112,10 +112,9 @@
               <el-row :gutter="20">
                 <el-col :xs="24" :sm="12" :md="12" v-for="work in works" :key="work.id">
                   <el-card 
-                    class="work-card" 
-                    :class="{ 'work-card-clickable': work.type !== 'project' }"
+                    class="work-card work-card-clickable"
                     shadow="hover" 
-                    @click="work.type !== 'project' && $router.push(`/works/${work.id}`)"
+                    @click="$router.push(`/works/${work.id}`)"
                   >
                     <div class="work-type-badge">
                       <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
@@ -373,20 +372,21 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-.hero-carousel {
-  padding: 20px 0 0 0;
-}
-
 .hero-carousel .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 20px 0 20px;
 }
 
 .hero-carousel :deep(.el-carousel) {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 20px var(--theme-shadow);
+  margin-bottom: 0;
+}
+
+.hero-carousel :deep(.el-carousel) {
+  margin-bottom: 0 !important;
 }
 
 .hero-carousel :deep(.el-carousel__container) {
@@ -459,7 +459,8 @@ onMounted(() => {
 
 /* Main Content */
 .main-content {
-  padding: 40px 0;
+  padding: 20px 0 40px 0;
+  margin-top: 0;
 }
 
 .content-section {
@@ -496,7 +497,11 @@ onMounted(() => {
 .article-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px !important;
+}
+
+.article-list :deep(.el-card) {
+  margin-bottom: 0 !important;
 }
 
 .article-item {
@@ -504,6 +509,7 @@ onMounted(() => {
   transition: all 0.3s;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   height: 160px;
+  margin-bottom: 0 !important;
 }
 
 .article-item:hover {
@@ -608,10 +614,11 @@ onMounted(() => {
 
 .works-section :deep(.el-col) {
   display: flex;
+  margin-bottom: 12px;
 }
 
 .work-card {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   transition: all 0.3s;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   position: relative;
