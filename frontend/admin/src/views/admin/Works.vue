@@ -244,7 +244,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import api from '@/utils/api'
+import adminApi from '@/utils/adminApi'
 
 const works = ref([])
 const dialogVisible = ref(false)
@@ -283,7 +283,7 @@ const rules = {
 
 const loadWorks = async () => {
   try {
-    const response = await api.get('/admin/works')
+    const response = await adminApi.get('/admin/works')
     works.value = response.data.list || []
   } catch (error) {
     ElMessage.error('加载失败')
@@ -440,10 +440,10 @@ const handleSubmit = async () => {
       }
 
       if (isEdit.value) {
-        await api.put(`/admin/works/${form.id}`, submitData)
+        await adminApi.put(`/admin/works/${form.id}`, submitData)
         ElMessage.success('更新成功')
       } else {
-        await api.post('/admin/works', submitData)
+        await adminApi.post('/admin/works', submitData)
         ElMessage.success('创建成功')
       }
       
@@ -457,7 +457,7 @@ const handleSubmit = async () => {
 
 const handleToggleRecommend = async (work) => {
   try {
-    await api.put(`/admin/works/${work.id}/recommend`, {
+    await adminApi.put(`/admin/works/${work.id}/recommend`, {
       is_recommend: !work.is_recommend
     })
     ElMessage.success('设置成功')
@@ -475,7 +475,7 @@ const handleDelete = async (work) => {
       type: 'warning'
     })
     
-    await api.delete(`/admin/works/${work.id}`)
+    await adminApi.delete(`/admin/works/${work.id}`)
     ElMessage.success('删除成功')
     loadWorks()
   } catch (error) {
