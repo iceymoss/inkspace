@@ -110,6 +110,7 @@ export async function loadTheme() {
     
     // 如果是节假日主题，应用自定义颜色
     if (themeName === 'holiday' && response.data) {
+      const holidayPrimary = response.data.holiday_primary || themes.holiday.cssVars['--theme-primary']
       const holidayTheme = {
         ...themes.holiday,
         cssVars: {
@@ -117,8 +118,10 @@ export async function loadTheme() {
           '--theme-bg-primary': response.data.holiday_bg_primary || themes.holiday.cssVars['--theme-bg-primary'],
           '--theme-bg-secondary': response.data.holiday_bg_secondary || themes.holiday.cssVars['--theme-bg-secondary'],
           '--theme-text-primary': response.data.holiday_text_primary || themes.holiday.cssVars['--theme-text-primary'],
-          '--theme-primary': response.data.holiday_primary || themes.holiday.cssVars['--theme-primary'],
-          '--theme-primary-hover': response.data.holiday_primary ? adjustBrightness(response.data.holiday_primary, 20) : themes.holiday.cssVars['--theme-primary-hover']
+          '--theme-primary': holidayPrimary,
+          '--theme-primary-hover': adjustBrightness(holidayPrimary, 20),
+          // 根据主色调动态生成渐变背景
+          '--theme-hero-gradient': generateGradientFromColor(holidayPrimary)
         }
       }
       applyCustomTheme('holiday', holidayTheme.cssVars)
@@ -148,6 +151,20 @@ function adjustBrightness(color, percent) {
   const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt))
   const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt))
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
+}
+
+// 根据主色调生成渐变背景
+function generateGradientFromColor(primaryColor) {
+  if (!primaryColor) {
+    return 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)'
+  }
+  
+  // 将主色调稍微调亮作为起始色
+  const startColor = adjustBrightness(primaryColor, 10)
+  // 将主色调稍微调暗作为结束色
+  const endColor = adjustBrightness(primaryColor, -20)
+  
+  return `linear-gradient(135deg, ${startColor} 0%, ${endColor} 100%)`
 }
 
 // 应用自定义主题

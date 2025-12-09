@@ -107,7 +107,9 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				if key == models.SettingSiteName || key == models.SettingSiteDescription ||
 					key == models.SettingSiteKeywords || key == models.SettingSiteICP ||
 					key == models.SettingSiteCopyright || key == models.SettingSiteLogo ||
-					key == models.SettingSiteFavicon {
+					key == models.SettingSiteFavicon || key == "link_apply_email" ||
+					key == "link_apply_title" || key == "link_apply_description" ||
+					key == "admin_backend_url" {
 					group = "site"
 					isPublic = true
 				} else if key == models.SettingCommentAudit || key == models.SettingRegisterEnabled {

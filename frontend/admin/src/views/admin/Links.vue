@@ -36,9 +36,33 @@
         </el-form-item>
         <el-form-item label="链接" prop="url">
           <el-input v-model="form.url" placeholder="https://example.com" />
+          <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+            请输入完整的URL，例如：https://example.com
+          </div>
         </el-form-item>
         <el-form-item label="Logo">
-          <el-input v-model="form.logo" placeholder="Logo URL" />
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <ImageCropUpload
+              v-model="form.logo"
+              :aspect-ratio="1"
+              :output-width="200"
+              :output-height="200"
+              preview-size="100px"
+              placeholder="点击上传Logo"
+              tip="上传正方形Logo，系统会自动裁剪为200x200"
+              :max-size="2"
+            />
+            <div style="flex: 1;">
+              <el-input 
+                v-model="form.logo" 
+                placeholder="或直接输入Logo URL" 
+                style="margin-bottom: 8px;"
+              />
+              <div style="font-size: 12px; color: #909399;">
+                支持上传图片或直接输入图片URL。上传的图片将按照正方形比例自动裁剪为200x200
+              </div>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" :rows="3" />
@@ -69,6 +93,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import adminApi from '@/utils/adminApi'
+import ImageCropUpload from '@/components/ImageCropUpload.vue'
 
 const links = ref([])
 const dialogVisible = ref(false)
@@ -90,7 +115,14 @@ const form = reactive({
 
 const rules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-  url: [{ required: true, message: '请输入链接', trigger: 'blur' }]
+  url: [
+    { required: true, message: '请输入链接', trigger: 'blur' },
+    { 
+      type: 'url', 
+      message: '请输入有效的URL格式（例如：https://example.com）', 
+      trigger: 'blur' 
+    }
+  ]
 }
 
 const loadLinks = async () => {

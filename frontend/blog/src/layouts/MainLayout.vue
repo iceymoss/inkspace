@@ -95,9 +95,30 @@ const loadSiteSettings = async () => {
     if (siteSettings.value.site_name) {
       document.title = siteSettings.value.site_name
     }
+    
+    // 更新favicon
+    if (siteSettings.value.site_logo) {
+      updateFavicon(siteSettings.value.site_logo)
+    }
   } catch (error) {
     console.error('Failed to load site settings:', error)
   }
+}
+
+// 更新favicon
+const updateFavicon = (logoUrl) => {
+  // 移除旧的favicon
+  const oldFavicon = document.querySelector('link[rel="icon"]')
+  if (oldFavicon) {
+    oldFavicon.remove()
+  }
+  
+  // 创建新的favicon
+  const link = document.createElement('link')
+  link.rel = 'icon'
+  link.type = 'image/png'
+  link.href = logoUrl
+  document.head.appendChild(link)
 }
 
 const handleCommand = (command) => {

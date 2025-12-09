@@ -194,7 +194,54 @@
             <el-input v-model="siteSettings.site_copyright" />
           </el-form-item>
           <el-form-item label="网站Logo">
-            <el-input v-model="siteSettings.site_logo" placeholder="Logo URL" />
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <ImageCropUpload
+                v-model="siteSettings.site_logo"
+                :aspect-ratio="0"
+                :output-width="400"
+                :output-height="400"
+                preview-size="120px"
+                placeholder="点击上传Logo"
+                tip="上传Logo图片，支持任意比例裁切，系统会自动调整为400x400"
+                :max-size="5"
+              />
+              <div style="flex: 1;">
+                <el-input 
+                  v-model="siteSettings.site_logo" 
+                  placeholder="或直接输入Logo URL" 
+                  style="margin-bottom: 8px;"
+                />
+                <div style="font-size: 12px; color: #909399;">
+                  支持上传图片或直接输入图片URL。上传的图片支持任意比例裁切，系统会自动调整为400x400
+                </div>
+              </div>
+            </div>
+          </el-form-item>
+          <el-divider content-position="left">友链申请</el-divider>
+          <el-form-item label="申请标题">
+            <el-input v-model="siteSettings.link_apply_title" placeholder="例如：申请友链" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              友链申请区域的标题文字
+            </div>
+          </el-form-item>
+          <el-form-item label="申请描述">
+            <el-input v-model="siteSettings.link_apply_description" placeholder="例如：如果你也想交换友链，请联系我：" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              友链申请区域的描述文字
+            </div>
+          </el-form-item>
+          <el-form-item label="申请邮箱">
+            <el-input v-model="siteSettings.link_apply_email" placeholder="例如：admin@example.com" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              友链申请的联系邮箱，将在友链页面显示
+            </div>
+          </el-form-item>
+          <el-divider content-position="left">管理后台</el-divider>
+          <el-form-item label="管理后台URL">
+            <el-input v-model="siteSettings.admin_backend_url" placeholder="例如：http://localhost:3002 或 https://admin.example.com" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              管理后台的访问地址，将在用户中心页面的"管理后台"按钮中使用。支持相对路径（如：/admin）或绝对URL（如：http://localhost:3002）
+            </div>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="saveSiteSettings" :loading="saving">保存</el-button>
@@ -416,7 +463,11 @@ const siteSettings = reactive({
   site_keywords: '',
   site_icp: '',
   site_copyright: '',
-  site_logo: ''
+  site_logo: '',
+  link_apply_title: '',
+  link_apply_description: '',
+  link_apply_email: '',
+  admin_backend_url: ''
 })
 
 const featureSettings = reactive({

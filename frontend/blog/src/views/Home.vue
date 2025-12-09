@@ -361,14 +361,15 @@ const handleCarouselClick = (item) => {
 
 const loadData = async () => {
   try {
-    const [hotArticlesRes, hotWorksRes, tagsRes, recommendedArticlesRes, recommendedWorksRes, statsRes, worksStatsRes] = await Promise.all([
+    const [hotArticlesRes, hotWorksRes, tagsRes, recommendedArticlesRes, recommendedWorksRes, statsRes, worksStatsRes, categoriesRes] = await Promise.all([
       api.get('/articles/hot?limit=6'),
       api.get('/works/hot?limit=4'),
       api.get('/tags'),
       api.get('/articles/recommended?limit=3'),
       api.get('/works/recommended?limit=2'),
       api.get('/articles?page=1&page_size=1'), // 只获取统计数据
-      api.get('/works?page=1&page_size=1') // 只获取统计数据
+      api.get('/works?page=1&page_size=1'), // 只获取统计数据
+      api.get('/categories') // 获取所有分类
     ])
     
     articles.value = hotArticlesRes.data || []
@@ -380,7 +381,7 @@ const loadData = async () => {
     // Calculate stats
     stats.value.articleCount = statsRes.data.total || 0
     stats.value.workCount = worksStatsRes.data.total || 0
-    stats.value.categoryCount = new Set(articles.value.map(a => a.category_id).filter(Boolean)).size
+    stats.value.categoryCount = (categoriesRes.data || []).length // 使用所有分类的数量
   } catch (error) {
     console.error('Failed to load data:', error)
   }
