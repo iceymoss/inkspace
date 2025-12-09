@@ -25,6 +25,7 @@ func SetupAdminRouter() *gin.Engine {
 	settingHandler := handler.NewSettingHandler()
 	adminAuthHandler := handler.NewAdminAuthHandler()
 	uploadHandler := handler.NewUploadHandler()
+	adHandler := handler.NewAdHandler()
 
 	// 注意：管理后台需要完整的handler来处理查询和管理操作
 
@@ -107,6 +108,27 @@ func SetupAdminRouter() *gin.Engine {
 			admin.PUT("/settings", settingHandler.UpdateSetting)
 			admin.PUT("/settings/batch", settingHandler.BatchUpdateSettings)
 			admin.DELETE("/settings/:key", settingHandler.DeleteSetting)
+
+			// Ad Positions management
+			admin.GET("/ad-positions", adHandler.GetPositionList)
+			admin.GET("/ad-positions/:id", adHandler.GetPositionByID)
+			admin.POST("/ad-positions", adHandler.CreatePosition)
+			admin.PUT("/ad-positions/:id", adHandler.UpdatePosition)
+			admin.DELETE("/ad-positions/:id", adHandler.DeletePosition)
+
+			// Advertisements management
+			admin.GET("/advertisements", adHandler.GetAdvertisementList)
+			admin.GET("/advertisements/:id", adHandler.GetAdvertisementByID)
+			admin.POST("/advertisements", adHandler.CreateAdvertisement)
+			admin.PUT("/advertisements/:id", adHandler.UpdateAdvertisement)
+			admin.DELETE("/advertisements/:id", adHandler.DeleteAdvertisement)
+
+			// Ad Placements management
+			admin.GET("/ad-placements", adHandler.GetPlacementList)
+			admin.GET("/ad-placements/:id", adHandler.GetPlacementByID)
+			admin.POST("/ad-placements", adHandler.CreatePlacement)
+			admin.PUT("/ad-placements/:id", adHandler.UpdatePlacement)
+			admin.DELETE("/ad-placements/:id", adHandler.DeletePlacement)
 		}
 	}
 

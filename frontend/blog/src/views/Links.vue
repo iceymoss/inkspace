@@ -23,9 +23,10 @@
 
       <div class="apply-section">
         <el-divider />
-        <h3>申请友链</h3>
-        <p>如果你也想交换友链，请联系我：</p>
-        <p>📧 Email: admin@example.com</p>
+        <h3>{{ applyTitle || '申请友链' }}</h3>
+        <p v-if="applyDescription">{{ applyDescription }}</p>
+        <p v-if="applyEmail">📧 Email: {{ applyEmail }}</p>
+        <p v-else-if="applyDescription" style="color: var(--text-secondary);">📧 Email: 暂未配置</p>
       </div>
     </div>
   </div>
@@ -38,6 +39,9 @@ import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 
 const links = ref([])
+const applyTitle = ref('')
+const applyDescription = ref('')
+const applyEmail = ref('')
 
 const loadLinks = async () => {
   try {
@@ -48,19 +52,31 @@ const loadLinks = async () => {
   }
 }
 
+const loadSettings = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    applyTitle.value = response.data?.link_apply_title || ''
+    applyDescription.value = response.data?.link_apply_description || ''
+    applyEmail.value = response.data?.link_apply_email || ''
+  } catch (error) {
+    console.error('加载设置失败:', error)
+  }
+}
+
 const openLink = (url) => {
   window.open(url, '_blank')
 }
 
 onMounted(() => {
   loadLinks()
+  loadSettings()
 })
 </script>
 
 <style scoped>
 .links-page {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 

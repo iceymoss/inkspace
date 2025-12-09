@@ -95,9 +95,21 @@
                   <p class="article-summary">{{ article.summary }}</p>
                   <div class="article-meta">
                     <el-tag v-if="article.category" size="small">{{ article.category.name }}</el-tag>
-                    <span><el-icon><User /></el-icon> {{ article.author?.nickname || article.author?.username }}</span>
+                    <span class="author-info">
+                      <el-avatar :size="20" :src="article.author?.avatar" />
+                      <span>{{ article.author?.nickname || article.author?.username }}</span>
+                    </span>
                     <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
                     <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
+                    <span v-if="article.like_count">
+                      <el-icon><Star /></el-icon> {{ article.like_count }}
+                    </span>
+                    <span v-if="article.comment_count">
+                      <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
+                    </span>
+                    <span v-if="article.favorite_count">
+                      <el-icon><Collection /></el-icon> {{ article.favorite_count }}
+                    </span>
                     <!-- 书签样式的标签 -->
                     <div class="article-bookmarks" v-if="article.tags && article.tags.length > 0">
                       <span 
@@ -143,6 +155,21 @@
               </el-tag>
             </div>
           </el-card>
+
+          <!-- 广告位 -->
+          <div class="ad-slots" v-if="ads.length > 0">
+            <div
+              v-for="(ad, index) in ads"
+              :key="`ad-${ad.id || index}`"
+              class="ad-slot"
+              @click="handleAdClick(ad)"
+            >
+              <div class="ad-content">
+                <img :src="ad.image" :alt="ad.title" @load="recordAdView(ad.id)" />
+                <div v-if="ad.title" class="ad-title">{{ ad.title }}</div>
+              </div>
+            </div>
+          </div>
         </el-col>
       </el-row>
     </div>
@@ -152,7 +179,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search, User, View, Clock, ArrowDown } from '@element-plus/icons-vue'
+import { Search, User, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 
@@ -161,6 +188,7 @@ const route = useRoute()
 const articles = ref([])
 const categories = ref([])
 const tags = ref([])
+const ads = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -222,6 +250,33 @@ const loadTags = async () => {
     tags.value = response.data || []
   } catch (error) {
     console.error('Failed to load tags:', error)
+  }
+}
+
+const loadAds = async () => {
+  try {
+    // 加载博客列表右侧广告位，根据API返回的数量动态显示
+    const response = await api.get('/ads', { params: { code: 'blog_right_ad' } })
+    ads.value = response.data || []
+  } catch (error) {
+    console.error('Failed to load ads:', error)
+    ads.value = []
+  }
+}
+
+const handleAdClick = (ad) => {
+  if (ad && ad.link) {
+    // 记录点击
+    if (ad.id) {
+      api.post(`/ads/${ad.id}/click`).catch(() => {})
+    }
+    window.open(ad.link, '_blank')
+  }
+}
+
+const recordAdView = (adId) => {
+  if (adId) {
+    api.post(`/ads/${adId}/view`).catch(() => {})
   }
 }
 
@@ -291,6 +346,7 @@ watch(() => route.query, (newQuery) => {
 onMounted(() => {
   loadCategories()
   loadTags()
+  loadAds()
   
   // 从 URL 参数初始化筛选条件
   if (route.query.category_id) {
@@ -306,7 +362,7 @@ onMounted(() => {
 <style scoped>
 .blog {
   padding: 0 0 20px;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
@@ -328,7 +384,7 @@ onMounted(() => {
 
 .blog-header h1 {
   font-size: 2rem;
-  color: var(--text-primary);
+  color: var(--theme-text-primary);
   margin: 0;
 }
 
@@ -387,20 +443,27 @@ onMounted(() => {
 
 .article-list {
   margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px !important;
+}
+
+.article-list :deep(.el-card) {
+  margin-bottom: 0 !important;
 }
 
 .article-item {
-  margin-bottom: 20px;
+  margin-bottom: 0 !important;
   cursor: pointer;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  height: 140px; /* 进一步减小卡片高度 */
-  overflow: hidden; /* 隐藏溢出内容 */
-  position: relative; /* 为书签定位 */
+  height: 140px;
+  overflow: hidden;
+  position: relative;
 }
 
 .article-item :deep(.el-card__body) {
   height: 100%;
-  padding: 14px; /* 进一步减小内边距 */
+  padding: 14px;
   display: flex;
   flex-direction: column;
 }
@@ -411,13 +474,14 @@ onMounted(() => {
 
 .article-content {
   display: flex;
-  gap: 14px; /* 进一步减小间距 */
+  gap: 14px;
   height: 100%;
+  align-items: center; /* 垂直居中对齐 */
 }
 
 .article-cover {
-  width: 140px; /* 进一步按比例缩小 */
-  height: 112px; /* 进一步按比例缩小，保持4:3比例 */
+  width: 140px;
+  height: 112px;
   object-fit: cover;
   border-radius: 4px;
   flex-shrink: 0;
@@ -428,46 +492,55 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 0; /* 允许flex子元素收缩 */
+  min-width: 0; /* 允许flex收缩 */
+  min-height: 0;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 .article-header {
   display: flex;
   align-items: center;
-  gap: 6px; /* 进一步减小间距 */
-  margin-bottom: 6px; /* 进一步减小间距 */
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .article-header h2 {
-  font-size: 1.2rem; /* 进一步减小字体 */
+  font-size: 1.2rem;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 1; /* 标题只显示1行 */
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   line-height: 1.3;
-  margin-bottom: 6px; /* 进一步减小间距 */
+  margin-bottom: 6px;
+  color: var(--theme-text-primary);
+  word-break: break-word;
+  max-height: 1.3em; /* 确保只显示1行 */
+  flex-shrink: 0; /* 防止标题被压缩 */
 }
 
 .article-summary {
-  color: var(--text-secondary);
-  margin-bottom: 8px; /* 进一步减小间距 */
+  color: var(--theme-text-secondary);
+  margin-bottom: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* 固定显示2行 */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.35; /* 进一步减小行高 */
-  min-height: 2.7em; /* 调整最小高度 */
-  font-size: 13px; /* 进一步减小字体 */
+  line-height: 1.5; /* 使用标准行高 */
+  font-size: 13px;
+  word-break: break-word;
+  max-height: 3em; /* 确保只显示2行 (1.5 * 2 = 3em) */
+  flex: 1;
+  min-height: 0; /* 允许flex收缩 */
 }
 
 .article-meta {
   display: flex;
-  gap: 12px; /* 减小间距 */
-  color: var(--text-secondary);
-  font-size: 13px; /* 稍微减小字体 */
+  gap: 12px;
+  color: var(--theme-text-secondary);
+  font-size: 13px;
   flex-wrap: wrap;
 }
 
@@ -475,6 +548,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pagination {
@@ -510,14 +589,14 @@ onMounted(() => {
 }
 
 .category-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   transform: translateX(5px);
 }
 
 .category-item.active {
-  background-color: #ecf5ff;
-  border-color: #409eff;
-  color: #409eff;
+  background-color: var(--theme-bg-hover);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
 }
 
 .category-logo {
@@ -578,6 +657,59 @@ onMounted(() => {
   border-width: 0 0 6px 6px;
   border-color: transparent transparent rgba(0, 0, 0, 0.15) transparent;
 }
+
+/* 广告位样式 */
+.ad-slots {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ad-slot {
+  width: 100%;
+  aspect-ratio: 3 / 2; /* 宽度:高度 = 3:2，即高度是宽度的 2/3 */
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: var(--theme-bg-primary);
+}
+
+.ad-slot:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.ad-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.ad-content img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.ad-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  color: white;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 @media (max-width: 768px) {
   .article-content {

@@ -198,7 +198,10 @@ const handleNotificationClick = async (notification) => {
   }
 
   // 跳转到相关内容
-  if (notification.article_id) {
+  if (notification.type === 'follow' && notification.from_user_id) {
+    // 关注通知：跳转到关注者的个人主页
+    router.push(`/users/${notification.from_user_id}`)
+  } else if (notification.article_id) {
     router.push(`/blog/${notification.article_id}`)
   } else if (notification.work_id) {
     router.push(`/works/${notification.work_id}`)
@@ -266,15 +269,15 @@ onMounted(() => {
 }
 
 .notification-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
 }
 
 .notification-item.unread {
-  background-color: #ecf5ff;
+  background-color: var(--theme-bg-hover);
 }
 
 .notification-item.unread:hover {
-  background-color: #d9ecff;
+  background-color: var(--theme-bg-hover);
 }
 
 .notification-content {

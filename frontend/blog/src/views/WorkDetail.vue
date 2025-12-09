@@ -100,7 +100,27 @@
                     <p>{{ work.author.bio || '这个人很懒，什么都没留下' }}</p>
                   </div>
                 </div>
-                <el-button type="primary" style="width: 100%">关注</el-button>
+                <!-- 如果是作品作者，显示"我的主页"按钮 -->
+                <el-button 
+                  v-if="isWorkOwner"
+                  type="primary" 
+                  style="width: 100%"
+                  @click="goToMyProfile"
+                >
+                  我的主页
+                </el-button>
+                <!-- 如果不是作品作者，显示关注/已关注按钮 -->
+                <el-button 
+                  v-else-if="userStore.isLoggedIn"
+                  :type="isFollowing ? 'default' : 'primary'" 
+                  style="width: 100%"
+                  :loading="followLoading"
+                  @click="handleFollow"
+                >
+                  <el-icon v-if="!followLoading"><Plus v-if="!isFollowing" /><Check v-else /></el-icon>
+                  {{ isFollowing ? '已关注' : '关注' }}
+                </el-button>
+                <!-- 未登录用户不显示按钮 -->
               </div>
 
               <!-- 当前照片参数 -->
@@ -502,7 +522,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   View, ChatDotRound, Star, Link, 
-  Location, Calendar, Picture, ArrowDown, Edit
+  Location, Calendar, Picture, ArrowDown, Edit, Plus, Check
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
@@ -533,6 +553,10 @@ const isLiked = ref(false)
 const isFavorited = ref(false)
 const liking = ref(false)
 const favoriting = ref(false)
+
+// 关注状态
+const isFollowing = ref(false)
+const followLoading = ref(false)
 
 const photos = computed(() => {
   if (!work.value || work.value.type !== 'photography') return []
@@ -749,8 +773,24 @@ const loadMoreComments = async () => {
 }
 
 const canDeleteComment = (comment) => {
-  if (!userStore.isLoggedIn) return false
-  return userStore.user.id === comment.user_id || userStore.user.role === 'admin'
+  if (!userStore.isLoggedIn || !userStore.user) return false
+  
+  // 管理员可以删除所有评论
+  if (userStore.user.role === 'admin') return true
+  
+  // 作品作者可以删除自己作品下的所有评论
+  if (isWorkOwner.value) return true
+  
+  // 获取评论的用户ID（支持多种格式）
+  const commentUserId = comment.user_id || comment.user?.id || comment.userId
+  
+  // 如果评论没有用户ID（游客评论），只有管理员或作品作者可以删除
+  if (!commentUserId || commentUserId === 0) {
+    return false // 游客评论只能由管理员或作品作者删除（上面已检查）
+  }
+  
+  // 检查是否是评论作者
+  return Number(userStore.user.id) === Number(commentUserId)
 }
 
 const submitComment = async () => {
@@ -1079,7 +1119,8 @@ const handleDeleteComment = async (comment) => {
     await loadWork(true)
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      const errorMessage = error.response?.data?.message || error.message || '删除失败'
+      ElMessage.error(errorMessage)
     }
   }
 }
@@ -1104,7 +1145,89 @@ const handleImageLoad = () => {
 
 const goToUserProfile = (userId) => {
   if (userId) {
-    router.push(`/user/${userId}`)
+    router.push(`/users/${userId}`)
+  }
+}
+
+// 跳转到自己的主页
+const goToMyProfile = () => {
+  if (userStore.user?.id) {
+    router.push(`/users/${userStore.user.id}`)
+  }
+}
+
+// 检查关注状态
+const checkFollowStatus = async () => {
+  if (!userStore.isLoggedIn || !work.value || !work.value.author) {
+    isFollowing.value = false
+    return
+  }
+
+  // 如果是自己的作品，不需要检查关注状态
+  if (isWorkOwner.value) {
+    isFollowing.value = false
+    return
+  }
+
+  try {
+    const authorId = work.value.author_id || work.value.author?.id
+    if (!authorId) return
+
+    const response = await api.get(`/users/${authorId}/follow-stats`)
+    isFollowing.value = response.data?.is_following || false
+  } catch (error) {
+    console.error('Failed to check follow status:', error)
+    isFollowing.value = false
+  }
+}
+
+// 关注/取消关注
+const handleFollow = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  if (!work.value || !work.value.author) {
+    return
+  }
+
+  const authorId = work.value.author_id || work.value.author?.id
+  if (!authorId) {
+    return
+  }
+
+  // 不能关注自己
+  if (Number(authorId) === Number(userStore.user?.id)) {
+    ElMessage.warning('不能关注自己')
+    return
+  }
+
+  followLoading.value = true
+  try {
+    if (isFollowing.value) {
+      // 取消关注
+      await api.delete(`/users/${authorId}/follow`)
+      ElMessage.success('已取消关注')
+      isFollowing.value = false
+    } else {
+      // 关注
+      await api.post(`/users/${authorId}/follow`)
+      ElMessage.success('关注成功')
+      isFollowing.value = true
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || '操作失败'
+    ElMessage.error(errorMsg)
+    // 如果错误是"已经关注过该用户"或"未关注该用户"，刷新状态
+    if (errorMsg.includes('已经关注过')) {
+      isFollowing.value = true
+    } else if (errorMsg.includes('未关注')) {
+      isFollowing.value = false
+    }
+  } finally {
+    followLoading.value = false
   }
 }
 
@@ -1245,6 +1368,13 @@ watch(() => work.value?.description, () => {
   renderDescription()
 })
 
+// 监听 work 变化，检查关注状态
+watch(() => work.value?.author?.id, () => {
+  if (work.value) {
+    checkFollowStatus()
+  }
+}, { immediate: false })
+
 onMounted(async () => {
   if (userStore.isLoggedIn && !userStore.user) {
     await userStore.fetchProfile()
@@ -1254,6 +1384,7 @@ onMounted(async () => {
   await loadComments()
   checkLikedStatus()
   checkFavoritedStatus()
+  checkFollowStatus()
   
   // 响应式调整轮播高度
   updateCarouselHeight()
@@ -1273,13 +1404,16 @@ onUnmounted(() => {
 <style scoped>
 .work-detail {
   padding: 40px 0;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary, #f5f7fa);
   min-height: 100vh;
 }
 
 .detail-card {
   max-width: 1400px;
   margin: 0 auto;
+  box-shadow: 0 2px 12px 0 var(--theme-shadow);
+  background-color: var(--theme-bg-card);
+  border: 1px solid var(--theme-border-light);
 }
 
 .card-header-actions {
@@ -1566,6 +1700,12 @@ onUnmounted(() => {
 
 .work-content {
   line-height: 1.8;
+  padding: 30px;
+  background-color: var(--theme-content-bg);
+  border-radius: 8px;
+  border: 1px solid var(--theme-border-light);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: 20px 0;
 }
 
 /* 确保代码块不受父元素 line-height 影响 */
@@ -1587,9 +1727,20 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-#work-description-preview-photography,
+/* 摄影作品的描述区域 - 独立样式 */
+#work-description-preview-photography {
+  padding: 30px;
+  background-color: var(--theme-content-bg);
+  border-radius: 8px;
+  border: 1px solid var(--theme-border-light);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin: 20px 0;
+}
+
+/* 开源项目的描述区域 - 不设置独立样式，使用父容器 .work-content 的样式 */
 #work-description-preview-project {
-  padding: 20px 0;
+  padding: 0;
+  margin: 0;
 }
 
 /* 内联代码样式 */
@@ -1802,7 +1953,7 @@ onUnmounted(() => {
 .reply-input {
   margin-top: 15px;
   padding: 15px;
-  background: #f5f7fa;
+  background: var(--theme-bg-secondary);
   border-radius: 6px;
 }
 
@@ -1885,7 +2036,7 @@ onUnmounted(() => {
   color: var(--text-secondary);
   font-size: 14px;
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   border-radius: 4px;
 }
 

@@ -1,20 +1,19 @@
 <template>
   <div class="works">
     <div class="container">
-      <div class="works-header">
-        <h1>作品展示</h1>
-      </div>
-      
-      <!-- 筛选条件 -->
+      <!-- 筛选栏 -->
       <div class="works-filters">
-        <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
-        <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" style="width: 150px; margin-left: 15px;">
-          <el-option label="默认排序" value="" />
-          <el-option label="🔥 热度排序" value="hot" />
-          <el-option label="⏰ 最新发布" value="time" />
-          <el-option label="👁️ 最多浏览" value="view" />
-          <el-option label="❤️ 最多点赞" value="like" />
-        </el-select>
+        <h1 class="works-title">作品展示</h1>
+        <div class="works-filters-controls">
+          <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
+          <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" style="width: 150px; margin-left: 15px;">
+            <el-option label="默认排序" value="" />
+            <el-option label="🔥 热度排序" value="hot" />
+            <el-option label="⏰ 最新发布" value="time" />
+            <el-option label="👁️ 最多浏览" value="view" />
+            <el-option label="❤️ 最多点赞" value="like" />
+          </el-select>
+        </div>
       </div>
       
       <!-- 瀑布流布局 -->
@@ -53,8 +52,14 @@
               </div>
               <div class="work-stats">
                 <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
-                <span v-if="work.like_count > 0">
+                <span v-if="work.like_count">
                   <el-icon><Star /></el-icon> {{ work.like_count }}
+                </span>
+                <span v-if="work.comment_count">
+                  <el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}
+                </span>
+                <span v-if="work.favorite_count">
+                  <el-icon><Collection /></el-icon> {{ work.favorite_count }}
                 </span>
               </div>
             </div>
@@ -80,7 +85,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { View, Star } from '@element-plus/icons-vue'
+import { View, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
 const router = useRouter()
@@ -133,28 +138,32 @@ onMounted(() => {
 
 <style scoped>
 .works {
-  padding: 40px 0;
-  background-color: #f5f7fa;
+  padding: 10px 0 40px 0;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
-}
-
-.works-header {
-  margin-bottom: 20px;
-}
-
-.works-header h1 {
-  margin: 0;
-  font-size: 2rem;
 }
 
 .works-filters {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
   padding: 15px;
+  margin-bottom: 20px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 100%;
+}
+
+.works-title {
+  margin: 0;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.works-filters-controls {
+  display: flex;
+  align-items: center;
 }
 
 /* 瀑布流布局 */
@@ -222,34 +231,40 @@ onMounted(() => {
 }
 
 .work-info {
-  padding: 15px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .work-title {
   font-size: 1rem;
-  margin: 0 0 10px 0;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--text-primary);
   font-weight: 500;
+  min-height: 3em;
 }
 
 .work-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .work-author {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
   flex: 1;
   min-width: 0;
@@ -259,20 +274,26 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .work-stats {
   display: flex;
-  gap: 12px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  gap: 10px;
+  font-size: 0.8rem;
+  color: #909399;
   flex-shrink: 0;
 }
 
 .work-stats span {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.work-stats .el-icon {
+  font-size: 0.9rem;
 }
 
 .pagination {
@@ -290,7 +311,23 @@ onMounted(() => {
   .works-filters {
     flex-direction: column;
     align-items: stretch;
+    gap: 15px;
+  }
+  
+  .works-title {
+    text-align: center;
+  }
+  
+  .works-filters-controls {
+    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
+    width: 100%;
+  }
+  
+  .works-filters-controls .el-select {
+    width: 100% !important;
+    margin-left: 0 !important;
   }
   
   .works-filters .el-select {
@@ -298,10 +335,30 @@ onMounted(() => {
     margin-left: 0 !important;
   }
   
+  .work-info {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .work-title {
+    font-size: 0.9rem;
+    min-height: 2.7em;
+  }
+  
   .work-meta {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 8px;
+    padding-top: 6px;
+  }
+  
+  .work-stats {
+    gap: 8px;
+    font-size: 0.75rem;
+  }
+  
+  .work-stats span {
+    gap: 2px;
   }
 }
 </style>

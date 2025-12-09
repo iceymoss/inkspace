@@ -346,7 +346,7 @@ onMounted(() => {
   max-width: 800px;
   margin: 0 auto;
   padding: 40px 20px;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
@@ -362,7 +362,7 @@ onMounted(() => {
 
 .form-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--theme-text-tertiary);
   margin-top: 5px;
 }
 
@@ -382,7 +382,7 @@ onMounted(() => {
 }
 
 .avatar-uploader:hover {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
 }
 
 .avatar-image {
@@ -402,7 +402,7 @@ onMounted(() => {
 
 .avatar-tips {
   font-size: 12px;
-  color: #909399;
+  color: var(--theme-text-tertiary);
   line-height: 1.8;
 }
 
@@ -412,8 +412,8 @@ onMounted(() => {
   align-items: center;
   width: 100%;
   height: 100%;
-  background: #f5f7fa;
-  color: #909399;
+  background: var(--theme-bg-secondary);
+  color: var(--theme-text-tertiary);
   font-size: 30px;
 }
 

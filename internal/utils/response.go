@@ -69,7 +69,10 @@ func Forbidden(c *gin.Context, message string) {
 }
 
 func NotFound(c *gin.Context, message string) {
-	Error(c, http.StatusNotFound, message)
+	c.JSON(http.StatusNotFound, Response{
+		Code:    http.StatusNotFound,
+		Message: message,
+	})
 }
 
 func InternalServerError(c *gin.Context, message string) {

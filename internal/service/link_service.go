@@ -46,19 +46,24 @@ func (s *LinkService) Update(id uint, req *models.LinkRequest) (*models.Link, er
 		return nil, err
 	}
 
-	link.Name = req.Name
-	link.URL = req.URL
-	link.Logo = req.Logo
-	link.Description = req.Description
-	link.Email = req.Email
-	link.Sort = req.Sort
-	link.Status = req.Status
+	updateData := map[string]interface{}{
+		"name":        req.Name,
+		"url":         req.URL,
+		"logo":        req.Logo,
+		"description": req.Description,
+		"email":       req.Email,
+		"sort":        req.Sort,
+		"status":      req.Status,
+	}
 
-	if err := database.DB.Save(link).Error; err != nil {
+	if err := database.DB.Model(&models.Link{}).
+		Where("id = ?", link.ID).
+		Updates(updateData).Error; err != nil {
 		return nil, err
 	}
 
-	return link, nil
+	// 重新加载以返回最新数据
+	return s.GetByID(link.ID)
 }
 
 func (s *LinkService) Delete(id uint) error {

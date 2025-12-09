@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"gorm.io/gorm"
@@ -69,7 +70,7 @@ type WorkRequest struct {
 	GithubURL   string                 `json:"github_url"`
 	DemoURL     string                 `json:"demo_url"`
 	TechStack   string                 `json:"tech_stack"`
-	AuthorID    uint                   `json:"author_id"`
+	// AuthorID 字段已移除，必须从token中提取，不允许前端传递
 	Sort        int                    `json:"sort"`
 	Status      int                    `json:"status"`
 	IsRecommend bool                   `json:"is_recommend"`
@@ -99,4 +100,52 @@ type WorkResponse struct {
 	IsRecommend   bool                   `json:"is_recommend"`
 	CreatedAt     time.Time              `json:"created_at"`
 	UpdatedAt     time.Time              `json:"updated_at"`
+}
+
+func (w *Work) ToResponse() *WorkResponse {
+	resp := &WorkResponse{
+		ID:            w.ID,
+		Title:         w.Title,
+		Type:          w.Type,
+		DailyQuota:    w.DailyQuota,
+		Description:   w.Description,
+		Cover:         w.Cover,
+		Link:          w.Link,
+		GithubURL:     w.GithubURL,
+		DemoURL:       w.DemoURL,
+		TechStack:     w.TechStack,
+		AuthorID:      w.AuthorID,
+		Sort:          w.Sort,
+		ViewCount:     w.ViewCount,
+		CommentCount:  w.CommentCount,
+		LikeCount:     w.LikeCount,
+		FavoriteCount: w.FavoriteCount,
+		Status:        w.Status,
+		IsRecommend:   w.IsRecommend,
+		CreatedAt:     w.CreatedAt,
+		UpdatedAt:     w.UpdatedAt,
+	}
+
+	// 解析 Metadata
+	if w.Metadata != "" {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal([]byte(w.Metadata), &metadata); err == nil {
+			resp.Metadata = metadata
+		}
+	}
+
+	// 解析 Images
+	if w.Images != "" {
+		var images []PhotoItem
+		if err := json.Unmarshal([]byte(w.Images), &images); err == nil {
+			resp.Images = images
+		}
+	}
+
+	// 处理 Author
+	if w.Author != nil {
+		resp.Author = w.Author.ToResponse()
+	}
+
+	return resp
 }

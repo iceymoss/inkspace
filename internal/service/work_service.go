@@ -78,14 +78,20 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 }
 
 func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role string) (*models.Work, error) {
-	work, err := s.GetByID(id)
-	if err != nil {
-		return nil, err
+	// 先查询作品，但使用WHERE条件确保权限（非管理员只能查询自己的作品）
+	var work models.Work
+	query := database.DB.Where("id = ?", id)
+	
+	// 非管理员只能更新自己的作品
+	if role != "admin" {
+		query = query.Where("author_id = ?", userID)
 	}
-
-	// 权限检查：只有作者本人或管理员可以修改
-	if role != "admin" && work.AuthorID != userID {
-		return nil, errors.New("无权限修改此作品")
+	
+	if err := query.First(&work).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("作品不存在或无权限修改")
+		}
+		return nil, err
 	}
 
 	// 验证照片数量限制
@@ -108,40 +114,60 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 	imagesJSON, _ := json.Marshal(req.Images)
 	metadataJSON, _ := json.Marshal(req.Metadata)
 
-	work.Title = req.Title
-	work.Type = req.Type
-	work.Metadata = string(metadataJSON)
-	work.DailyQuota = req.Type == "photography"
-	work.Description = req.Description
-	work.Cover = req.Cover
-	work.Images = string(imagesJSON)
-	work.Link = req.Link
-	work.GithubURL = req.GithubURL
-	work.DemoURL = req.DemoURL
-	work.TechStack = req.TechStack
-	work.Sort = req.Sort
-	work.Status = req.Status
-	work.IsRecommend = req.IsRecommend
-
-	if err := database.DB.Save(work).Error; err != nil {
+	// 使用WHERE条件更新，确保权限（非管理员只能更新自己的作品）
+	updateData := map[string]interface{}{
+		"title":        req.Title,
+		"type":         req.Type,
+		"metadata":     string(metadataJSON),
+		"daily_quota":  req.Type == "photography",
+		"description": req.Description,
+		"cover":        req.Cover,
+		"images":       string(imagesJSON),
+		"link":         req.Link,
+		"github_url":   req.GithubURL,
+		"demo_url":     req.DemoURL,
+		"tech_stack":   req.TechStack,
+		"sort":         req.Sort,
+		"status":       req.Status,
+		"is_recommend": req.IsRecommend,
+	}
+	
+	updateQuery := database.DB.Model(&models.Work{}).Where("id = ?", id)
+	// 非管理员只能更新自己的作品
+	if role != "admin" {
+		updateQuery = updateQuery.Where("author_id = ?", userID)
+	}
+	
+	if err := updateQuery.Updates(updateData).Error; err != nil {
+		return nil, err
+	}
+	
+	// 重新加载作品以获取最新数据
+	if err := database.DB.Preload("Author").First(&work, id).Error; err != nil {
 		return nil, err
 	}
 
-	return work, nil
+	return &work, nil
 }
 
 func (s *WorkService) Delete(id uint, userID uint, role string) error {
-	work, err := s.GetByID(id)
-	if err != nil {
-		return err
+	// 使用WHERE条件删除，确保权限（非管理员只能删除自己的作品）
+	deleteQuery := database.DB.Where("id = ?", id)
+	
+	// 非管理员只能删除自己的作品
+	if role != "admin" {
+		deleteQuery = deleteQuery.Where("author_id = ?", userID)
 	}
-
-	// 权限检查：只有作者本人或管理员可以删除
-	if role != "admin" && work.AuthorID != userID {
-		return errors.New("无权限删除此作品")
+	
+	result := deleteQuery.Delete(&models.Work{})
+	if result.Error != nil {
+		return result.Error
 	}
-
-	return database.DB.Delete(&models.Work{}, id).Error
+	if result.RowsAffected == 0 {
+		return errors.New("作品不存在或无权限删除")
+	}
+	
+	return nil
 }
 
 func (s *WorkService) GetByID(id uint) (*models.Work, error) {
@@ -224,6 +250,46 @@ func (s *WorkService) GetMyWorks(authorID uint, page, pageSize int, workType str
 
 	offset := (page - 1) * pageSize
 	if err := db.Preload("Author").Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return works, total, nil
+}
+
+// GetUserWorks 获取指定用户的作品列表（公开访问）
+func (s *WorkService) GetUserWorks(authorID uint, page, pageSize int, workType string, sortBy string) ([]*models.Work, int64, error) {
+	var works []*models.Work
+	var total int64
+
+	// 只显示已发布的作品
+	db := database.DB.Model(&models.Work{}).Where("author_id = ? AND status = ?", authorID, 1)
+
+	// 按类型筛选
+	if workType != "" && workType != "all" {
+		db = db.Where("type = ?", workType)
+	}
+
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+
+	// 根据排序参数决定排序方式
+	orderBy := "created_at DESC" // 默认最新排序
+	switch sortBy {
+	case "hot":
+		// 热度排序：综合浏览量、评论数、点赞数、收藏数
+		orderBy = "(view_count * 0.4 + comment_count * 0.25 + like_count * 0.2 + favorite_count * 0.1) DESC, created_at DESC"
+	case "latest", "time":
+		// 时间排序：最新优先
+		orderBy = "created_at DESC"
+	default:
+		// 默认：最新排序
+		orderBy = "created_at DESC"
+	}
+
+	if err := db.Preload("Author").Order(orderBy).Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {
 		return nil, 0, err
 	}
 

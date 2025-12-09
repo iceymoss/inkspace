@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 	"mysite/internal/database"
 	"mysite/internal/models"
 )
@@ -126,11 +127,29 @@ func (s *NotificationService) CreateFavoriteNotification(fromUserID, toUserID ui
 }
 
 // CreateFollowNotification 创建关注通知
+// 如果用户在短时间内（1小时内）反复关注/取消关注，只保留一条未读通知
 func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint) error {
 	if fromUserID == toUserID {
 		return nil
 	}
 
+	// 检查1小时内是否已存在相同类型的未读通知
+	var existingNotification models.Notification
+	oneHourAgo := time.Now().Add(-1 * time.Hour)
+	
+	err := database.DB.Where(
+		"user_id = ? AND from_user_id = ? AND type = ? AND is_read = ? AND created_at > ?",
+		toUserID, fromUserID, "follow", false, oneHourAgo,
+	).First(&existingNotification).Error
+
+	if err == nil {
+		// 如果存在未读通知，更新创建时间（让通知显示为最新）
+		// 使用 UpdateColumn 强制更新 CreatedAt 字段
+		return database.DB.Model(&existingNotification).
+			UpdateColumn("created_at", time.Now()).Error
+	}
+
+	// 不存在未读通知，创建新通知
 	notification := &models.Notification{
 		UserID:     toUserID,
 		FromUserID: fromUserID,

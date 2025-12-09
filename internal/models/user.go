@@ -52,6 +52,7 @@ type PasswordChangeRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=6,max=50"`
 }
 
+// UserResponse 用户响应（完整信息，用于自己的profile）
 type UserResponse struct {
 	ID             uint      `json:"id"`
 	Username       string    `json:"username"`
@@ -61,6 +62,21 @@ type UserResponse struct {
 	Bio            string    `json:"bio"`
 	Role           string    `json:"role"`
 	Status         int       `json:"status"`
+	ArticleCount   int       `json:"article_count"`
+	CommentCount   int       `json:"comment_count"`
+	FollowingCount int       `json:"following_count"`
+	FollowerCount  int       `json:"follower_count"`
+	FavoriteCount  int       `json:"favorite_count"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// PublicUserResponse 公开用户响应（用于查看他人主页，不包含敏感信息）
+type PublicUserResponse struct {
+	ID             uint      `json:"id"`
+	Username       string    `json:"username"`
+	Nickname       string    `json:"nickname"`
+	Avatar         string    `json:"avatar"`
+	Bio            string    `json:"bio"`
 	ArticleCount   int       `json:"article_count"`
 	CommentCount   int       `json:"comment_count"`
 	FollowingCount int       `json:"following_count"`
@@ -79,6 +95,23 @@ func (u *User) ToResponse() *UserResponse {
 		Bio:            u.Bio,
 		Role:           u.Role,
 		Status:         u.Status,
+		ArticleCount:   u.ArticleCount,
+		CommentCount:   u.CommentCount,
+		FollowingCount: u.FollowingCount,
+		FollowerCount:  u.FollowerCount,
+		FavoriteCount:  u.FavoriteCount,
+		CreatedAt:      u.CreatedAt,
+	}
+}
+
+// ToPublicResponse 转换为公开响应（不包含Email、Role、Status等敏感信息）
+func (u *User) ToPublicResponse() *PublicUserResponse {
+	return &PublicUserResponse{
+		ID:             u.ID,
+		Username:       u.Username,
+		Nickname:       u.Nickname,
+		Avatar:         u.Avatar,
+		Bio:            u.Bio,
 		ArticleCount:   u.ArticleCount,
 		CommentCount:   u.CommentCount,
 		FollowingCount: u.FollowingCount,

@@ -49,18 +49,23 @@ func (s *TagService) Update(id uint, req *models.TagRequest) (*models.Tag, error
 		return nil, err
 	}
 
-	tag.Name = req.Name
-	tag.Slug = req.Slug
-	tag.Color = req.Color
+	updateData := map[string]interface{}{
+		"name":  req.Name,
+		"slug":  req.Slug,
+		"color": req.Color,
+	}
 	if req.UserID != nil {
-		tag.UserID = req.UserID
+		updateData["user_id"] = *req.UserID
 	}
 
-	if err := database.DB.Save(tag).Error; err != nil {
+	if err := database.DB.Model(&models.Tag{}).
+		Where("id = ?", tag.ID).
+		Updates(updateData).Error; err != nil {
 		return nil, err
 	}
 
-	return tag, nil
+	// 重新加载以返回最新数据
+	return s.GetByID(tag.ID)
 }
 
 func (s *TagService) Delete(id uint) error {

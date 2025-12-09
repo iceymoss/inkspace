@@ -3,7 +3,7 @@
     <el-container>
       <el-aside width="200px" class="sidebar">
         <div class="logo">
-          <router-link to="/">My Site</router-link>
+          <router-link to="/">InkSpace</router-link>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -51,7 +51,7 @@
             </el-breadcrumb>
             <div class="header-actions">
               <el-button text @click="$router.push('/')">返回网站</el-button>
-              <el-button v-if="userStore.isAdmin" type="primary" @click="$router.push('/admin')">
+              <el-button v-if="userStore.isAdmin" type="primary" @click="goToAdminBackend">
                 管理后台
               </el-button>
               <el-dropdown @command="handleCommand">
@@ -99,6 +99,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const unreadCount = ref(0)
+const adminBackendUrl = ref('')
 
 const loadUnreadCount = async () => {
   try {
@@ -114,6 +115,7 @@ let intervalId = null
 
 onMounted(() => {
   loadUnreadCount()
+  loadAdminBackendUrl()
   intervalId = setInterval(loadUnreadCount, 30000)
 })
 
@@ -148,6 +150,27 @@ const breadcrumbTitle = computed(() => {
   return titles[route.path] || '用户中心'
 })
 
+const loadAdminBackendUrl = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    const settings = response.data || {}
+    adminBackendUrl.value = settings.admin_backend_url || '/admin'
+  } catch (error) {
+    console.error('Failed to load admin backend URL:', error)
+    adminBackendUrl.value = '/admin' // 默认值
+  }
+}
+
+const goToAdminBackend = () => {
+  const url = adminBackendUrl.value || '/admin'
+  // 如果是绝对URL，使用 window.open，否则使用 router.push
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    window.open(url, '_blank')
+  } else {
+    router.push(url)
+  }
+}
+
 const handleCommand = (command) => {
   if (command === 'logout') {
     userStore.logout()
@@ -159,12 +182,13 @@ const handleCommand = (command) => {
 <style scoped>
 .user-center-layout {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
 }
 
 .sidebar {
-  background-color: #fff;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  background-color: var(--theme-bg-card);
+  box-shadow: 2px 0 8px var(--theme-shadow);
+  border-right: 1px solid var(--theme-border);
 }
 
 .logo {
@@ -174,22 +198,53 @@ const handleCommand = (command) => {
   justify-content: center;
   font-size: 20px;
   font-weight: bold;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-card);
 }
 
 .logo a {
-  color: #409eff;
+  font-size: 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-decoration: none;
+  letter-spacing: 2px;
+  position: relative;
+  display: inline-block;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-style: italic;
+  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+  animation: gradientShift 3s ease infinite;
+}
+
+.logo a:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.15);
+  letter-spacing: 3px;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .menu {
   border-right: none;
+  background-color: var(--theme-bg-card);
 }
 
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: var(--theme-bg-card);
+  border-bottom: 1px solid var(--theme-border);
   padding: 0 20px;
+  color: var(--theme-text-primary);
 }
 
 .header-content {

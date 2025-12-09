@@ -39,22 +39,22 @@ func (s *CategoryService) Create(req *models.CategoryRequest) (*models.Category,
 }
 
 func (s *CategoryService) Update(id uint, req *models.CategoryRequest) (*models.Category, error) {
-	category, err := s.GetByID(id)
-	if err != nil {
+	updateData := map[string]interface{}{
+		"name":        req.Name,
+		"slug":        req.Slug,
+		"description": req.Description,
+		"logo":        req.Logo,
+		"sort":        req.Sort,
+	}
+
+	if err := database.DB.Model(&models.Category{}).
+		Where("id = ?", id).
+		Updates(updateData).Error; err != nil {
 		return nil, err
 	}
 
-	category.Name = req.Name
-	category.Slug = req.Slug
-	category.Description = req.Description
-	category.Logo = req.Logo
-	category.Sort = req.Sort
-
-	if err := database.DB.Save(category).Error; err != nil {
-		return nil, err
-	}
-
-	return category, nil
+	// 重新加载以返回最新数据
+	return s.GetByID(id)
 }
 
 func (s *CategoryService) Delete(id uint) error {
