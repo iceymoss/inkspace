@@ -100,7 +100,27 @@
                     <p>{{ work.author.bio || '这个人很懒，什么都没留下' }}</p>
                   </div>
                 </div>
-                <el-button type="primary" style="width: 100%">关注</el-button>
+                <!-- 如果是作品作者，显示"我的主页"按钮 -->
+                <el-button 
+                  v-if="isWorkOwner"
+                  type="primary" 
+                  style="width: 100%"
+                  @click="goToMyProfile"
+                >
+                  我的主页
+                </el-button>
+                <!-- 如果不是作品作者，显示关注/已关注按钮 -->
+                <el-button 
+                  v-else-if="userStore.isLoggedIn"
+                  :type="isFollowing ? 'default' : 'primary'" 
+                  style="width: 100%"
+                  :loading="followLoading"
+                  @click="handleFollow"
+                >
+                  <el-icon v-if="!followLoading"><Plus v-if="!isFollowing" /><Check v-else /></el-icon>
+                  {{ isFollowing ? '已关注' : '关注' }}
+                </el-button>
+                <!-- 未登录用户不显示按钮 -->
               </div>
 
               <!-- 当前照片参数 -->
@@ -502,7 +522,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   View, ChatDotRound, Star, Link, 
-  Location, Calendar, Picture, ArrowDown, Edit
+  Location, Calendar, Picture, ArrowDown, Edit, Plus, Check
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
@@ -533,6 +553,10 @@ const isLiked = ref(false)
 const isFavorited = ref(false)
 const liking = ref(false)
 const favoriting = ref(false)
+
+// 关注状态
+const isFollowing = ref(false)
+const followLoading = ref(false)
 
 const photos = computed(() => {
   if (!work.value || work.value.type !== 'photography') return []
@@ -1121,7 +1145,89 @@ const handleImageLoad = () => {
 
 const goToUserProfile = (userId) => {
   if (userId) {
-    router.push(`/user/${userId}`)
+    router.push(`/users/${userId}`)
+  }
+}
+
+// 跳转到自己的主页
+const goToMyProfile = () => {
+  if (userStore.user?.id) {
+    router.push(`/users/${userStore.user.id}`)
+  }
+}
+
+// 检查关注状态
+const checkFollowStatus = async () => {
+  if (!userStore.isLoggedIn || !work.value || !work.value.author) {
+    isFollowing.value = false
+    return
+  }
+
+  // 如果是自己的作品，不需要检查关注状态
+  if (isWorkOwner.value) {
+    isFollowing.value = false
+    return
+  }
+
+  try {
+    const authorId = work.value.author_id || work.value.author?.id
+    if (!authorId) return
+
+    const response = await api.get(`/users/${authorId}/follow-stats`)
+    isFollowing.value = response.data?.is_following || false
+  } catch (error) {
+    console.error('Failed to check follow status:', error)
+    isFollowing.value = false
+  }
+}
+
+// 关注/取消关注
+const handleFollow = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  if (!work.value || !work.value.author) {
+    return
+  }
+
+  const authorId = work.value.author_id || work.value.author?.id
+  if (!authorId) {
+    return
+  }
+
+  // 不能关注自己
+  if (Number(authorId) === Number(userStore.user?.id)) {
+    ElMessage.warning('不能关注自己')
+    return
+  }
+
+  followLoading.value = true
+  try {
+    if (isFollowing.value) {
+      // 取消关注
+      await api.delete(`/users/${authorId}/follow`)
+      ElMessage.success('已取消关注')
+      isFollowing.value = false
+    } else {
+      // 关注
+      await api.post(`/users/${authorId}/follow`)
+      ElMessage.success('关注成功')
+      isFollowing.value = true
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || '操作失败'
+    ElMessage.error(errorMsg)
+    // 如果错误是"已经关注过该用户"或"未关注该用户"，刷新状态
+    if (errorMsg.includes('已经关注过')) {
+      isFollowing.value = true
+    } else if (errorMsg.includes('未关注')) {
+      isFollowing.value = false
+    }
+  } finally {
+    followLoading.value = false
   }
 }
 
@@ -1262,6 +1368,13 @@ watch(() => work.value?.description, () => {
   renderDescription()
 })
 
+// 监听 work 变化，检查关注状态
+watch(() => work.value?.author?.id, () => {
+  if (work.value) {
+    checkFollowStatus()
+  }
+}, { immediate: false })
+
 onMounted(async () => {
   if (userStore.isLoggedIn && !userStore.user) {
     await userStore.fetchProfile()
@@ -1271,6 +1384,7 @@ onMounted(async () => {
   await loadComments()
   checkLikedStatus()
   checkFavoritedStatus()
+  checkFollowStatus()
   
   // 响应式调整轮播高度
   updateCarouselHeight()

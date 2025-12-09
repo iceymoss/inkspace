@@ -85,7 +85,7 @@ func SetupUserRouter() *gin.Engine {
 			// User Profile (public)
 			public.GET("/users/:id", userHandler.GetUserProfile)
 			public.GET("/users/:id/articles", articleHandler.GetUserArticles)
-			public.GET("/users/:id/favorites", favoriteHandler.GetUserFavorites)
+			public.GET("/users/:id/works", workHandler.GetUserWorks)
 		}
 
 		// 可选认证的路由（支持未登录访问，但登录后会有额外信息）
@@ -94,9 +94,6 @@ func SetupUserRouter() *gin.Engine {
 		{
 			// 关注统计（支持可选认证，以便显示当前用户的关注状态）
 			publicWithOptionalAuth.GET("/users/:id/follow-stats", followHandler.GetFollowStats)
-			// 关注/粉丝列表（支持可选认证，以便显示当前用户的关注状态）
-			publicWithOptionalAuth.GET("/users/:id/following", followHandler.GetFollowingList)
-			publicWithOptionalAuth.GET("/users/:id/followers", followHandler.GetFollowerList)
 
 			// Links
 			public.GET("/links", linkHandler.GetList)
@@ -153,6 +150,9 @@ func SetupUserRouter() *gin.Engine {
 			// Follow
 			protected.POST("/users/:id/follow", followHandler.Follow)
 			protected.DELETE("/users/:id/follow", followHandler.Unfollow)
+			// 用户关注/粉丝列表（仅本人可访问）
+			protected.GET("/users/:id/following", followHandler.GetFollowingList)
+			protected.GET("/users/:id/followers", followHandler.GetFollowerList)
 
 			// Favorites
 			protected.POST("/articles/:id/favorite", favoriteHandler.AddFavorite)
@@ -160,6 +160,8 @@ func SetupUserRouter() *gin.Engine {
 			protected.POST("/works/:id/favorite", favoriteHandler.AddWorkFavorite)
 			protected.DELETE("/works/:id/favorite", favoriteHandler.RemoveWorkFavorite)
 			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
+			// 用户收藏列表（仅本人可访问）
+			protected.GET("/users/:id/favorites", favoriteHandler.GetUserFavorites)
 
 			// Notifications
 			protected.GET("/notifications", notificationHandler.GetNotifications)

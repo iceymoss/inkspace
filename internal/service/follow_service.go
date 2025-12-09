@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
@@ -9,10 +10,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type FollowService struct{}
+type FollowService struct {
+	notificationService *NotificationService
+}
 
 func NewFollowService() *FollowService {
-	return &FollowService{}
+	return &FollowService{
+		notificationService: NewNotificationService(),
+	}
 }
 
 // Follow 关注用户
@@ -68,11 +73,20 @@ func (s *FollowService) Follow(followerID, followingID uint) error {
 			return err
 		}
 
-		// TODO: 发送关注通知
-		// notificationService.CreateFollowNotification(followerID, followingID)
-
 		return nil
 	})
+
+	// 事务成功后，异步发送关注通知
+	if err == nil {
+		go func() {
+			notifErr := s.notificationService.CreateFollowNotification(followerID, followingID)
+			if notifErr != nil {
+				log.Printf("❌ 创建关注通知失败: 用户%d -> 用户%d, 错误: %v", followerID, followingID, notifErr)
+			} else {
+				log.Printf("✅ 成功创建关注通知: 用户%d -> 用户%d", followerID, followingID)
+			}
+		}()
+	}
 
 	return err
 }

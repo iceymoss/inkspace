@@ -195,12 +195,25 @@ func (h *FavoriteHandler) GetMyFavorites(c *gin.Context) {
 	utils.PageResponse(c, list, total, query.Page, query.PageSize)
 }
 
-// GetUserFavorites 获取指定用户的收藏列表
+// GetUserFavorites 获取指定用户的收藏列表（仅本人可访问）
 // GET /api/users/:id/favorites
 func (h *FavoriteHandler) GetUserFavorites(c *gin.Context) {
 	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	// 必须登录
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+
+	// 只能查看自己的收藏列表
+	if uint(userID) != currentUserID.(uint) {
+		utils.Forbidden(c, "无权访问他人的收藏列表")
 		return
 	}
 

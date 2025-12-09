@@ -182,8 +182,7 @@ const initCropper = () => {
   }
   
   if (cropperImage.value) {
-    cropper = new Cropper(cropperImage.value, {
-      aspectRatio: props.aspectRatio,
+    const cropperOptions = {
       viewMode: 1,
       dragMode: 'move',
       autoCropArea: 0.8,
@@ -194,7 +193,14 @@ const initCropper = () => {
       cropBoxMovable: true,
       cropBoxResizable: true,
       toggleDragModeOnDblclick: false,
-    })
+    }
+    
+    // 如果aspectRatio为0，则不设置aspectRatio限制，允许自由裁切
+    if (props.aspectRatio && props.aspectRatio !== 0) {
+      cropperOptions.aspectRatio = props.aspectRatio
+    }
+    
+    cropper = new Cropper(cropperImage.value, cropperOptions)
   }
 }
 

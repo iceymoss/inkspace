@@ -26,7 +26,7 @@ type LinkRequest struct {
 	URL         string `json:"url" binding:"required,url"`
 	Logo        string `json:"logo"`
 	Description string `json:"description" binding:"max=200"`
-	Email       string `json:"email" binding:"email"`
+	Email       string `json:"email" binding:"omitempty,email"`
 	Sort        int    `json:"sort"`
 	Status      int    `json:"status"`
 }

@@ -51,7 +51,7 @@
             </el-breadcrumb>
             <div class="header-actions">
               <el-button text @click="$router.push('/')">返回网站</el-button>
-              <el-button v-if="userStore.isAdmin" type="primary" @click="$router.push('/admin')">
+              <el-button v-if="userStore.isAdmin" type="primary" @click="goToAdminBackend">
                 管理后台
               </el-button>
               <el-dropdown @command="handleCommand">
@@ -99,6 +99,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const unreadCount = ref(0)
+const adminBackendUrl = ref('')
 
 const loadUnreadCount = async () => {
   try {
@@ -114,6 +115,7 @@ let intervalId = null
 
 onMounted(() => {
   loadUnreadCount()
+  loadAdminBackendUrl()
   intervalId = setInterval(loadUnreadCount, 30000)
 })
 
@@ -147,6 +149,27 @@ const breadcrumbTitle = computed(() => {
   }
   return titles[route.path] || '用户中心'
 })
+
+const loadAdminBackendUrl = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    const settings = response.data || {}
+    adminBackendUrl.value = settings.admin_backend_url || '/admin'
+  } catch (error) {
+    console.error('Failed to load admin backend URL:', error)
+    adminBackendUrl.value = '/admin' // 默认值
+  }
+}
+
+const goToAdminBackend = () => {
+  const url = adminBackendUrl.value || '/admin'
+  // 如果是绝对URL，使用 window.open，否则使用 router.push
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    window.open(url, '_blank')
+  } else {
+    router.push(url)
+  }
+}
 
 const handleCommand = (command) => {
   if (command === 'logout') {

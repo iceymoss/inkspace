@@ -393,6 +393,34 @@ func (h *WorkHandler) GetMyWorks(c *gin.Context) {
 	utils.PageResponse(c, workResponses, total, page, pageSize)
 }
 
+// GetUserWorks 获取指定用户的作品列表（公开访问）
+// GET /api/users/:id/works
+func (h *WorkHandler) GetUserWorks(c *gin.Context) {
+	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "12"))
+	workType := c.DefaultQuery("type", "all")
+	sortBy := c.DefaultQuery("sort_by", "latest") // 默认最新排序
+
+	works, total, err := h.service.GetUserWorks(uint(userID), page, pageSize, workType, sortBy)
+	if err != nil {
+		utils.InternalServerError(c, err.Error())
+		return
+	}
+
+	workResponses := make([]*models.WorkResponse, len(works))
+	for i, work := range works {
+		workResponses[i] = h.toResponse(work)
+	}
+
+	utils.PageResponse(c, workResponses, total, page, pageSize)
+}
+
 // GetQuotaUsage 获取今日配额使用情况
 // GET /api/works/quota
 func (h *WorkHandler) GetQuotaUsage(c *gin.Context) {
