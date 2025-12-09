@@ -101,6 +101,15 @@
                     </span>
                     <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
                     <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
+                    <span v-if="article.like_count">
+                      <el-icon><Star /></el-icon> {{ article.like_count }}
+                    </span>
+                    <span v-if="article.comment_count">
+                      <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
+                    </span>
+                    <span v-if="article.favorite_count">
+                      <el-icon><Collection /></el-icon> {{ article.favorite_count }}
+                    </span>
                     <!-- 书签样式的标签 -->
                     <div class="article-bookmarks" v-if="article.tags && article.tags.length > 0">
                       <span 
@@ -170,7 +179,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search, User, View, Clock, ArrowDown } from '@element-plus/icons-vue'
+import { Search, User, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 

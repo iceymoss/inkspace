@@ -53,8 +53,14 @@
               </div>
               <div class="work-stats">
                 <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
-                <span v-if="work.like_count > 0">
+                <span v-if="work.like_count">
                   <el-icon><Star /></el-icon> {{ work.like_count }}
+                </span>
+                <span v-if="work.comment_count">
+                  <el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}
+                </span>
+                <span v-if="work.favorite_count">
+                  <el-icon><Collection /></el-icon> {{ work.favorite_count }}
                 </span>
               </div>
             </div>
@@ -80,7 +86,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { View, Star } from '@element-plus/icons-vue'
+import { View, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
 const router = useRouter()

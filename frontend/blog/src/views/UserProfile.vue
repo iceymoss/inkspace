@@ -14,6 +14,10 @@
                 <div class="stat-value">{{ user?.article_count || 0 }}</div>
                 <div class="stat-label">文章</div>
               </div>
+              <div class="stat-item clickable" @click="goToWorks">
+                <div class="stat-value">{{ worksTotal || 0 }}</div>
+                <div class="stat-label">作品</div>
+              </div>
               <!-- 只有自己的主页才能点击查看粉丝列表 -->
               <div 
                 class="stat-item" 
@@ -707,6 +711,20 @@ const goToArticles = () => {
   }
 }
 
+// 跳转到作品列表
+const goToWorks = () => {
+  if (isCurrentUser.value) {
+    // 本人 → 跳转到作品管理页面
+    router.push('/dashboard/works')
+  } else {
+    // 他人 → 切换到作品标签页
+    activeTab.value = 'works'
+    setTimeout(() => {
+      document.querySelector('.profile-tabs')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }
+}
+
 // 跳转到粉丝列表（切换到粉丝标签页）
 const goToFollowers = () => {
   if (!isCurrentUser.value) {
@@ -765,13 +783,15 @@ const initData = async () => {
   followingPage.value = 1
   followersPage.value = 1
   worksPage.value = 1
+  worksTotal.value = 0
   activeTab.value = 'articles'
   
   // 加载数据
   await Promise.all([
     loadUser(),
     loadFollowStats(),
-    loadArticles()
+    loadArticles(),
+    loadWorks() // 加载作品列表以获取作品总数
   ])
   
   // 如果URL中有tab参数，切换到对应的标签页（仅自己的主页）

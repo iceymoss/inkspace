@@ -84,6 +84,14 @@
                           <el-icon><Star /></el-icon>
                           {{ article.like_count }}
                         </span>
+                        <span class="meta-item" v-if="article.comment_count">
+                          <el-icon><ChatDotRound /></el-icon>
+                          {{ article.comment_count }}
+                        </span>
+                        <span class="meta-item" v-if="article.favorite_count">
+                          <el-icon><Collection /></el-icon>
+                          {{ article.favorite_count }}
+                        </span>
                       </div>
                     </div>
                     <div class="article-cover" v-if="article.cover">
@@ -135,6 +143,25 @@
                         >
                           {{ tech }}
                         </el-tag>
+                      </div>
+                      <!-- 作品元数据 -->
+                      <div class="work-meta">
+                        <span class="work-meta-item">
+                          <el-icon><View /></el-icon>
+                          {{ work.view_count || 0 }}
+                        </span>
+                        <span class="work-meta-item">
+                          <el-icon><Star /></el-icon>
+                          {{ work.like_count || 0 }}
+                        </span>
+                        <span class="work-meta-item">
+                          <el-icon><ChatDotRound /></el-icon>
+                          {{ work.comment_count || 0 }}
+                        </span>
+                        <span class="work-meta-item">
+                          <el-icon><Collection /></el-icon>
+                          {{ work.favorite_count || 0 }}
+                        </span>
                       </div>
                     </div>
                   </el-card>
@@ -192,7 +219,9 @@
                     <h4>{{ article.title }}</h4>
                     <div class="recommended-meta">
                       <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
-                      <span><el-icon><Star /></el-icon> {{ article.like_count }}</span>
+                      <span><el-icon><Star /></el-icon> {{ article.like_count || 0 }}</span>
+                      <span><el-icon><ChatDotRound /></el-icon> {{ article.comment_count || 0 }}</span>
+                      <span><el-icon><Collection /></el-icon> {{ article.favorite_count || 0 }}</span>
                     </div>
                   </div>
                 </div>
@@ -274,7 +303,9 @@ import {
   Star,
   DataAnalysis,
   PriceTag,
-  User
+  User,
+  ChatDotRound,
+  Collection
 } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
@@ -705,6 +736,21 @@ onMounted(() => {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   line-height: 1.5;
+}
+
+.work-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--theme-text-secondary);
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.work-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .work-tech-stack {
