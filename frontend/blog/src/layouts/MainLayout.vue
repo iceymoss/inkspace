@@ -107,7 +107,27 @@ const handleCommand = (command) => {
   } else if (command === 'dashboard') {
     router.push('/dashboard')
   } else if (command === 'profile') {
-    router.push(`/users/${userStore.user.id}`)
+    const currentUserId = userStore.user?.id
+    if (!currentUserId) {
+      console.error('User ID not found')
+      return
+    }
+    const targetPath = `/users/${currentUserId}`
+    const currentPath = router.currentRoute.value.path
+    
+    // 如果当前路由就是目标路由，使用 replace 强制刷新
+    // 否则使用 push 正常跳转
+    if (currentPath === targetPath) {
+      // 先跳转到首页，然后立即跳转到目标路径，强制组件重新加载
+      router.replace('/').then(() => {
+        setTimeout(() => {
+          router.replace(targetPath)
+        }, 50)
+      })
+    } else {
+      // 正常跳转，watch 会监听到路由变化并重新加载数据
+      router.push(targetPath)
+    }
   } else if (command === 'edit') {
     router.push('/profile/edit')
   } else if (command === 'favorites') {

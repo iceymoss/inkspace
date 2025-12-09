@@ -36,7 +36,12 @@ func (h *FollowHandler) Follow(c *gin.Context) {
 	}
 
 	if err := h.service.Follow(followerID.(uint), uint(followingID)); err != nil {
-		utils.Error(c, 400, err.Error())
+		// 用户不存在时返回 404，其他错误返回 400
+		if err.Error() == "用户不存在" {
+			utils.NotFound(c, err.Error())
+		} else {
+			utils.Error(c, 400, err.Error())
+		}
 		return
 	}
 
@@ -90,7 +95,7 @@ func (h *FollowHandler) GetFollowStats(c *gin.Context) {
 	utils.Success(c, stats)
 }
 
-// GetFollowingList 获取关注列表
+// GetFollowingList 获取关注列表（仅本人可访问）
 // GET /api/users/:id/following
 func (h *FollowHandler) GetFollowingList(c *gin.Context) {
 	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -99,6 +104,19 @@ func (h *FollowHandler) GetFollowingList(c *gin.Context) {
 		return
 	}
 
+	// 必须登录
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+
+	// 只能查看自己的关注列表
+	if uint(userID) != currentUserID.(uint) {
+		utils.Forbidden(c, "无权访问他人的关注列表")
+		return
+	}
+
 	var query models.FollowListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		utils.BadRequest(c, err.Error())
@@ -112,13 +130,7 @@ func (h *FollowHandler) GetFollowingList(c *gin.Context) {
 		query.PageSize = 20
 	}
 
-	// 获取当前登录用户ID（可能为0，表示未登录）
-	currentUserID := uint(0)
-	if uid, exists := c.Get("user_id"); exists {
-		currentUserID = uid.(uint)
-	}
-
-	list, total, err := h.service.GetFollowingList(uint(userID), query.Page, query.PageSize, currentUserID)
+	list, total, err := h.service.GetFollowingList(uint(userID), query.Page, query.PageSize, currentUserID.(uint))
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return
@@ -127,12 +139,25 @@ func (h *FollowHandler) GetFollowingList(c *gin.Context) {
 	utils.PageResponse(c, list, total, query.Page, query.PageSize)
 }
 
-// GetFollowerList 获取粉丝列表
+// GetFollowerList 获取粉丝列表（仅本人可访问）
 // GET /api/users/:id/followers
 func (h *FollowHandler) GetFollowerList(c *gin.Context) {
 	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utils.BadRequest(c, "无效的用户ID")
+		return
+	}
+
+	// 必须登录
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+
+	// 只能查看自己的粉丝列表
+	if uint(userID) != currentUserID.(uint) {
+		utils.Forbidden(c, "无权访问他人的粉丝列表")
 		return
 	}
 
@@ -149,13 +174,7 @@ func (h *FollowHandler) GetFollowerList(c *gin.Context) {
 		query.PageSize = 20
 	}
 
-	// 获取当前登录用户ID（可能为0，表示未登录）
-	currentUserID := uint(0)
-	if uid, exists := c.Get("user_id"); exists {
-		currentUserID = uid.(uint)
-	}
-
-	list, total, err := h.service.GetFollowerList(uint(userID), query.Page, query.PageSize, currentUserID)
+	list, total, err := h.service.GetFollowerList(uint(userID), query.Page, query.PageSize, currentUserID.(uint))
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return

@@ -1121,7 +1121,7 @@ const handleImageLoad = () => {
 
 const goToUserProfile = (userId) => {
   if (userId) {
-    router.push(`/user/${userId}`)
+    router.push(`/users/${userId}`)
   }
 }
 

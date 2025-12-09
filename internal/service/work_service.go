@@ -256,6 +256,46 @@ func (s *WorkService) GetMyWorks(authorID uint, page, pageSize int, workType str
 	return works, total, nil
 }
 
+// GetUserWorks 获取指定用户的作品列表（公开访问）
+func (s *WorkService) GetUserWorks(authorID uint, page, pageSize int, workType string, sortBy string) ([]*models.Work, int64, error) {
+	var works []*models.Work
+	var total int64
+
+	// 只显示已发布的作品
+	db := database.DB.Model(&models.Work{}).Where("author_id = ? AND status = ?", authorID, 1)
+
+	// 按类型筛选
+	if workType != "" && workType != "all" {
+		db = db.Where("type = ?", workType)
+	}
+
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+
+	// 根据排序参数决定排序方式
+	orderBy := "created_at DESC" // 默认最新排序
+	switch sortBy {
+	case "hot":
+		// 热度排序：综合浏览量、评论数、点赞数、收藏数
+		orderBy = "(view_count * 0.4 + comment_count * 0.25 + like_count * 0.2 + favorite_count * 0.1) DESC, created_at DESC"
+	case "latest", "time":
+		// 时间排序：最新优先
+		orderBy = "created_at DESC"
+	default:
+		// 默认：最新排序
+		orderBy = "created_at DESC"
+	}
+
+	if err := db.Preload("Author").Order(orderBy).Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return works, total, nil
+}
+
 func (s *WorkService) IncrementViewCount(id uint) error {
 	return database.DB.Model(&models.Work{}).Where("id = ?", id).UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error
 }

@@ -235,6 +235,7 @@ func (h *ArticleHandler) GetList(c *gin.Context) {
 // GetUserArticles 获取用户的文章列表
 // GET /api/users/:id/articles
 // 数据安全：只返回公开的文章（status=1），不返回草稿和私有文章
+// 支持排序参数：sort_by=latest（最新）或 sort_by=hot（最热）
 func (h *ArticleHandler) GetUserArticles(c *gin.Context) {
 	authorID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -273,6 +274,16 @@ func (h *ArticleHandler) GetUserArticles(c *gin.Context) {
 		status := 1
 		query.Status = &status
 	}
+
+	// 处理排序参数：latest -> time, hot -> hot
+	if query.SortBy == "latest" {
+		query.SortBy = "time"
+	}
+	// 如果没有指定排序，默认使用最新排序
+	if query.SortBy == "" {
+		query.SortBy = "time"
+	}
+	query.SortOrder = "desc"
 
 	articles, total, err := h.service.GetList(&query)
 	if err != nil {

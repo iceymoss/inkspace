@@ -8,8 +8,8 @@ admin:
 database:
   host: localhost
   port: 3306
-  username: root
-  password: 123456789
+  username: iceymoss
+  password: Yk?123456
   database: mysite
   charset: utf8mb4
   parseTime: true

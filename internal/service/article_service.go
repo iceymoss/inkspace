@@ -444,9 +444,9 @@ func (s *ArticleService) buildOrderBy(query *models.ArticleListQuery) string {
 	case "comment_count":
 		sortField = "comment_count"
 	case "hot":
-		// 热门排序需要特殊处理，使用综合得分
-		// 这里简化处理，使用 view_count + like_count + comment_count 作为热门度
-		sortField = "(view_count * 0.5 + like_count * 0.15 + comment_count * 0.2 + favorite_count * 0.15)"
+		// 热门排序使用综合得分
+		// 阅读量50% + 收藏量15% + 点赞量20% + 评论量15%
+		sortField = "(view_count * 0.5 + favorite_count * 0.15 + like_count * 0.2 + comment_count * 0.15)"
 	}
 
 	// 排序方向
