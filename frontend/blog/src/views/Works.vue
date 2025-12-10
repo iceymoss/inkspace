@@ -3,7 +3,7 @@
     <div class="container">
       <!-- 筛选栏 -->
       <div class="works-filters">
-        <h1 class="works-title">作品展示</h1>
+        <h1 class="works-title">作品分享</h1>
         <div class="works-filters-controls">
           <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
           <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" style="width: 150px; margin-left: 15px;">
@@ -22,7 +22,7 @@
           v-for="work in works" 
           :key="work.id" 
           class="masonry-item"
-          @click="router.push(`/works/${work.id}`)"
+          @click="handleWorkClick(work.id)"
         >
           <div class="work-image-container">
             <el-image 
@@ -87,6 +87,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { View, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
+import { navigateToWorkDetail } from '@/utils/workNavigation'
 
 const router = useRouter()
 const works = ref([])
@@ -129,6 +130,11 @@ const loadWorks = async () => {
 const handleFilterChange = () => {
   currentPage.value = 1
   loadWorks()
+}
+
+// 处理作品点击，预加载数据后跳转
+const handleWorkClick = (workId) => {
+  navigateToWorkDetail(workId, router)
 }
 
 onMounted(() => {

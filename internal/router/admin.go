@@ -78,6 +78,7 @@ func SetupAdminRouter() *gin.Engine {
 			admin.POST("/works", workHandler.Create)
 			admin.PUT("/works/:id", workHandler.Update)
 			admin.PUT("/works/:id/recommend", workHandler.SetRecommend)
+			admin.PUT("/works/:id/status", workHandler.UpdateWorkStatus)
 			admin.DELETE("/works/:id", workHandler.Delete)
 
 			// Categories management

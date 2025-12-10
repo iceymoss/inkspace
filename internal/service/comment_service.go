@@ -29,6 +29,35 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		return nil, errors.New("不能同时评论文章和作品")
 	}
 
+	// 检查评论功能是否开放
+	settingService := NewSettingService()
+	
+	// 检查文章评论是否开放
+	if req.ArticleID != nil && *req.ArticleID > 0 {
+		articleCommentSetting, err := settingService.Get(models.SettingArticleCommentEnabled)
+		if err != nil {
+			// 如果配置不存在，默认允许评论（向后兼容）
+			log.Printf("警告: 无法获取文章评论配置，默认允许评论: %v", err)
+		} else {
+			if articleCommentSetting.Value != "1" && articleCommentSetting.Value != "true" {
+				return nil, errors.New("文章评论功能已关闭")
+			}
+		}
+	}
+
+	// 检查作品评论是否开放
+	if req.WorkID != nil && *req.WorkID > 0 {
+		workCommentSetting, err := settingService.Get(models.SettingWorkCommentEnabled)
+		if err != nil {
+			// 如果配置不存在，默认允许评论（向后兼容）
+			log.Printf("警告: 无法获取作品评论配置，默认允许评论: %v", err)
+		} else {
+			if workCommentSetting.Value != "1" && workCommentSetting.Value != "true" {
+				return nil, errors.New("作品评论功能已关闭")
+			}
+		}
+	}
+
 	// Check if article/work exists and load for notifications
 	var article *models.Article
 	if req.ArticleID != nil && *req.ArticleID > 0 {
@@ -41,13 +70,19 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		}
 	}
 
+	var work *models.Work
 	if req.WorkID != nil && *req.WorkID > 0 {
-		var work models.Work
-		if err := database.DB.First(&work, *req.WorkID).Error; err != nil {
+		work = &models.Work{}
+		if err := database.DB.First(work, *req.WorkID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, errors.New("作品不存在")
 			}
 			return nil, err
+		}
+		
+		// 检查作品是否已发布（status=1），只有已发布的作品才允许评论
+		if work.Status != 1 {
+			return nil, errors.New("该作品尚未发布，无法评论")
 		}
 	}
 
@@ -81,6 +116,28 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		workID = req.WorkID
 	}
 
+	// 检查评论审核配置，决定评论状态
+	commentStatus := 1 // 默认已通过
+	commentAuditSetting, err := settingService.Get(models.SettingCommentAudit)
+	if err != nil {
+		// 如果配置不存在，默认不审核（向后兼容）
+		log.Printf("警告: 无法获取评论审核配置，默认不审核: %v", err)
+	} else {
+		// 如果开启了审核，设置为待审核状态（status=0）
+		// 数据库存储的是字符串 '1' 或 '0'
+		// 前端保存时会将布尔值转换为 '1' 或 '0'
+		auditEnabled := commentAuditSetting.Value == "1" || 
+			commentAuditSetting.Value == "true" || 
+			commentAuditSetting.Value == "True" ||
+			commentAuditSetting.Value == "TRUE"
+		if auditEnabled {
+			commentStatus = 0 // 待审核
+			log.Printf("评论审核已开启，评论将设置为待审核状态 (status=0)。配置值: %s", commentAuditSetting.Value)
+		} else {
+			log.Printf("评论审核未开启，评论将直接通过 (status=1)。配置值: %s", commentAuditSetting.Value)
+		}
+	}
+
 	comment := &models.Comment{
 		ArticleID: articleID,
 		WorkID:    workID,
@@ -91,48 +148,69 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		Nickname:  req.Nickname,
 		Email:     req.Email,
 		Website:   req.Website,
-		Status:    1, // Auto approve
+		Status:    commentStatus, // 根据审核配置设置状态
 	}
 
-	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		// 创建评论
+	// 调试：检查创建前的 Status 值
+	log.Printf("创建评论前，commentStatus=%d, comment.Status=%d", commentStatus, comment.Status)
+
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		// 创建评论（GORM 可能会使用 default:1 覆盖我们的 0 值）
+		// 所以先创建，然后立即在同一个事务中更新 status
 		if err := tx.Create(comment).Error; err != nil {
 			return err
 		}
-
-		// 更新文章评论数
-		if req.ArticleID != nil && *req.ArticleID > 0 {
-			if err := tx.Model(&models.Article{}).
-				Where("id = ?", *req.ArticleID).
-				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+		
+		// 如果审核已开启（commentStatus=0），立即在同一个事务中更新 status 为 0
+		// 这样可以覆盖 GORM 的 default:1 标签和数据库的默认值
+		if commentStatus == 0 {
+			if err := tx.Model(comment).Update("status", 0).Error; err != nil {
 				return err
 			}
+			comment.Status = 0 // 同步更新内存中的值
+			log.Printf("评论创建后，已将 Status 更新为 0（待审核），ID: %d", comment.ID)
 		}
+		
+		// 调试：检查创建后的 Status 值
+		log.Printf("创建评论后（事务内），comment.Status=%d", comment.Status)
 
-		// 更新作品评论数
-		if req.WorkID != nil && *req.WorkID > 0 {
-			if err := tx.Model(&models.Work{}).
-				Where("id = ?", *req.WorkID).
-				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
-				return err
+		// 只有审核通过的评论（status=1）才更新评论数
+		// 待审核的评论（status=0）在审核通过时再更新评论数
+		if commentStatus == 1 {
+			// 更新文章评论数
+			if req.ArticleID != nil && *req.ArticleID > 0 {
+				if err := tx.Model(&models.Article{}).
+					Where("id = ?", *req.ArticleID).
+					UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+					return err
+				}
 			}
-		}
 
-		// 更新用户评论数
-		if userID > 0 {
-			if err := tx.Model(&models.User{}).
-				Where("id = ?", userID).
-				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
-				return err
+			// 更新作品评论数
+			if req.WorkID != nil && *req.WorkID > 0 {
+				if err := tx.Model(&models.Work{}).
+					Where("id = ?", *req.WorkID).
+					UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+					return err
+				}
 			}
-		}
 
-		// 更新父评论回复数
-		if req.ParentID != nil {
-			if err := tx.Model(&models.Comment{}).
-				Where("id = ?", *req.ParentID).
-				UpdateColumn("reply_count", gorm.Expr("reply_count + ?", 1)).Error; err != nil {
-				return err
+			// 更新用户评论数
+			if userID > 0 {
+				if err := tx.Model(&models.User{}).
+					Where("id = ?", userID).
+					UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+					return err
+				}
+			}
+
+			// 更新父评论回复数
+			if req.ParentID != nil {
+				if err := tx.Model(&models.Comment{}).
+					Where("id = ?", *req.ParentID).
+					UpdateColumn("reply_count", gorm.Expr("reply_count + ?", 1)).Error; err != nil {
+					return err
+				}
 			}
 		}
 
@@ -229,6 +307,9 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 			}
 		}()
 	}
+
+	// 记录创建的评论状态，用于调试
+	log.Printf("评论创建成功，ID: %d, Status: %d (1=已通过, 0=待审核, -1=已拒绝)", comment.ID, comment.Status)
 
 	return comment, nil
 }
@@ -347,6 +428,15 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 
 	db := database.DB.Model(&models.Comment{})
 
+	// Filter by type (article or work)
+	if query.Type == "article" {
+		// 只显示文章评论（article_id 不为 null，work_id 为 null）
+		db = db.Where("article_id IS NOT NULL AND work_id IS NULL")
+	} else if query.Type == "work" {
+		// 只显示作品评论（work_id 不为 null，article_id 为 null）
+		db = db.Where("work_id IS NOT NULL AND article_id IS NULL")
+	}
+
 	// Filter by article
 	if query.ArticleID != nil && *query.ArticleID > 0 {
 		db = db.Where("article_id = ?", *query.ArticleID)
@@ -366,12 +456,13 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 	if query.Status != nil {
 		db = db.Where("status = ?", *query.Status)
 	} else {
-		// Default: only show approved
-		// But if user_id is specified (viewing own comments), show all statuses
-		if query.UserID == 0 {
+		// 如果 ShowAll=true（管理后台），显示所有状态的评论
+		// 如果 user_id > 0（查看自己的评论），显示所有状态的评论
+		// 否则只显示已通过的评论（status=1）
+		if !query.ShowAll && query.UserID == 0 {
 			db = db.Where("status = ?", 1)
 		}
-		// If user_id > 0, don't filter by status (show all: pending, approved, rejected)
+		// If ShowAll=true or user_id > 0, don't filter by status (show all: pending, approved, rejected)
 	}
 
 	// Only get root comments (when filtering by article/work, not when filtering by user)
@@ -410,5 +501,102 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 }
 
 func (s *CommentService) UpdateStatus(id uint, status int) error {
-	return database.DB.Model(&models.Comment{}).Where("id = ?", id).Update("status", status).Error
+	// 先查询评论以获取当前状态和相关信息
+	var comment models.Comment
+	if err := database.DB.First(&comment, id).Error; err != nil {
+		return err
+	}
+
+	oldStatus := comment.Status
+
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 更新评论状态
+		if err := tx.Model(&models.Comment{}).Where("id = ?", id).Update("status", status).Error; err != nil {
+			return err
+		}
+
+		// 如果状态从待审核(0)变为通过(1)，需要增加评论数
+		// 如果状态从通过(1)变为拒绝(-1)或待审核(0)，需要减少评论数
+		if oldStatus != status {
+			// 从待审核变为通过：增加评论数
+			if oldStatus == 0 && status == 1 {
+				// 更新文章评论数
+				if comment.ArticleID != nil && *comment.ArticleID > 0 {
+					if err := tx.Model(&models.Article{}).
+						Where("id = ?", *comment.ArticleID).
+						UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+
+				// 更新作品评论数
+				if comment.WorkID != nil && *comment.WorkID > 0 {
+					if err := tx.Model(&models.Work{}).
+						Where("id = ?", *comment.WorkID).
+						UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+
+				// 更新用户评论数
+				if comment.UserID > 0 {
+					if err := tx.Model(&models.User{}).
+						Where("id = ?", comment.UserID).
+						UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+
+				// 更新父评论回复数
+				if comment.ParentID != nil {
+					if err := tx.Model(&models.Comment{}).
+						Where("id = ?", *comment.ParentID).
+						UpdateColumn("reply_count", gorm.Expr("reply_count + ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+			}
+
+			// 从通过变为拒绝或待审核：减少评论数
+			if oldStatus == 1 && (status == 0 || status == -1) {
+				// 更新文章评论数
+				if comment.ArticleID != nil && *comment.ArticleID > 0 {
+					if err := tx.Model(&models.Article{}).
+						Where("id = ?", *comment.ArticleID).
+						UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+
+				// 更新作品评论数
+				if comment.WorkID != nil && *comment.WorkID > 0 {
+					if err := tx.Model(&models.Work{}).
+						Where("id = ?", *comment.WorkID).
+						UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+
+				// 更新用户评论数
+				if comment.UserID > 0 {
+					if err := tx.Model(&models.User{}).
+						Where("id = ?", comment.UserID).
+						UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+
+				// 更新父评论回复数
+				if comment.ParentID != nil {
+					if err := tx.Model(&models.Comment{}).
+						Where("id = ?", *comment.ParentID).
+						UpdateColumn("reply_count", gorm.Expr("reply_count - ?", 1)).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		return nil
+	})
 }

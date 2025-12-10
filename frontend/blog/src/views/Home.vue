@@ -122,7 +122,7 @@
                   <el-card 
                     class="work-card work-card-clickable"
                     shadow="hover" 
-                    @click="$router.push(`/works/${work.id}`)"
+                    @click="navigateToWorkDetail(work.id, router)"
                   >
                     <div class="work-type-badge">
                       <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
@@ -240,7 +240,7 @@
                     v-for="work in recommendedWorks" 
                     :key="work.id" 
                     class="recommended-work-item"
-                    @click="$router.push(`/works/${work.id}`)"
+                    @click="navigateToWorkDetail(work.id, router)"
                   >
                     <el-image :src="work.cover" class="work-thumb" fit="cover" />
                     <div class="work-title">{{ work.title }}</div>
@@ -294,6 +294,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { navigateToWorkDetail } from '@/utils/workNavigation'
 import { 
   Reading, 
   Picture, 

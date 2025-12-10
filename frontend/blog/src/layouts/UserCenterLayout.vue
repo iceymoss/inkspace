@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
@@ -110,6 +110,12 @@ const loadUnreadCount = async () => {
   }
 }
 
+// 提供更新未读数量的方法给子组件
+const refreshUnreadCount = () => {
+  loadUnreadCount()
+}
+provide('refreshUnreadCount', refreshUnreadCount)
+
 // 每30秒刷新一次未读数量
 let intervalId = null
 
@@ -117,6 +123,13 @@ onMounted(() => {
   loadUnreadCount()
   loadAdminBackendUrl()
   intervalId = setInterval(loadUnreadCount, 30000)
+  
+  // 监听路由变化，在通知页面时更频繁地刷新
+  router.afterEach((to) => {
+    if (to.path === '/dashboard/notifications') {
+      loadUnreadCount()
+    }
+  })
 })
 
 onUnmounted(() => {
@@ -269,6 +282,24 @@ const handleCommand = (command) => {
 
 .main {
   padding: 20px;
+}
+
+/* 修复通知气泡位置 */
+:deep(.el-menu-item) {
+  position: relative;
+}
+
+:deep(.el-menu-item .notification-badge) {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: 0;
+}
+
+:deep(.el-menu-item .notification-badge .el-badge__content) {
+  position: static;
+  transform: none;
 }
 </style>
 

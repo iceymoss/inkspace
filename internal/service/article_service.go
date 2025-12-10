@@ -661,10 +661,26 @@ func (s *ArticleService) GetHotArticles(limit int) ([]*models.Article, error) {
 		var articles []*models.Article
 		err := database.DB.Where("status = ?", 1).
 			Preload("Category").Preload("Tags").Preload("Author").
-			Order("created_at DESC").
+			Order("is_top DESC, created_at DESC").
 			Limit(limit).
 			Find(&articles).Error
-		return articles, err
+		if err != nil {
+			return nil, err
+		}
+		// 降级方案也需要处理置顶逻辑
+		topArticles := make([]*models.Article, 0)
+		normalArticles := make([]*models.Article, 0)
+		for _, article := range articles {
+			if article.IsTop {
+				topArticles = append(topArticles, article)
+			} else {
+				normalArticles = append(normalArticles, article)
+			}
+		}
+		result := make([]*models.Article, 0, len(articles))
+		result = append(result, topArticles...)
+		result = append(result, normalArticles...)
+		return result, nil
 	}
 
 	// 解析文章ID列表
@@ -703,5 +719,22 @@ func (s *ArticleService) GetHotArticles(limit int) ([]*models.Article, error) {
 		}
 	}
 
-	return sortedArticles, nil
+	// 将置顶文章放在最前面，然后按照热度排序
+	topArticles := make([]*models.Article, 0)
+	normalArticles := make([]*models.Article, 0)
+	
+	for _, article := range sortedArticles {
+		if article.IsTop {
+			topArticles = append(topArticles, article)
+		} else {
+			normalArticles = append(normalArticles, article)
+		}
+	}
+	
+	// 置顶文章在前，非置顶文章在后（都保持原有的热度排序）
+	result := make([]*models.Article, 0, len(sortedArticles))
+	result = append(result, topArticles...)
+	result = append(result, normalArticles...)
+
+	return result, nil
 }

@@ -51,11 +51,18 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="200">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? '已发布' : '草稿' }}
-            </el-tag>
+            <div>
+              <el-tag :type="getStatusType(row.status)" size="small">
+                {{ getStatusText(row.status) }}
+              </el-tag>
+              <div v-if="row.audit_message" style="margin-top: 4px;">
+                <el-text type="info" size="small" style="font-size: 12px;">
+                  {{ row.audit_message }}
+                </el-text>
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="统计" width="120">
@@ -107,6 +114,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import { navigateToWorkDetail } from '@/utils/workNavigation'
 
 const router = useRouter()
 
@@ -169,7 +177,8 @@ const handleReset = () => {
 }
 
 const handleView = (row) => {
-  router.push(`/works/${row.id}`)
+  // 使用预加载导航
+  navigateToWorkDetail(row.id, router)
 }
 
 const handleEdit = (row) => {
@@ -189,6 +198,38 @@ const handleDelete = async (row) => {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
     }
+  }
+}
+
+// 获取状态文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 1:
+      return '已发布'
+    case 0:
+      return '草稿'
+    case 2:
+      return '审核中'
+    case 3:
+      return '审核不通过'
+    default:
+      return '未知'
+  }
+}
+
+// 获取状态标签类型
+const getStatusType = (status) => {
+  switch (status) {
+    case 1:
+      return 'success'
+    case 0:
+      return 'info'
+    case 2:
+      return 'warning'
+    case 3:
+      return 'danger'
+    default:
+      return 'info'
   }
 }
 

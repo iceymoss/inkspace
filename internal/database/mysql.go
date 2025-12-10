@@ -94,7 +94,6 @@ func autoMigrate() error {
 		&models.UserFollow{},
 		&models.Notification{},
 		&models.Subscription{},
-		// 广告表
 		&models.AdPosition{},
 		&models.Advertisement{},
 		&models.AdPlacement{},

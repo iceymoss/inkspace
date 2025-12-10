@@ -2,16 +2,36 @@
   <div class="work-detail">
     <div class="container">
       <el-card v-if="work" class="detail-card">
-        <template #header v-if="isWorkOwner">
-          <div class="card-header-actions">
-            <el-button 
-              type="primary" 
-              :icon="Edit" 
-              @click="handleEdit"
-              size="default"
-            >
-              编辑作品
-            </el-button>
+        <template #header>
+          <div class="card-header">
+            <!-- 审核状态提示（仅在非已发布状态时显示） -->
+            <div v-if="work.status !== 1" class="work-status-banner">
+              <el-alert
+                :type="getStatusAlertType(work.status)"
+                :closable="false"
+                show-icon
+              >
+                <template #title>
+                  <div>
+                    <div>{{ getStatusText(work.status) }}</div>
+                    <div v-if="work.audit_message" style="margin-top: 8px; font-size: 14px; font-weight: normal;">
+                      {{ work.audit_message }}
+                    </div>
+                  </div>
+                </template>
+              </el-alert>
+            </div>
+            <!-- 编辑按钮（仅作者可见） -->
+            <div v-if="isWorkOwner" class="card-header-actions">
+              <el-button 
+                type="primary" 
+                :icon="Edit" 
+                @click="handleEdit"
+                size="default"
+              >
+                编辑作品
+              </el-button>
+            </div>
           </div>
         </template>
         <!-- 摄影作品布局 -->
@@ -167,7 +187,8 @@
                     <span>{{ work.comment_count }} 评论</span>
                   </div>
                 </div>
-                <div class="action-buttons">
+                <!-- 只有已发布的作品才显示点赞和收藏按钮 -->
+                <div class="action-buttons" v-if="work && work.is_published">
                   <el-button 
                     :type="isLiked ? 'primary' : 'default'"
                     @click="handleLike"
@@ -264,8 +285,8 @@
                 <span><el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}</span>
               </div>
 
-              <!-- 点赞和收藏按钮 -->
-              <div class="work-actions" v-if="work">
+              <!-- 点赞和收藏按钮（只有已发布的作品才显示） -->
+              <div class="work-actions" v-if="work && work.is_published">
                 <el-button 
                   :type="isLiked ? 'primary' : 'default'"
                   @click="handleLike"
@@ -305,9 +326,10 @@
         </div>
 
         <!-- 评论区（两种类型共用） -->
-        <el-divider />
+        <!-- 只有已发布的作品（is_published=true）且评论功能开启时才显示评论区 -->
+        <el-divider v-if="workCommentEnabled && work && work.is_published" />
         
-        <div class="comment-section">
+        <div v-if="workCommentEnabled && work && work.is_published" class="comment-section">
           <h3>评论 ({{ work.comment_count }})</h3>
           
           <!-- 发表评论 -->
@@ -511,6 +533,9 @@
         </div>
       </el-card>
 
+      <div v-else-if="loading" class="loading-container" v-loading="loading" element-loading-text="加载中...">
+        <div class="loading-placeholder"></div>
+      </div>
       <el-empty v-else description="作品不存在" />
     </div>
   </div>
@@ -535,6 +560,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const work = ref(null)
+const loading = ref(true) // 添加加载状态
 const comments = ref([])
 const commentsPage = ref(1)
 const commentsTotal = ref(0)
@@ -557,6 +583,7 @@ const favoriting = ref(false)
 // 关注状态
 const isFollowing = ref(false)
 const followLoading = ref(false)
+const workCommentEnabled = ref(true) // 默认允许评论
 
 const photos = computed(() => {
   if (!work.value || work.value.type !== 'photography') return []
@@ -590,6 +617,36 @@ const isWorkOwner = computed(() => {
   // 处理可能的类型不匹配（字符串 vs 数字）
   return Number(authorId) === Number(userId)
 })
+
+// 获取作品状态文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 0:
+      return '草稿'
+    case 1:
+      return '已发布'
+    case 2:
+      return '审核中'
+    case 3:
+      return '审核不通过'
+    default:
+      return '未知状态'
+  }
+}
+
+// 获取状态警告类型
+const getStatusAlertType = (status) => {
+  switch (status) {
+    case 0:
+      return 'info' // 草稿 - 信息提示
+    case 2:
+      return 'warning' // 待审核 - 警告提示
+    case 3:
+      return 'error' // 审核不通过 - 错误提示
+    default:
+      return 'info'
+  }
+}
 
 // 判断评论/回复的作者是否是作品作者
 const isCommentAuthor = (comment) => {
@@ -672,6 +729,10 @@ const renderDescription = async () => {
 }
 
 const loadWork = async (skipView = false) => {
+  // 只有在首次加载时才显示 loading（skipView=true 表示刷新，不显示 loading）
+  if (!skipView) {
+    loading.value = true
+  }
   try {
     const url = skipView 
       ? `/works/${route.params.id}?skip_view=true`
@@ -681,7 +742,11 @@ const loadWork = async (skipView = false) => {
     // 渲染描述
     renderDescription()
   } catch (error) {
+    // 如果作品不存在，work.value 保持为 null，loading 设为 false 以显示"作品不存在"
+    work.value = null
     ElMessage.error('加载作品失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -801,11 +866,15 @@ const submitComment = async () => {
 
   submittingComment.value = true
   try {
-    await api.post('/comments', {
+    const response = await api.post('/comments', {
       work_id: parseInt(route.params.id),
       content: commentContent.value
     })
-    ElMessage.success('评论发表成功')
+    // 如果返回的消息不是默认的 "success"，显示返回的消息
+    // 注意：api 拦截器已经返回了 data 对象，所以直接使用 response.message
+    if (response.message && response.message !== 'success') {
+      ElMessage.success(response.message)
+    }
     commentContent.value = ''
     // 重置为第一页并重新加载
     commentsPage.value = 1
@@ -891,12 +960,16 @@ const submitReply = async (comment) => {
 
   comment.replying = true
   try {
-    await api.post('/comments', {
+    const response = await api.post('/comments', {
       work_id: parseInt(route.params.id),
       content: content,
       parent_id: comment.replyTo ? comment.replyTo.id : comment.id
     })
-    ElMessage.success('回复成功')
+    // 如果返回的消息不是默认的 "success"，显示返回的消息
+    // 注意：api 拦截器已经返回了 data 对象，所以直接使用 response.message
+    if (response.message && response.message !== 'success') {
+      ElMessage.success(response.message)
+    }
     comment.showReply = false
     comment.replyContent = ''
     comment.replyTo = null
@@ -933,12 +1006,16 @@ const submitReplyToReply = async (parentComment, reply) => {
 
   reply.replying = true
   try {
-    await api.post('/comments', {
+    const response = await api.post('/comments', {
       work_id: parseInt(route.params.id),
       content: content,
       parent_id: reply.replyTo ? reply.replyTo.id : reply.id
     })
-    ElMessage.success('回复成功')
+    // 如果返回的消息不是默认的 "success"，显示返回的消息
+    // 注意：api 拦截器已经返回了 data 对象，所以直接使用 response.message
+    if (response.message && response.message !== 'success') {
+      ElMessage.success(response.message)
+    }
     reply.showReply = false
     reply.replyContent = ''
     reply.replyTo = null
@@ -1317,7 +1394,7 @@ const handleLike = async () => {
     // 根据最新状态显示消息
     ElMessage.success(isLiked.value ? '点赞成功' : '取消点赞')
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    // 错误消息已在 api.js 拦截器中统一显示，这里不再重复显示
     // 重新检查状态和重新加载作品（跳过浏览量增加）
     await checkLikedStatus()
     await loadWork(true)
@@ -1354,7 +1431,7 @@ const handleFavorite = async () => {
     // 重新检查收藏状态（从服务器获取最新状态）
     await checkFavoritedStatus()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    // 错误消息已在 api.js 拦截器中统一显示，这里不再重复显示
     // 重新检查状态和重新加载作品（跳过浏览量增加）
     await checkFavoritedStatus()
     await loadWork(true)
@@ -1375,16 +1452,74 @@ watch(() => work.value?.author?.id, () => {
   }
 }, { immediate: false })
 
+// 加载评论配置
+const loadCommentSettings = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    const settings = response.data || {}
+    // 检查作品评论是否开放（默认true，如果配置不存在或为'1'/'true'则允许）
+    workCommentEnabled.value = settings.work_comment_enabled !== '0' && settings.work_comment_enabled !== 'false'
+  } catch (error) {
+    console.error('Failed to load comment settings:', error)
+    // 默认允许评论（向后兼容）
+    workCommentEnabled.value = true
+  }
+}
+
 onMounted(async () => {
   if (userStore.isLoggedIn && !userStore.user) {
     await userStore.fetchProfile()
   }
   
-  await loadWork()
-  await loadComments()
-  checkLikedStatus()
-  checkFavoritedStatus()
-  checkFollowStatus()
+  // 检查 sessionStorage 中是否有预加载的作品数据
+  const workId = route.params.id
+  const preloadedWorkStr = sessionStorage.getItem(`preloaded_work_${workId}`)
+  
+  if (preloadedWorkStr) {
+    try {
+      // 如果有预加载的数据，直接使用，不显示加载动画
+      const preloadedWork = JSON.parse(preloadedWorkStr)
+      work.value = preloadedWork
+      loading.value = false
+      // 清除 sessionStorage 中的数据（只使用一次）
+      sessionStorage.removeItem(`preloaded_work_${workId}`)
+      // 渲染描述
+      renderDescription()
+      // 加载评论配置
+      await loadCommentSettings()
+      // 只有在评论功能开启时才加载评论
+      if (workCommentEnabled.value) {
+        await loadComments()
+      }
+      checkLikedStatus()
+      checkFavoritedStatus()
+      checkFollowStatus()
+    } catch (error) {
+      // 如果解析失败，正常加载
+      console.error('Failed to parse preloaded work data:', error)
+      await loadCommentSettings()
+      await loadWork()
+      if (workCommentEnabled.value) {
+        await loadComments()
+      }
+      checkLikedStatus()
+      checkFavoritedStatus()
+      checkFollowStatus()
+    }
+  } else {
+    // 没有预加载数据，正常加载
+    // 加载评论配置
+    await loadCommentSettings()
+    
+    await loadWork()
+    // 只有在评论功能开启时才加载评论
+    if (workCommentEnabled.value) {
+      await loadComments()
+    }
+    checkLikedStatus()
+    checkFavoritedStatus()
+    checkFollowStatus()
+  }
   
   // 响应式调整轮播高度
   updateCarouselHeight()
@@ -1414,6 +1549,32 @@ onUnmounted(() => {
   box-shadow: 0 2px 12px 0 var(--theme-shadow);
   background-color: var(--theme-bg-card);
   border: 1px solid var(--theme-border-light);
+}
+
+.card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.work-status-banner {
+  margin-bottom: 8px;
+}
+
+.work-status-banner :deep(.el-alert) {
+  border-radius: 8px;
+}
+
+.loading-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 600px;
+  position: relative;
+}
+
+.loading-placeholder {
+  min-height: 600px;
 }
 
 .card-header-actions {

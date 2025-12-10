@@ -1,7 +1,20 @@
 <template>
   <div class="works">
-    <h2>作品管理</h2>
-    <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建作品</el-button>
+    <div class="header">
+      <h2>作品管理</h2>
+      <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建作品</el-button>
+    </div>
+
+    <!-- 状态筛选 -->
+    <div class="filter-bar" style="margin-top: 20px; margin-bottom: 20px;">
+      <el-radio-group v-model="statusFilter" @change="handleStatusFilterChange" size="default">
+        <el-radio-button :label="null">全部</el-radio-button>
+        <el-radio-button :label="1">审核通过</el-radio-button>
+        <el-radio-button :label="2">待审核</el-radio-button>
+        <el-radio-button :label="3">审核不通过</el-radio-button>
+        <el-radio-button :label="0">草稿</el-radio-button>
+      </el-radio-group>
+    </div>
 
     <el-table :data="works" style="width: 100%; margin-top: 20px;">
       <el-table-column prop="id" label="ID" width="80" />
@@ -22,11 +35,14 @@
         </template>
       </el-table-column>
       <el-table-column prop="view_count" label="浏览" width="100" />
-      <el-table-column label="状态" width="100">
+      <el-table-column label="状态" width="120">
         <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'">
-            {{ row.status === 1 ? '已发布' : '草稿' }}
+          <el-tag :type="getStatusType(row.status)">
+            {{ getStatusText(row.status) }}
           </el-tag>
+          <div v-if="row.audit_message" style="font-size: 12px; color: #909399; margin-top: 4px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="row.audit_message">
+            {{ row.audit_message }}
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="推荐" width="90" align="center">
@@ -36,7 +52,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="250" fixed="right">
+      <el-table-column label="操作" width="350" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="showDialog(row)">编辑</el-button>
           <el-button 
@@ -45,6 +61,30 @@
             @click="handleToggleRecommend(row)"
           >
             {{ row.is_recommend ? '取消推荐' : '推荐' }}
+          </el-button>
+          <el-button 
+            v-if="row.status === 2" 
+            size="small" 
+            type="success" 
+            @click="handleApprove(row)"
+          >
+            通过
+          </el-button>
+          <el-button 
+            v-if="row.status === 2 || row.status === 1" 
+            size="small" 
+            type="warning" 
+            @click="handleReject(row)"
+          >
+            拒绝
+          </el-button>
+          <el-button 
+            v-if="row.status === 3" 
+            size="small" 
+            type="success" 
+            @click="handleApprove(row)"
+          >
+            通过
           </el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
@@ -251,6 +291,7 @@ const dialogVisible = ref(false)
 const formRef = ref()
 const isEdit = ref(false)
 const activePhotoIndex = ref(0)
+const statusFilter = ref(null) // 状态筛选：null=全部, 0=草稿, 1=已发布, 2=待审核, 3=审核不通过
 
 const form = reactive({
   id: null,
@@ -283,11 +324,19 @@ const rules = {
 
 const loadWorks = async () => {
   try {
-    const response = await adminApi.get('/admin/works')
+    const params = {}
+    if (statusFilter.value !== null) {
+      params.status = statusFilter.value
+    }
+    const response = await adminApi.get('/admin/works', { params })
     works.value = response.data.list || []
   } catch (error) {
     ElMessage.error('加载失败')
   }
+}
+
+const handleStatusFilterChange = () => {
+  loadWorks()
 }
 
 const showDialog = (work = null) => {
@@ -485,12 +534,124 @@ const handleDelete = async (work) => {
   }
 }
 
+// 获取状态文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 1:
+      return '已发布'
+    case 0:
+      return '草稿'
+    case 2:
+      return '待审核'
+    case 3:
+      return '审核不通过'
+    default:
+      return '未知'
+  }
+}
+
+// 获取状态标签类型
+const getStatusType = (status) => {
+  switch (status) {
+    case 1:
+      return 'success'
+    case 0:
+      return 'info'
+    case 2:
+      return 'warning'
+    case 3:
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+// 审核通过
+const handleApprove = async (work) => {
+  try {
+    const { value: auditMessage } = await ElMessageBox.prompt(
+      '请输入审核消息（可选，用于记录审核通过的原因）',
+      '审核通过',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '请输入审核消息，例如：内容符合规范，审核通过...',
+        closeOnClickModal: false, // 禁止点击外部区域关闭弹窗
+        closeOnPressEscape: true  // 允许按 ESC 键关闭
+      }
+    )
+    
+    await adminApi.put(`/admin/works/${work.id}/status`, {
+      status: 1,
+      audit_message: auditMessage || ''
+    })
+    ElMessage.success('审核通过')
+    loadWorks()
+  } catch (error) {
+    // 用户取消操作（点击取消按钮、按 ESC 键等）时不显示错误
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error('操作失败')
+    }
+  }
+}
+
+// 审核拒绝
+const handleReject = async (work) => {
+  try {
+    const { value: auditMessage } = await ElMessageBox.prompt(
+      '请输入拒绝原因（必填，用于告知作者审核不通过的原因）',
+      '审核拒绝',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '请输入拒绝原因，例如：内容不符合规范、包含违规信息等...',
+        closeOnClickModal: false, // 禁止点击外部区域关闭弹窗
+        closeOnPressEscape: true, // 允许按 ESC 键关闭
+        inputValidator: (value) => {
+          if (!value || value.trim() === '') {
+            return '拒绝原因不能为空'
+          }
+          return true
+        }
+      }
+    )
+    
+    await adminApi.put(`/admin/works/${work.id}/status`, {
+      status: 3,
+      audit_message: auditMessage || ''
+    })
+    ElMessage.success('已拒绝')
+    loadWorks()
+  } catch (error) {
+    // 用户取消操作（点击取消按钮、按 ESC 键等）时不显示错误
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error('操作失败')
+    }
+  }
+}
+
 loadWorks()
 </script>
 
 <style scoped>
 .works {
   padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filter-bar {
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .photos-list {

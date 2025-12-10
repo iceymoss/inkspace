@@ -140,7 +140,9 @@ const handleSubmit = async () => {
         router.push('/')
       }
     } catch (error) {
-      ElMessage.error(error.message || '操作失败')
+      // API 拦截器已经处理了错误消息的显示，这里不需要再次显示
+      // 只需要处理其他逻辑（如果需要的话）
+      console.error('Login/Register error:', error)
     } finally {
       loading.value = false
     }

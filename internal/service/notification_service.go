@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"time"
+
 	"mysite/internal/database"
 	"mysite/internal/models"
 )
@@ -32,7 +33,7 @@ func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID uin
 
 		notification := &models.Notification{
 			UserID:     toUserID,
-			FromUserID: fromUserID,
+			FromUserID: &fromUserID,
 			Type:       "comment",
 			Content:    content,
 			ArticleID:  articleID,
@@ -62,7 +63,7 @@ func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID uin
 
 	notification := &models.Notification{
 		UserID:     toUserID,
-		FromUserID: fromUserID,
+		FromUserID: &fromUserID,
 		Type:       "comment",
 		Content:    content,
 		ArticleID:  articleID,
@@ -89,7 +90,7 @@ func (s *NotificationService) CreateLikeNotification(fromUserID, toUserID uint, 
 
 	notification := &models.Notification{
 		UserID:     toUserID,
-		FromUserID: fromUserID,
+		FromUserID: &fromUserID,
 		Type:       "like",
 		Content:    content,
 		ArticleID:  articleID,
@@ -115,7 +116,7 @@ func (s *NotificationService) CreateFavoriteNotification(fromUserID, toUserID ui
 
 	notification := &models.Notification{
 		UserID:     toUserID,
-		FromUserID: fromUserID,
+		FromUserID: &fromUserID,
 		Type:       "favorite",
 		Content:    content,
 		ArticleID:  articleID,
@@ -136,7 +137,7 @@ func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint
 	// 检查1小时内是否已存在相同类型的未读通知
 	var existingNotification models.Notification
 	oneHourAgo := time.Now().Add(-1 * time.Hour)
-	
+
 	err := database.DB.Where(
 		"user_id = ? AND from_user_id = ? AND type = ? AND is_read = ? AND created_at > ?",
 		toUserID, fromUserID, "follow", false, oneHourAgo,
@@ -152,7 +153,7 @@ func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint
 	// 不存在未读通知，创建新通知
 	notification := &models.Notification{
 		UserID:     toUserID,
-		FromUserID: fromUserID,
+		FromUserID: &fromUserID,
 		Type:       "follow",
 		Content:    "关注了你",
 		IsRead:     false,
@@ -239,7 +240,7 @@ func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID uint,
 
 		notification := &models.Notification{
 			UserID:     toUserID,
-			FromUserID: fromUserID,
+			FromUserID: &fromUserID,
 			Type:       "reply",
 			Content:    content,
 			ArticleID:  articleID,
@@ -269,7 +270,7 @@ func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID uint,
 
 	notification := &models.Notification{
 		UserID:     toUserID,
-		FromUserID: fromUserID,
+		FromUserID: &fromUserID,
 		Type:       "reply",
 		Content:    content,
 		ArticleID:  articleID,
@@ -281,10 +282,62 @@ func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID uint,
 	return database.DB.Create(notification).Error
 }
 
+// CreateWorkAuditNotification 创建作品审核通知
+// status: 1=通过, 3=拒绝
+// rejectReason: 拒绝原因（可选）
+func (s *NotificationService) CreateWorkAuditNotification(workID uint, status int, rejectReason string) error {
+	// 查询作品信息
+	var work models.Work
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		return fmt.Errorf("查询作品失败 (ID: %d): %w", workID, err)
+	}
+
+	// 系统通知，from_user_id 设为 0（表示系统）
+	var content string
+	if status == 1 {
+		// 审核通过
+		if rejectReason != "" {
+			// 如果有审核消息，包含在通知中
+			content = fmt.Sprintf("你的作品《%s》已通过审核。%s", work.Title, rejectReason)
+		} else {
+			content = fmt.Sprintf("你的作品《%s》已通过审核并发布", work.Title)
+		}
+	} else if status == 3 {
+		// 审核不通过
+		if rejectReason != "" {
+			content = fmt.Sprintf("你的作品《%s》未通过审核。原因：%s", work.Title, rejectReason)
+		} else {
+			content = fmt.Sprintf("你的作品《%s》未通过审核", work.Title)
+		}
+	} else {
+		// 其他状态不需要通知
+		return nil
+	}
+
+	// 系统通知，from_user_id 设为 nil（表示系统）
+	var fromUserID *uint = nil
+	notification := &models.Notification{
+		UserID:     work.AuthorID,
+		FromUserID: fromUserID, // nil 表示系统通知
+		Type:       "work_audit",
+		Content:    content,
+		WorkID:     &workID,
+		IsRead:     false,
+	}
+
+	if err := database.DB.Create(notification).Error; err != nil {
+		return fmt.Errorf("创建通知记录失败: %w", err)
+	}
+
+	return nil
+}
+
 // GetNotificationMessage 获取通知消息内容
 func (s *NotificationService) GetNotificationMessage(notification *models.Notification) string {
 	var fromUserName string
-	if notification.FromUser != nil {
+	if notification.FromUserID == nil {
+		fromUserName = "系统"
+	} else if notification.FromUser != nil {
 		fromUserName = notification.FromUser.Nickname
 		if fromUserName == "" {
 			fromUserName = notification.FromUser.Username

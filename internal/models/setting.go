@@ -49,9 +49,12 @@ const (
 	SettingSiteCopyright   = "site_copyright"   // 版权信息
 	SettingSiteLogo        = "site_logo"        // 网站Logo
 	SettingSiteFavicon     = "site_favicon"     // 网站图标
-	SettingCommentAudit    = "comment_audit"    // 评论是否需要审核
-	SettingRegisterEnabled = "register_enabled" // 是否开放注册
-	SettingUploadMaxSize   = "upload_max_size"  // 上传文件最大大小
+	SettingCommentAudit          = "comment_audit"           // 评论是否需要审核
+	SettingArticleCommentEnabled = "article_comment_enabled" // 是否开放文章评论
+	SettingWorkCommentEnabled    = "work_comment_enabled"    // 是否开放作品评论
+	SettingWorkAudit             = "work_audit"              // 作品是否需要审核
+	SettingRegisterEnabled       = "register_enabled"        // 是否开放注册
+	SettingUploadMaxSize         = "upload_max_size"          // 上传文件最大大小
 	SettingCodeTheme       = "code_theme"       // Markdown 代码高亮主题
 	SettingMarkdownTheme   = "markdown_theme"   // Markdown 主题风格（light/dark）
 	SettingSiteTheme       = "site_theme"       // 网站整体主题（day/night/holiday/mourning）

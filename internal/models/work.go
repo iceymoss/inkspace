@@ -30,8 +30,9 @@ type Work struct {
 	CommentCount  int            `gorm:"default:0;not null" json:"comment_count"`
 	LikeCount     int            `gorm:"default:0;not null" json:"like_count"`
 	FavoriteCount int            `gorm:"default:0;not null" json:"favorite_count"`
-	Status        int            `gorm:"default:1;index:idx_status_sort" json:"status"` // 1: published, 0: draft
+	Status        int            `gorm:"default:1;index:idx_status_sort" json:"status"` // 0: draft, 1: published, 2: pending, 3: rejected
 	IsRecommend   bool           `gorm:"default:false" json:"is_recommend"`
+	AuditMessage  string         `gorm:"type:text" json:"audit_message"` // 审核消息（审核通过或拒绝的原因）
 }
 
 // PhotoItem 单张照片信息（摄影作品中的一张照片）
@@ -97,7 +98,9 @@ type WorkResponse struct {
 	LikeCount     int                    `json:"like_count"`
 	FavoriteCount int                    `json:"favorite_count"`
 	Status        int                    `json:"status"`
+	IsPublished   bool                   `json:"is_published"`      // 是否已发布（status=1），用于前端判断是否可以评论
 	IsRecommend   bool                   `json:"is_recommend"`
+	AuditMessage  string                 `json:"audit_message,omitempty"` // 审核消息（审核通过或拒绝的原因）
 	CreatedAt     time.Time              `json:"created_at"`
 	UpdatedAt     time.Time              `json:"updated_at"`
 }
@@ -121,7 +124,9 @@ func (w *Work) ToResponse() *WorkResponse {
 		LikeCount:     w.LikeCount,
 		FavoriteCount: w.FavoriteCount,
 		Status:        w.Status,
+		IsPublished:   w.Status == 1, // 只有已发布（status=1）的作品才允许评论
 		IsRecommend:   w.IsRecommend,
+		AuditMessage:  w.AuditMessage,
 		CreatedAt:     w.CreatedAt,
 		UpdatedAt:     w.UpdatedAt,
 	}
