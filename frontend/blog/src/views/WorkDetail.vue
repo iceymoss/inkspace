@@ -305,9 +305,9 @@
         </div>
 
         <!-- 评论区（两种类型共用） -->
-        <el-divider />
+        <el-divider v-if="workCommentEnabled" />
         
-        <div class="comment-section">
+        <div v-if="workCommentEnabled" class="comment-section">
           <h3>评论 ({{ work.comment_count }})</h3>
           
           <!-- 发表评论 -->
@@ -557,6 +557,7 @@ const favoriting = ref(false)
 // 关注状态
 const isFollowing = ref(false)
 const followLoading = ref(false)
+const workCommentEnabled = ref(true) // 默认允许评论
 
 const photos = computed(() => {
   if (!work.value || work.value.type !== 'photography') return []
@@ -801,11 +802,15 @@ const submitComment = async () => {
 
   submittingComment.value = true
   try {
-    await api.post('/comments', {
+    const response = await api.post('/comments', {
       work_id: parseInt(route.params.id),
       content: commentContent.value
     })
-    ElMessage.success('评论发表成功')
+    // 如果返回的消息不是默认的 "success"，显示返回的消息
+    // 注意：api 拦截器已经返回了 data 对象，所以直接使用 response.message
+    if (response.message && response.message !== 'success') {
+      ElMessage.success(response.message)
+    }
     commentContent.value = ''
     // 重置为第一页并重新加载
     commentsPage.value = 1
@@ -891,12 +896,16 @@ const submitReply = async (comment) => {
 
   comment.replying = true
   try {
-    await api.post('/comments', {
+    const response = await api.post('/comments', {
       work_id: parseInt(route.params.id),
       content: content,
       parent_id: comment.replyTo ? comment.replyTo.id : comment.id
     })
-    ElMessage.success('回复成功')
+    // 如果返回的消息不是默认的 "success"，显示返回的消息
+    // 注意：api 拦截器已经返回了 data 对象，所以直接使用 response.message
+    if (response.message && response.message !== 'success') {
+      ElMessage.success(response.message)
+    }
     comment.showReply = false
     comment.replyContent = ''
     comment.replyTo = null
@@ -933,12 +942,16 @@ const submitReplyToReply = async (parentComment, reply) => {
 
   reply.replying = true
   try {
-    await api.post('/comments', {
+    const response = await api.post('/comments', {
       work_id: parseInt(route.params.id),
       content: content,
       parent_id: reply.replyTo ? reply.replyTo.id : reply.id
     })
-    ElMessage.success('回复成功')
+    // 如果返回的消息不是默认的 "success"，显示返回的消息
+    // 注意：api 拦截器已经返回了 data 对象，所以直接使用 response.message
+    if (response.message && response.message !== 'success') {
+      ElMessage.success(response.message)
+    }
     reply.showReply = false
     reply.replyContent = ''
     reply.replyTo = null
@@ -1375,13 +1388,33 @@ watch(() => work.value?.author?.id, () => {
   }
 }, { immediate: false })
 
+// 加载评论配置
+const loadCommentSettings = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    const settings = response.data || {}
+    // 检查作品评论是否开放（默认true，如果配置不存在或为'1'/'true'则允许）
+    workCommentEnabled.value = settings.work_comment_enabled !== '0' && settings.work_comment_enabled !== 'false'
+  } catch (error) {
+    console.error('Failed to load comment settings:', error)
+    // 默认允许评论（向后兼容）
+    workCommentEnabled.value = true
+  }
+}
+
 onMounted(async () => {
   if (userStore.isLoggedIn && !userStore.user) {
     await userStore.fetchProfile()
   }
   
+  // 加载评论配置
+  await loadCommentSettings()
+  
   await loadWork()
-  await loadComments()
+  // 只有在评论功能开启时才加载评论
+  if (workCommentEnabled.value) {
+    await loadComments()
+  }
   checkLikedStatus()
   checkFavoritedStatus()
   checkFollowStatus()

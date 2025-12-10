@@ -254,11 +254,24 @@
           <el-form-item label="开放注册">
             <el-switch v-model="featureSettings.register_enabled" />
           </el-form-item>
-          <el-form-item label="开放评论">
-            <el-switch v-model="featureSettings.comment_enabled" />
+          <el-divider content-position="left">评论设置</el-divider>
+          <el-form-item label="开放文章评论">
+            <el-switch v-model="featureSettings.article_comment_enabled" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              控制是否允许用户对文章进行评论
+            </div>
+          </el-form-item>
+          <el-form-item label="开放作品评论">
+            <el-switch v-model="featureSettings.work_comment_enabled" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              控制是否允许用户对作品进行评论
+            </div>
           </el-form-item>
           <el-form-item label="评论审核">
             <el-switch v-model="featureSettings.comment_audit" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              开启后，所有评论需要管理员审核后才能显示
+            </div>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="saveFeatureSettings" :loading="saving">保存</el-button>
@@ -472,7 +485,8 @@ const siteSettings = reactive({
 
 const featureSettings = reactive({
   register_enabled: true,
-  comment_enabled: true,
+  article_comment_enabled: true,
+  work_comment_enabled: true,
   comment_audit: false
 })
 
@@ -539,7 +553,10 @@ const loadAllSettings = async () => {
       if (setting.group === 'site') {
         siteSettings[setting.key] = setting.value
       } else if (setting.group === 'feature') {
-        featureSettings[setting.key] = setting.value === '1' || setting.value === 'true'
+        if (setting.key === 'register_enabled' || setting.key === 'article_comment_enabled' || 
+            setting.key === 'work_comment_enabled' || setting.key === 'comment_audit') {
+          featureSettings[setting.key] = setting.value === '1' || setting.value === 'true'
+        }
       } else if (setting.group === 'theme') {
         if (setting.key === 'site_theme') {
           themeSettings.site_theme = setting.value || 'day'

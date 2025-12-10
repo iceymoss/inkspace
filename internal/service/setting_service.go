@@ -112,7 +112,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					key == "admin_backend_url" {
 					group = "site"
 					isPublic = true
-				} else if key == models.SettingCommentAudit || key == models.SettingRegisterEnabled {
+				} else if key == models.SettingCommentAudit || key == models.SettingRegisterEnabled ||
+					key == models.SettingArticleCommentEnabled || key == models.SettingWorkCommentEnabled {
 					group = "feature"
 					isPublic = false
 				} else if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme {

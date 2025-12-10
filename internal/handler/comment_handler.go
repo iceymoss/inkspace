@@ -40,6 +40,13 @@ func (h *CommentHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// 如果评论状态为 0（待审核），返回审核中的消息
+	if comment.Status == 0 {
+		utils.SuccessWithMessage(c, "评论已提交，等待审核", comment.ToResponse())
+		return
+	}
+
+	// 如果评论已通过（status=1），正常返回，不显示额外消息
 	utils.Success(c, comment.ToResponse())
 }
 

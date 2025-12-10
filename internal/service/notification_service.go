@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"time"
+
 	"mysite/internal/database"
 	"mysite/internal/models"
 )
@@ -136,7 +137,7 @@ func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint
 	// 检查1小时内是否已存在相同类型的未读通知
 	var existingNotification models.Notification
 	oneHourAgo := time.Now().Add(-1 * time.Hour)
-	
+
 	err := database.DB.Where(
 		"user_id = ? AND from_user_id = ? AND type = ? AND is_read = ? AND created_at > ?",
 		toUserID, fromUserID, "follow", false, oneHourAgo,

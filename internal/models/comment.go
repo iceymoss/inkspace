@@ -50,6 +50,8 @@ type CommentListQuery struct {
 	WorkID    *uint `form:"work_id"`
 	UserID    uint  `form:"user_id"`
 	Status    *int  `form:"status"`
+	ShowAll   bool  `form:"show_all"`   // 是否显示所有状态的评论（管理后台使用）
+	Type      string `form:"type"`      // 评论类型：'article' 只显示文章评论，'work' 只显示作品评论
 }
 
 type CommentResponse struct {
