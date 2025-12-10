@@ -297,6 +297,20 @@ func (s *FavoriteService) GetFavoriteCount(articleID uint) (int64, error) {
 
 // AddWorkFavorite 收藏作品
 func (s *FavoriteService) AddWorkFavorite(userID, workID uint) error {
+	// 检查作品是否存在并获取状态
+	var work models.Work
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("作品不存在")
+		}
+		return err
+	}
+
+	// 只有已发布（status=1）的作品才能被收藏
+	if work.Status != 1 {
+		return errors.New("该作品尚未发布，无法收藏")
+	}
+
 	// 检查是否已收藏
 	var count int64
 	if err := database.DB.Model(&models.Favorite{}).
@@ -345,12 +359,6 @@ func (s *FavoriteService) AddWorkFavorite(userID, workID uint) error {
 	utils.DeleteCache(fmt.Sprintf("work:%d", workID))
 
 	// 发送收藏通知给作品作者
-	var work models.Work
-	if err := database.DB.First(&work, workID).Error; err != nil {
-		log.Printf("❌ 获取作品信息失败 (ID: %d): %v", workID, err)
-		return nil
-	}
-
 	if work.AuthorID != userID {
 		go func() {
 			err := s.notificationService.CreateFavoriteNotification(userID, work.AuthorID, nil, &workID)
@@ -369,6 +377,21 @@ func (s *FavoriteService) AddWorkFavorite(userID, workID uint) error {
 
 // RemoveWorkFavorite 取消收藏作品
 func (s *FavoriteService) RemoveWorkFavorite(userID, workID uint) error {
+	// 检查作品是否存在并获取状态
+	var work models.Work
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("作品不存在")
+		}
+		return err
+	}
+
+	// 只有已发布（status=1）的作品才能取消收藏
+	// 这样可以防止对未发布作品进行任何收藏相关操作
+	if work.Status != 1 {
+		return errors.New("该作品尚未发布，无法操作")
+	}
+
 	var favorite models.Favorite
 	if err := database.DB.Where("user_id = ? AND work_id = ?", userID, workID).
 		First(&favorite).Error; err != nil {

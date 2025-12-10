@@ -52,6 +52,7 @@ const (
 	SettingCommentAudit          = "comment_audit"           // 评论是否需要审核
 	SettingArticleCommentEnabled = "article_comment_enabled" // 是否开放文章评论
 	SettingWorkCommentEnabled    = "work_comment_enabled"    // 是否开放作品评论
+	SettingWorkAudit             = "work_audit"              // 作品是否需要审核
 	SettingRegisterEnabled       = "register_enabled"        // 是否开放注册
 	SettingUploadMaxSize         = "upload_max_size"          // 上传文件最大大小
 	SettingCodeTheme       = "code_theme"       // Markdown 代码高亮主题

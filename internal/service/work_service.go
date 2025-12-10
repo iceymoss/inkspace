@@ -52,6 +52,34 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 	// 摄影作品自动设置 daily_quota
 	dailyQuota := req.Type == "photography"
 
+	// 检查作品审核配置，决定作品状态
+	// Status: 0=draft, 1=published, 2=pending(待审核), 3=rejected(审核不通过)
+	workStatus := req.Status
+	if workStatus != 0 && workStatus != 1 {
+		workStatus = 1 // 默认已发布
+	}
+
+	settingService := NewSettingService()
+	workAuditSetting, err := settingService.Get(models.SettingWorkAudit)
+	if err != nil {
+		// 如果配置不存在，默认不审核（向后兼容）
+		log.Printf("警告: 无法获取作品审核配置，默认不审核: %v", err)
+	} else {
+		// 如果开启了审核，设置为待审核状态（status=2）
+		// 数据库存储的是字符串 '1' 或 '0'
+		auditEnabled := workAuditSetting.Value == "1" || 
+			workAuditSetting.Value == "true" || 
+			workAuditSetting.Value == "True" ||
+			workAuditSetting.Value == "TRUE"
+		if auditEnabled && workStatus == 1 {
+			// 只有发布状态的作品才需要审核，草稿不需要
+			workStatus = 2 // 待审核
+			log.Printf("作品审核已开启，作品将设置为待审核状态 (status=2)")
+		} else {
+			log.Printf("作品审核未开启或为草稿，作品状态: %d", workStatus)
+		}
+	}
+
 	work := &models.Work{
 		Title:       req.Title,
 		Type:        req.Type,
@@ -66,12 +94,34 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 		TechStack:   req.TechStack,
 		AuthorID:    authorID,
 		Sort:        req.Sort,
-		Status:      req.Status,
+		Status:      workStatus, // 根据审核配置设置状态
 		IsRecommend: req.IsRecommend,
 	}
 
+	// 创建作品
 	if err := database.DB.Create(work).Error; err != nil {
 		return nil, err
+	}
+
+	// 如果审核已开启（workStatus=2），立即在同一个事务中更新 status 为 2
+	// 这样可以覆盖 GORM 的 default:1 标签和数据库的默认值
+	if workStatus == 2 {
+		if err := database.DB.Model(work).Update("status", 2).Error; err != nil {
+			log.Printf("更新作品状态为待审核失败: %v", err)
+		} else {
+			work.Status = 2 // 同步更新内存中的值
+			log.Printf("作品创建后，已将 Status 更新为 2（待审核），ID: %d", work.ID)
+		}
+	}
+
+	// 只有已发布的作品（status=1）才更新用户作品数
+	// 待审核的作品（status=2）在审核通过时再更新作品数
+	if workStatus == 1 {
+		if err := database.DB.Model(&models.User{}).
+			Where("id = ?", authorID).
+			UpdateColumn("work_count", gorm.Expr("work_count + ?", 1)).Error; err != nil {
+			log.Printf("更新用户作品数失败: %v", err)
+		}
 	}
 
 	return work, nil
@@ -114,6 +164,39 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 	imagesJSON, _ := json.Marshal(req.Images)
 	metadataJSON, _ := json.Marshal(req.Metadata)
 
+	// 处理作品状态：检查作品审核配置
+	// Status: 0=draft, 1=published, 2=pending(待审核), 3=rejected(审核不通过)
+	workStatus := req.Status
+	oldStatus := work.Status
+
+	// 如果用户尝试将作品状态设置为已发布（status=1），需要检查审核配置
+	// 管理员可以绕过审核，直接设置为已发布
+	if workStatus == 1 && role != "admin" {
+		settingService := NewSettingService()
+		workAuditSetting, err := settingService.Get(models.SettingWorkAudit)
+		if err != nil {
+			log.Printf("警告: 无法获取作品审核配置，默认不审核: %v", err)
+		} else {
+			auditEnabled := workAuditSetting.Value == "1" ||
+				workAuditSetting.Value == "true" ||
+				workAuditSetting.Value == "True" ||
+				workAuditSetting.Value == "TRUE"
+			
+			if auditEnabled {
+				// 如果审核已开启，无论作品原本是什么状态，只要尝试设置为已发布，都需要重新审核
+				// 这样可以防止：先发布正常内容通过审核，然后修改为违规内容绕过审核
+				workStatus = 2 // 待审核
+				if oldStatus == 1 {
+					log.Printf("作品审核已开启，已发布的作品更新内容后需要重新审核 (status=2)")
+				} else {
+					log.Printf("作品审核已开启，将作品状态从 %d 改为待审核状态 (status=2)", oldStatus)
+				}
+			} else {
+				log.Printf("作品审核未开启，作品状态: %d", workStatus)
+			}
+		}
+	}
+
 	// 使用WHERE条件更新，确保权限（非管理员只能更新自己的作品）
 	updateData := map[string]interface{}{
 		"title":        req.Title,
@@ -128,7 +211,7 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 		"demo_url":     req.DemoURL,
 		"tech_stack":   req.TechStack,
 		"sort":         req.Sort,
-		"status":       req.Status,
+		"status":       workStatus, // 使用处理后的状态
 		"is_recommend": req.IsRecommend,
 	}
 	
@@ -141,6 +224,33 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 	if err := updateQuery.Updates(updateData).Error; err != nil {
 		return nil, err
 	}
+
+	// 如果状态被设置为待审核（status=2），需要显式更新以确保覆盖GORM的default:1
+	if workStatus == 2 {
+		if err := database.DB.Model(&models.Work{}).Where("id = ?", id).Update("status", 2).Error; err != nil {
+			log.Printf("更新作品状态为待审核失败: %v", err)
+		} else {
+			log.Printf("作品更新后，已将 Status 更新为 2（待审核），ID: %d", id)
+		}
+	}
+
+	// 处理用户作品数的更新
+	// 从待审核/拒绝变为通过：增加作品数
+	if (oldStatus == 2 || oldStatus == 3) && workStatus == 1 {
+		if err := database.DB.Model(&models.User{}).
+			Where("id = ?", work.AuthorID).
+			UpdateColumn("work_count", gorm.Expr("work_count + ?", 1)).Error; err != nil {
+			log.Printf("更新用户作品数失败: %v", err)
+		}
+	}
+	// 从通过变为待审核/拒绝：减少作品数
+	if oldStatus == 1 && (workStatus == 2 || workStatus == 3) {
+		if err := database.DB.Model(&models.User{}).
+			Where("id = ?", work.AuthorID).
+			UpdateColumn("work_count", gorm.Expr("work_count - ?", 1)).Error; err != nil {
+			log.Printf("更新用户作品数失败: %v", err)
+		}
+	}
 	
 	// 重新加载作品以获取最新数据
 	if err := database.DB.Preload("Author").First(&work, id).Error; err != nil {
@@ -151,20 +261,39 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 }
 
 func (s *WorkService) Delete(id uint, userID uint, role string) error {
-	// 使用WHERE条件删除，确保权限（非管理员只能删除自己的作品）
-	deleteQuery := database.DB.Where("id = ?", id)
+	// 先查询作品以获取状态和作者ID
+	var work models.Work
+	query := database.DB.Where("id = ?", id)
 	
 	// 非管理员只能删除自己的作品
 	if role != "admin" {
-		deleteQuery = deleteQuery.Where("author_id = ?", userID)
+		query = query.Where("author_id = ?", userID)
 	}
 	
-	result := deleteQuery.Delete(&models.Work{})
+	if err := query.First(&work).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("作品不存在或无权限删除")
+		}
+		return err
+	}
+
+	// 删除作品
+	result := database.DB.Delete(&work)
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
 		return errors.New("作品不存在或无权限删除")
+	}
+
+	// 只有已发布的作品（status=1）才减少用户作品数
+	// 待审核（status=2）和审核不通过（status=3）的作品不计入作品数
+	if work.Status == 1 {
+		if err := database.DB.Model(&models.User{}).
+			Where("id = ?", work.AuthorID).
+			UpdateColumn("work_count", gorm.Expr("work_count - ?", 1)).Error; err != nil {
+			log.Printf("更新用户作品数失败: %v", err)
+		}
 	}
 	
 	return nil
@@ -193,6 +322,9 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int, 
 	if status != nil {
 		db = db.Where("status = ?", *status)
 	}
+	// 注意：如果 status 为 nil，不进行状态筛选，显示所有状态的作品
+	// 这样管理后台可以选择"全部"来查看所有状态的作品
+	// 用户端应该始终传递 status=1 来只显示已发布的作品
 
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -257,11 +389,12 @@ func (s *WorkService) GetMyWorks(authorID uint, page, pageSize int, workType str
 }
 
 // GetUserWorks 获取指定用户的作品列表（公开访问）
+// 只显示已发布的作品（status=1），不显示待审核（status=2）和审核不通过（status=3）的作品
 func (s *WorkService) GetUserWorks(authorID uint, page, pageSize int, workType string, sortBy string) ([]*models.Work, int64, error) {
 	var works []*models.Work
 	var total int64
 
-	// 只显示已发布的作品
+	// 只显示已发布的作品（status=1）
 	db := database.DB.Model(&models.Work{}).Where("author_id = ? AND status = ?", authorID, 1)
 
 	// 按类型筛选
@@ -301,6 +434,7 @@ func (s *WorkService) IncrementViewCount(id uint) error {
 }
 
 // GetRecommended 获取推荐作品
+// 只返回已发布（status=1）且被推荐（is_recommend=true）的作品
 func (s *WorkService) GetRecommended(limit int) ([]*models.Work, error) {
 	if limit <= 0 {
 		limit = 3
@@ -308,6 +442,7 @@ func (s *WorkService) GetRecommended(limit int) ([]*models.Work, error) {
 
 	var works []*models.Work
 	err := database.DB.Where("status = ? AND is_recommend = ?", 1, true).
+		Preload("Author").
 		Order("sort DESC, created_at DESC").
 		Limit(limit).
 		Find(&works).Error
@@ -385,9 +520,9 @@ func (s *WorkService) GetHotWorks(page, pageSize int) ([]*models.Work, int64, er
 		return []*models.Work{}, total, nil
 	}
 
-	// 从数据库查询作品详情
+	// 从数据库查询作品详情，只返回已发布（status=1）的作品
 	var works []*models.Work
-	if err := database.DB.Where("id IN ?", ids).Preload("Author").Find(&works).Error; err != nil {
+	if err := database.DB.Where("id IN ? AND status = ?", ids, 1).Preload("Author").Find(&works).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -444,4 +579,85 @@ func (s *WorkService) GetPhotoLimit(role string) int {
 		return 50 // 管理员50张
 	}
 	return 10 // 普通用户10张
+}
+
+// UpdateWorkStatus 更新作品审核状态
+// status: 1=通过, 3=拒绝
+// auditMessage: 审核消息（可选，用于记录审核通过或拒绝的原因）
+func (s *WorkService) UpdateWorkStatus(id uint, status int, auditMessage string) error {
+	// 先查询作品以获取当前状态和相关信息
+	var work models.Work
+	if err := database.DB.First(&work, id).Error; err != nil {
+		return err
+	}
+
+	oldStatus := work.Status
+
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// 更新作品状态和审核消息
+		updateData := map[string]interface{}{
+			"status":        status,
+			"audit_message": auditMessage, // 保存审核消息
+		}
+		if err := tx.Model(&models.Work{}).Where("id = ?", id).Updates(updateData).Error; err != nil {
+			return err
+		}
+
+		// 如果状态从待审核(2)变为通过(1)，需要增加用户作品数
+		// 如果状态从通过(1)变为拒绝(3)，需要减少用户作品数
+		if oldStatus != status {
+			// 从待审核变为通过：增加用户作品数
+			if oldStatus == 2 && status == 1 {
+				if err := tx.Model(&models.User{}).
+					Where("id = ?", work.AuthorID).
+					UpdateColumn("work_count", gorm.Expr("work_count + ?", 1)).Error; err != nil {
+					return err
+				}
+			}
+
+			// 从通过变为拒绝：减少用户作品数
+			if oldStatus == 1 && status == 3 {
+				if err := tx.Model(&models.User{}).
+					Where("id = ?", work.AuthorID).
+					UpdateColumn("work_count", gorm.Expr("work_count - ?", 1)).Error; err != nil {
+					return err
+				}
+			}
+
+			// 从拒绝变为通过：增加用户作品数
+			if oldStatus == 3 && status == 1 {
+				if err := tx.Model(&models.User{}).
+					Where("id = ?", work.AuthorID).
+					UpdateColumn("work_count", gorm.Expr("work_count + ?", 1)).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// 发送审核通知（异步，不阻塞主流程）
+	// 注意：只有在状态真正改变时才发送通知
+	if oldStatus != status && (status == 1 || status == 3) {
+		go func() {
+			notificationService := NewNotificationService()
+			// 如果审核消息为空，使用默认消息
+			rejectReason := auditMessage
+			if rejectReason == "" && status == 3 {
+				rejectReason = "审核不通过"
+			}
+			if err := notificationService.CreateWorkAuditNotification(id, status, rejectReason); err != nil {
+				log.Printf("❌ 创建作品审核通知失败: 作品ID=%d, 状态=%d, 错误=%v", id, status, err)
+			} else {
+				log.Printf("✅ 成功创建作品审核通知: 作品ID=%d, 状态=%d, 作者ID=%d", id, status, work.AuthorID)
+			}
+		}()
+	}
+
+	return nil
 }

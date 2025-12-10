@@ -207,6 +207,7 @@ VALUES
 
 -- 功能开关
 ('comment_audit', '0', 'bool', '评论是否需要审核（0=否，1=是）', 'feature', FALSE, NOW(), NOW()),
+('work_audit', '0', 'bool', '作品是否需要审核（0=否，1=是）', 'feature', FALSE, NOW(), NOW()),
 ('register_enabled', '1', 'bool', '是否开放注册（0=否，1=是）', 'feature', TRUE, NOW(), NOW()),
 ('article_comment_enabled', '1', 'bool', '是否开放文章评论（0=否，1=是）', 'feature', TRUE, NOW(), NOW()),
 ('work_comment_enabled', '1', 'bool', '是否开放作品评论（0=否，1=是）', 'feature', TRUE, NOW(), NOW()),

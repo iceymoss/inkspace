@@ -14,7 +14,7 @@ type Notification struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	UserID     uint   `gorm:"not null;index" json:"user_id"`             // 接收通知的用户
-	FromUserID uint   `gorm:"not null;index" json:"from_user_id"`        // 触发通知的用户
+	FromUserID *uint  `gorm:"index" json:"from_user_id,omitempty"`       // 触发通知的用户（NULL表示系统通知）
 	Type       string `gorm:"type:varchar(50);not null" json:"type"`     // comment/like/favorite/follow/reply
 	Content    string `gorm:"type:text" json:"content"`                  // 通知内容
 	ArticleID  *uint  `gorm:"index" json:"article_id,omitempty"`         // 相关文章ID
@@ -38,7 +38,7 @@ func (Notification) TableName() string {
 type NotificationResponse struct {
 	ID         uint          `json:"id"`
 	UserID     uint          `json:"user_id"`
-	FromUserID uint          `json:"from_user_id"`
+	FromUserID *uint         `json:"from_user_id,omitempty"`
 	FromUser   *UserResponse `json:"from_user,omitempty"`
 	Type       string        `json:"type"`
 	Content    string        `json:"content"`

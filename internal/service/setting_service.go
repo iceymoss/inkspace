@@ -113,7 +113,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					group = "site"
 					isPublic = true
 				} else if key == models.SettingCommentAudit || key == models.SettingRegisterEnabled ||
-					key == models.SettingArticleCommentEnabled || key == models.SettingWorkCommentEnabled {
+					key == models.SettingArticleCommentEnabled || key == models.SettingWorkCommentEnabled ||
+					key == models.SettingWorkAudit {
 					group = "feature"
 					isPublic = false
 				} else if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme {

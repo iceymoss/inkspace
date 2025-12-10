@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -23,11 +24,26 @@ func NewLikeService() *LikeService {
 
 // LikeWork 点赞作品
 func (s *LikeService) LikeWork(userID, workID uint) error {
+	// 检查作品是否存在并获取状态
+	var work models.Work
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("作品不存在")
+		}
+		return err
+	}
+
 	// 检查是否已点赞
 	var existingLike models.Like
 	err := database.DB.Where("user_id = ? AND work_id = ?", userID, workID).First(&existingLike).Error
 	if err == nil {
 		// 已点赞，取消点赞
+		// 只有已发布（status=1）的作品才能取消点赞
+		// 这样可以防止对未发布作品进行任何点赞相关操作
+		if work.Status != 1 {
+			return errors.New("该作品尚未发布，无法操作")
+		}
+
 		if err := database.DB.Delete(&existingLike).Error; err != nil {
 			return err
 		}
@@ -44,6 +60,11 @@ func (s *LikeService) LikeWork(userID, workID uint) error {
 	}
 
 	// 未点赞，添加点赞
+	// 只有已发布（status=1）的作品才能被点赞
+	if work.Status != 1 {
+		return errors.New("该作品尚未发布，无法点赞")
+	}
+
 	like := &models.Like{
 		UserID: userID,
 		WorkID: &workID,
@@ -62,12 +83,6 @@ func (s *LikeService) LikeWork(userID, workID uint) error {
 	utils.DeleteCache(fmt.Sprintf("work:%d", workID))
 
 	// 发送通知给作品作者
-	var work models.Work
-	if err := database.DB.First(&work, workID).Error; err != nil {
-		log.Printf("❌ 获取作品信息失败 (ID: %d): %v", workID, err)
-		return nil
-	}
-
 	if work.AuthorID != userID {
 		go func() {
 			err := s.notificationService.CreateLikeNotification(userID, work.AuthorID, nil, &workID)

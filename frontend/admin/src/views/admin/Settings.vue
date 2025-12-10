@@ -273,6 +273,12 @@
               开启后，所有评论需要管理员审核后才能显示
             </div>
           </el-form-item>
+          <el-form-item label="开启作品审核">
+            <el-switch v-model="featureSettings.work_audit" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              开启后，用户创建的作品需要管理员审核后才能公开显示
+            </div>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="saveFeatureSettings" :loading="saving">保存</el-button>
           </el-form-item>
@@ -487,7 +493,8 @@ const featureSettings = reactive({
   register_enabled: true,
   article_comment_enabled: true,
   work_comment_enabled: true,
-  comment_audit: false
+  comment_audit: false,
+  work_audit: false
 })
 
 const themeSettings = reactive({
@@ -554,7 +561,8 @@ const loadAllSettings = async () => {
         siteSettings[setting.key] = setting.value
       } else if (setting.group === 'feature') {
         if (setting.key === 'register_enabled' || setting.key === 'article_comment_enabled' || 
-            setting.key === 'work_comment_enabled' || setting.key === 'comment_audit') {
+            setting.key === 'work_comment_enabled' || setting.key === 'comment_audit' ||
+            setting.key === 'work_audit') {
           featureSettings[setting.key] = setting.value === '1' || setting.value === 'true'
         }
       } else if (setting.group === 'theme') {

@@ -53,6 +53,8 @@ func SetupUserRouter() *gin.Engine {
 				publicWithOptionalAuth.GET("/articles/:id", articleHandler.GetDetail)
 				publicWithOptionalAuth.GET("/articles/:id/is-liked", likeHandler.CheckArticleLiked)
 				publicWithOptionalAuth.GET("/articles/:id/is-favorited", favoriteHandler.CheckFavorited)
+				// 作品详情（需要可选认证，以便作者可以查看自己的待审核/审核不通过的作品）
+				publicWithOptionalAuth.GET("/works/:id", workHandler.GetDetail)
 				publicWithOptionalAuth.GET("/works/:id/liked", likeHandler.CheckWorkLiked)
 				publicWithOptionalAuth.GET("/works/:id/favorited", favoriteHandler.CheckWorkFavorited)
 			}
@@ -77,7 +79,7 @@ func SetupUserRouter() *gin.Engine {
 			public.GET("/works", workHandler.GetList)
 			public.GET("/works/recommended", workHandler.GetRecommended)
 			public.GET("/works/hot", workHandler.GetHotWorks)
-			public.GET("/works/:id", workHandler.GetDetail)
+			// 作品详情已移到 publicWithOptionalAuth 组中
 
 			// Work Comments (public read, same as article comments)
 			// Comments endpoint handles both article and work comments via query params

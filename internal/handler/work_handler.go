@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
@@ -132,25 +133,31 @@ func (h *WorkHandler) GetDetail(c *gin.Context) {
 		return
 	}
 
-	// 权限检查：如果是草稿（status=0），只有作者或管理员可以查看
-	if work.Status == 0 {
-		userID, exists := c.Get("user_id")
-		role, _ := c.Get("role")
-		roleStr := "user"
-		if role != nil {
-			roleStr = role.(string)
-		}
+	// 获取当前用户信息（可选认证）
+	userID, userExists := c.Get("user_id")
+	role, _ := c.Get("role")
+	roleStr := "user"
+	if role != nil {
+		roleStr = role.(string)
+	}
 
+	// 权限检查：
+	// - 草稿（status=0）：只有作者或管理员可以查看
+	// - 待审核（status=2）：只有作者或管理员可以查看
+	// - 审核不通过（status=3）：只有作者或管理员可以查看
+	// - 已发布（status=1）：所有人可以查看
+	if work.Status != 1 {
 		// 如果不是管理员，且不是作者，则无权限查看
-		if roleStr != "admin" && (!exists || userID.(uint) != work.AuthorID) {
-			utils.Error(c, 403, "无权限查看此作品")
+		if roleStr != "admin" && (!userExists || userID.(uint) != work.AuthorID) {
+			utils.NotFound(c, "作品不存在")
 			return
 		}
 	}
 
 	// Increment view count only if not skipping (skip_view=true means skip increment)
+	// 只有已发布的作品才增加浏览量
 	skipView := c.Query("skip_view") == "true"
-	if !skipView {
+	if !skipView && work.Status == 1 {
 		// 同步增加浏览量，确保返回的数据包含最新的浏览量
 		if err := h.service.IncrementViewCount(uint(id)); err == nil {
 			// 更新返回数据中的浏览量（+1）
@@ -215,6 +222,16 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 	if statusStr := c.Query("status"); statusStr != "" {
 		s, _ := strconv.Atoi(statusStr)
 		status = &s
+	} else {
+		// 如果未指定状态，根据路由判断：
+		// - 管理后台（/admin/works）：显示所有状态（status = nil）
+		// - 用户端（/api/works）：只显示已发布的作品（status = 1）
+		if !strings.Contains(c.Request.URL.Path, "/admin/") {
+			// 用户端，默认只显示已发布的作品
+			s := 1
+			status = &s
+		}
+		// 管理后台，status 保持为 nil，显示所有状态
 	}
 
 	works, total, err := h.service.GetList(page, pageSize, workType, status, sortBy)
@@ -288,7 +305,9 @@ func (h *WorkHandler) toResponse(work *models.Work) *models.WorkResponse {
 		LikeCount:     work.LikeCount,
 		FavoriteCount: work.FavoriteCount,
 		Status:        work.Status,
+		IsPublished:   work.Status == 1, // 只有已发布（status=1）的作品才允许评论
 		IsRecommend:   work.IsRecommend,
+		AuditMessage:  work.AuditMessage,
 		CreatedAt:     work.CreatedAt,
 		UpdatedAt:     work.UpdatedAt,
 	}
@@ -323,6 +342,38 @@ func (h *WorkHandler) SetRecommend(c *gin.Context) {
 	}
 
 	utils.SuccessWithMessage(c, "设置成功", nil)
+}
+
+// UpdateWorkStatus 更新作品审核状态（管理后台使用）
+// PUT /api/admin/works/:id/status
+func (h *WorkHandler) UpdateWorkStatus(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.BadRequest(c, "无效的ID")
+		return
+	}
+
+	var req struct {
+		Status       int    `json:"status" binding:"required"`       // 1=通过, 3=拒绝
+		AuditMessage string `json:"audit_message"`                   // 审核消息（可选，用于记录审核通过或拒绝的原因）
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+
+	// 验证状态值
+	if req.Status != 1 && req.Status != 3 {
+		utils.BadRequest(c, "无效的状态值，只能是1（通过）或3（拒绝）")
+		return
+	}
+
+	if err := h.service.UpdateWorkStatus(uint(id), req.Status, req.AuditMessage); err != nil {
+		utils.Error(c, 400, err.Error())
+		return
+	}
+
+	utils.SuccessWithMessage(c, "审核成功", nil)
 }
 
 // GetHotWorks 获取热门作品（支持分页）

@@ -70,13 +70,19 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		}
 	}
 
+	var work *models.Work
 	if req.WorkID != nil && *req.WorkID > 0 {
-		var work models.Work
-		if err := database.DB.First(&work, *req.WorkID).Error; err != nil {
+		work = &models.Work{}
+		if err := database.DB.First(work, *req.WorkID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, errors.New("作品不存在")
 			}
 			return nil, err
+		}
+		
+		// 检查作品是否已发布（status=1），只有已发布的作品才允许评论
+		if work.Status != 1 {
+			return nil, errors.New("该作品尚未发布，无法评论")
 		}
 	}
 

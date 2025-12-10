@@ -22,6 +22,7 @@ type User struct {
 	LastLoginAt   *time.Time     `gorm:"type:datetime(3)" json:"last_login_at"`
 	LastLoginIP    string         `gorm:"size:50" json:"last_login_ip"`
 	ArticleCount   int            `gorm:"default:0;not null" json:"article_count"`
+	WorkCount      int            `gorm:"default:0;not null" json:"work_count"`      // 作品数
 	CommentCount   int            `gorm:"default:0;not null" json:"comment_count"`
 	FollowingCount int            `gorm:"default:0;not null" json:"following_count"` // 关注数
 	FollowerCount  int            `gorm:"default:0;not null" json:"follower_count"`  // 粉丝数
@@ -63,6 +64,7 @@ type UserResponse struct {
 	Role           string    `json:"role"`
 	Status         int       `json:"status"`
 	ArticleCount   int       `json:"article_count"`
+	WorkCount      int       `json:"work_count"`
 	CommentCount   int       `json:"comment_count"`
 	FollowingCount int       `json:"following_count"`
 	FollowerCount  int       `json:"follower_count"`
@@ -78,6 +80,7 @@ type PublicUserResponse struct {
 	Avatar         string    `json:"avatar"`
 	Bio            string    `json:"bio"`
 	ArticleCount   int       `json:"article_count"`
+	WorkCount      int       `json:"work_count"`
 	CommentCount   int       `json:"comment_count"`
 	FollowingCount int       `json:"following_count"`
 	FollowerCount  int       `json:"follower_count"`
@@ -96,6 +99,7 @@ func (u *User) ToResponse() *UserResponse {
 		Role:           u.Role,
 		Status:         u.Status,
 		ArticleCount:   u.ArticleCount,
+		WorkCount:      u.WorkCount,
 		CommentCount:   u.CommentCount,
 		FollowingCount: u.FollowingCount,
 		FollowerCount:  u.FollowerCount,
@@ -113,6 +117,7 @@ func (u *User) ToPublicResponse() *PublicUserResponse {
 		Avatar:         u.Avatar,
 		Bio:            u.Bio,
 		ArticleCount:   u.ArticleCount,
+		WorkCount:      u.WorkCount,
 		CommentCount:   u.CommentCount,
 		FollowingCount: u.FollowingCount,
 		FollowerCount:  u.FollowerCount,

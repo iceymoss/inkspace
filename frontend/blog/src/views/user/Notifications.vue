@@ -94,12 +94,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
 
 const router = useRouter()
+const refreshUnreadCount = inject('refreshUnreadCount', () => {})
 
 const notifications = ref([])
 const currentPage = ref(1)
@@ -146,6 +147,7 @@ const markAsRead = async (notificationId) => {
     await api.put(`/notifications/${notificationId}/read`)
     loadNotifications()
     loadUnreadCount()
+    refreshUnreadCount() // 更新侧边栏的未读数量
   } catch (error) {
     ElMessage.error('操作失败')
   }
@@ -157,6 +159,7 @@ const markAllAsRead = async () => {
     ElMessage.success('已全部标记为已读')
     loadNotifications()
     loadUnreadCount()
+    refreshUnreadCount() // 更新侧边栏的未读数量
   } catch (error) {
     ElMessage.error('操作失败')
   }
@@ -168,6 +171,7 @@ const deleteNotification = async (notificationId) => {
     ElMessage.success('删除成功')
     loadNotifications()
     loadUnreadCount()
+    refreshUnreadCount() // 更新侧边栏的未读数量
   } catch (error) {
     ElMessage.error('删除失败')
   }
@@ -184,6 +188,8 @@ const deleteAllRead = async () => {
     await api.delete('/notifications/read-all')
     ElMessage.success('删除成功')
     loadNotifications()
+    loadUnreadCount()
+    refreshUnreadCount() // 更新侧边栏的未读数量
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
@@ -194,7 +200,14 @@ const deleteAllRead = async () => {
 const handleNotificationClick = async (notification) => {
   // 标记为已读
   if (!notification.is_read) {
-    await markAsRead(notification.id)
+    try {
+      await api.put(`/notifications/${notification.id}/read`)
+      notification.is_read = true
+      loadUnreadCount()
+      refreshUnreadCount() // 更新侧边栏的未读数量
+    } catch (error) {
+      console.error('Failed to mark as read:', error)
+    }
   }
 
   // 跳转到相关内容

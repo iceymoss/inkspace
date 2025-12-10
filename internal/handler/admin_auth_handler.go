@@ -79,4 +79,3 @@ func (h *AdminAuthHandler) AdminLogout(c *gin.Context) {
 	// 客户端清除token即可
 	utils.Success(c, nil)
 }
-
