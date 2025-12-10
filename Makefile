@@ -1,24 +1,26 @@
 # Makefile for MyS Site
 
-.PHONY: help dev dev-admin build build-admin run run-admin stop clean db-migrate db-init db-sync db-health db-tables db-backup docker-up docker-down
+.PHONY: help dev dev-admin dev-scheduler build build-admin build-scheduler build-all run run-admin run-scheduler stop clean db-migrate db-init db-sync db-health db-tables db-backup docker-up docker-down
 
 # 默认目标
 help:
 	@echo "可用的命令:"
-	@echo "  make dev          - 启动用户服务（开发模式）"
-	@echo "  make dev-admin    - 启动管理后台服务（开发模式）"
-	@echo "  make dev-all      - 同时启动用户服务和管理后台"
-	@echo "  make build        - 编译用户服务"
-	@echo "  make build-admin  - 编译管理后台服务"
-	@echo "  make build-all    - 编译所有服务"
-	@echo "  make db-migrate   - 运行数据库迁移"
-	@echo "  make db-init      - 初始化数据库数据"
-	@echo "  make db-sync      - 同步计数器字段"
-	@echo "  make db-health    - 数据库健康检查"
-	@echo "  make db-tables    - 查看所有表"
-	@echo "  make docker-up    - 启动Docker容器"
-	@echo "  make docker-down  - 停止Docker容器"
-	@echo "  make clean        - 清理编译文件"
+	@echo "  make dev            - 启动用户服务（开发模式）"
+	@echo "  make dev-admin      - 启动管理后台服务（开发模式）"
+	@echo "  make dev-scheduler  - 启动定时任务调度器（开发模式）"
+	@echo "  make dev-all        - 同时启动用户服务和管理后台"
+	@echo "  make build          - 编译用户服务"
+	@echo "  make build-admin    - 编译管理后台服务"
+	@echo "  make build-scheduler- 编译定时任务调度器"
+	@echo "  make build-all      - 编译所有服务"
+	@echo "  make db-migrate     - 运行数据库迁移"
+	@echo "  make db-init        - 初始化数据库数据"
+	@echo "  make db-sync        - 同步计数器字段"
+	@echo "  make db-health      - 数据库健康检查"
+	@echo "  make db-tables      - 查看所有表"
+	@echo "  make docker-up      - 启动Docker容器"
+	@echo "  make docker-down    - 停止Docker容器"
+	@echo "  make clean          - 清理编译文件"
 
 # 开发模式 - 用户服务
 dev:
@@ -27,8 +29,13 @@ dev:
 
 # 开发模式 - 管理后台
 dev-admin:
-	@echo "启动管理后台服务（端口8082）..."
+	@echo "启动管理后台服务（端口8083）..."
 	go run cmd/admin/main.go
+
+# 开发模式 - 定时任务调度器
+dev-scheduler:
+	@echo "启动定时任务调度器..."
+	go run cmd/scheduler/main.go
 
 # 同时启动两个服务（在后台）
 dev-all:
@@ -49,8 +56,13 @@ build-admin:
 	@echo "编译管理后台服务..."
 	go build -o bin/admin cmd/admin/main.go
 
+# 编译 - 定时任务调度器
+build-scheduler:
+	@echo "编译定时任务调度器..."
+	go build -o bin/scheduler cmd/scheduler/main.go
+
 # 编译所有
-build-all: build build-admin
+build-all: build build-admin build-scheduler
 	@echo "所有服务编译完成"
 
 # 运行编译后的用户服务
@@ -62,6 +74,11 @@ run:
 run-admin:
 	@echo "运行管理后台..."
 	./bin/admin
+
+# 运行编译后的定时任务调度器
+run-scheduler:
+	@echo "运行定时任务调度器..."
+	./bin/scheduler
 
 # 数据库迁移
 db-migrate:

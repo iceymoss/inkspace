@@ -1,12 +1,11 @@
 package service
 
 import (
-	"strconv"
+	"fmt"
+	"time"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
-
-	"gorm.io/gorm"
 )
 
 type NotificationService struct{}
@@ -15,79 +14,179 @@ func NewNotificationService() *NotificationService {
 	return &NotificationService{}
 }
 
-// Create 创建通知
-func (s *NotificationService) Create(req *models.NotificationRequest) (*models.Notification, error) {
+// CreateCommentNotification 创建评论通知
+func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID uint, articleID *uint, workID *uint, commentID uint) error {
+	if fromUserID == toUserID {
+		return nil // 不给自己发通知
+	}
+
+	// 查询评论内容
+	var comment models.Comment
+	if err := database.DB.First(&comment, commentID).Error; err != nil {
+		// 如果查询失败，仍然创建通知，但不包含评论内容
+		var content string
+		if articleID != nil {
+			content = "评论了你的文章"
+		} else if workID != nil {
+			content = "评论了你的作品"
+		}
+
+		notification := &models.Notification{
+			UserID:     toUserID,
+			FromUserID: &fromUserID,
+			Type:       "comment",
+			Content:    content,
+			ArticleID:  articleID,
+			WorkID:     workID,
+			CommentID:  &commentID,
+			IsRead:     false,
+		}
+		return database.DB.Create(notification).Error
+	}
+
+	// 构建通知内容：包含评论内容
+	var prefix string
+	if articleID != nil {
+		prefix = "评论了你的文章："
+	} else if workID != nil {
+		prefix = "评论了你的作品："
+	} else {
+		prefix = "评论："
+	}
+
+	// 限制评论内容长度（避免通知内容过长）
+	commentContent := comment.Content
+	if len(commentContent) > 100 {
+		commentContent = commentContent[:100] + "..."
+	}
+	content := prefix + commentContent
+
 	notification := &models.Notification{
-		UserID:     req.UserID,
-		FromUserID: req.FromUserID,
-		Type:       req.Type,
-		Title:      req.Title,
-		Content:    req.Content,
-		TargetType: req.TargetType,
-		TargetID:   req.TargetID,
-		Link:       req.Link,
+		UserID:     toUserID,
+		FromUserID: &fromUserID,
+		Type:       "comment",
+		Content:    content,
+		ArticleID:  articleID,
+		WorkID:     workID,
+		CommentID:  &commentID,
 		IsRead:     false,
 	}
 
-	if err := database.DB.Create(notification).Error; err != nil {
-		return nil, err
-	}
-
-	return notification, nil
+	return database.DB.Create(notification).Error
 }
 
-// GetList 获取通知列表
-func (s *NotificationService) GetList(userID uint, query *models.NotificationListQuery) ([]*models.Notification, int64, error) {
+// CreateLikeNotification 创建点赞通知
+func (s *NotificationService) CreateLikeNotification(fromUserID, toUserID uint, articleID *uint, workID *uint) error {
+	if fromUserID == toUserID {
+		return nil // 不给自己发通知
+	}
+
+	var content string
+	if articleID != nil {
+		content = "点赞了你的文章"
+	} else if workID != nil {
+		content = "点赞了你的作品"
+	}
+
+	notification := &models.Notification{
+		UserID:     toUserID,
+		FromUserID: &fromUserID,
+		Type:       "like",
+		Content:    content,
+		ArticleID:  articleID,
+		WorkID:     workID,
+		IsRead:     false,
+	}
+
+	return database.DB.Create(notification).Error
+}
+
+// CreateFavoriteNotification 创建收藏通知
+func (s *NotificationService) CreateFavoriteNotification(fromUserID, toUserID uint, articleID *uint, workID *uint) error {
+	if fromUserID == toUserID {
+		return nil // 不给自己发通知
+	}
+
+	var content string
+	if articleID != nil {
+		content = "收藏了你的文章"
+	} else if workID != nil {
+		content = "收藏了你的作品"
+	}
+
+	notification := &models.Notification{
+		UserID:     toUserID,
+		FromUserID: &fromUserID,
+		Type:       "favorite",
+		Content:    content,
+		ArticleID:  articleID,
+		WorkID:     workID,
+		IsRead:     false,
+	}
+
+	return database.DB.Create(notification).Error
+}
+
+// CreateFollowNotification 创建关注通知
+// 如果用户在短时间内（1小时内）反复关注/取消关注，只保留一条未读通知
+func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint) error {
+	if fromUserID == toUserID {
+		return nil
+	}
+
+	// 检查1小时内是否已存在相同类型的未读通知
+	var existingNotification models.Notification
+	oneHourAgo := time.Now().Add(-1 * time.Hour)
+
+	err := database.DB.Where(
+		"user_id = ? AND from_user_id = ? AND type = ? AND is_read = ? AND created_at > ?",
+		toUserID, fromUserID, "follow", false, oneHourAgo,
+	).First(&existingNotification).Error
+
+	if err == nil {
+		// 如果存在未读通知，更新创建时间（让通知显示为最新）
+		// 使用 UpdateColumn 强制更新 CreatedAt 字段
+		return database.DB.Model(&existingNotification).
+			UpdateColumn("created_at", time.Now()).Error
+	}
+
+	// 不存在未读通知，创建新通知
+	notification := &models.Notification{
+		UserID:     toUserID,
+		FromUserID: &fromUserID,
+		Type:       "follow",
+		Content:    "关注了你",
+		IsRead:     false,
+	}
+
+	return database.DB.Create(notification).Error
+}
+
+// GetNotifications 获取通知列表
+func (s *NotificationService) GetNotifications(userID uint, page, pageSize int, onlyUnread bool) ([]*models.Notification, int64, error) {
 	var notifications []*models.Notification
 	var total int64
 
-	db := database.DB.Model(&models.Notification{}).Where("user_id = ?", userID).Preload("FromUser")
+	db := database.DB.Model(&models.Notification{}).Where("user_id = ?", userID)
 
-	// 按类型筛选
-	if query.Type != "" {
-		db = db.Where("type = ?", query.Type)
-	}
-
-	// 按已读状态筛选
-	if query.IsRead != nil {
-		db = db.Where("is_read = ?", *query.IsRead)
+	if onlyUnread {
+		db = db.Where("is_read = ?", false)
 	}
 
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	offset := (query.Page - 1) * query.PageSize
-	if err := db.Offset(offset).Limit(query.PageSize).
+	offset := (page - 1) * pageSize
+	err := db.Preload("FromUser").
 		Order("created_at DESC").
-		Find(&notifications).Error; err != nil {
-		return nil, 0, err
-	}
+		Offset(offset).Limit(pageSize).
+		Find(&notifications).Error
 
-	return notifications, total, nil
+	return notifications, total, err
 }
 
-// MarkAsRead 标记为已读
-func (s *NotificationService) MarkAsRead(id, userID uint) error {
-	return database.DB.Model(&models.Notification{}).
-		Where("id = ? AND user_id = ?", id, userID).
-		Updates(map[string]interface{}{
-			"is_read": true,
-			"read_at": gorm.Expr("NOW()"),
-		}).Error
-}
-
-// MarkAllAsRead 全部标记为已读
-func (s *NotificationService) MarkAllAsRead(userID uint) error {
-	return database.DB.Model(&models.Notification{}).
-		Where("user_id = ? AND is_read = ?", userID, false).
-		Updates(map[string]interface{}{
-			"is_read": true,
-			"read_at": gorm.Expr("NOW()"),
-		}).Error
-}
-
-// GetUnreadCount 获取未读数量
+// GetUnreadCount 获取未读通知数量
 func (s *NotificationService) GetUnreadCount(userID uint) (int64, error) {
 	var count int64
 	err := database.DB.Model(&models.Notification{}).
@@ -96,128 +195,155 @@ func (s *NotificationService) GetUnreadCount(userID uint) (int64, error) {
 	return count, err
 }
 
-// Delete 删除通知
-func (s *NotificationService) Delete(id, userID uint) error {
-	return database.DB.Where("id = ? AND user_id = ?", id, userID).
+// MarkAsRead 标记通知为已读
+func (s *NotificationService) MarkAsRead(notificationID, userID uint) error {
+	return database.DB.Model(&models.Notification{}).
+		Where("id = ? AND user_id = ?", notificationID, userID).
+		Update("is_read", true).Error
+}
+
+// MarkAllAsRead 标记所有通知为已读
+func (s *NotificationService) MarkAllAsRead(userID uint) error {
+	return database.DB.Model(&models.Notification{}).
+		Where("user_id = ? AND is_read = ?", userID, false).
+		Update("is_read", true).Error
+}
+
+// DeleteNotification 删除通知
+func (s *NotificationService) DeleteNotification(notificationID, userID uint) error {
+	return database.DB.Where("id = ? AND user_id = ?", notificationID, userID).
 		Delete(&models.Notification{}).Error
 }
 
-// Helper functions to create specific notification types
-
-// CreateCommentNotification 创建评论通知（评论文章时通知文章作者）
-func (s *NotificationService) CreateCommentNotification(fromUserID, toUserID, articleID uint, commentContent string) error {
-	if fromUserID == toUserID || toUserID == 0 {
-		return nil // 不给自己发通知，游客评论不通知
-	}
-
-	// 截取评论内容前50个字符作为预览
-	content := commentContent
-	if len([]rune(content)) > 50 {
-		content = string([]rune(content)[:50]) + "..."
-	}
-
-	notification := &models.NotificationRequest{
-		UserID:     toUserID,
-		FromUserID: fromUserID,
-		Type:       "comment",
-		Title:      "收到新评论",
-		Content:    content,
-		TargetType: "article",
-		TargetID:   articleID,
-		Link:       "/blog/" + strconv.Itoa(int(articleID)),
-	}
-
-	_, err := s.Create(notification)
-	return err
+// DeleteAllRead 删除所有已读通知
+func (s *NotificationService) DeleteAllRead(userID uint) error {
+	return database.DB.Where("user_id = ? AND is_read = ?", userID, true).
+		Delete(&models.Notification{}).Error
 }
 
-// CreateFollowNotification 创建关注通知
-func (s *NotificationService) CreateFollowNotification(fromUserID, toUserID uint) error {
+// CreateReplyNotification 创建回复通知
+func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID uint, articleID *uint, workID *uint, commentID uint) error {
 	if fromUserID == toUserID {
+		return nil // 不给自己发通知
+	}
+
+	// 查询评论内容
+	var comment models.Comment
+	if err := database.DB.First(&comment, commentID).Error; err != nil {
+		// 如果查询失败，仍然创建通知，但不包含评论内容
+		var content string
+		if articleID != nil {
+			content = "回复了你的评论"
+		} else if workID != nil {
+			content = "回复了你的评论"
+		}
+
+		notification := &models.Notification{
+			UserID:     toUserID,
+			FromUserID: &fromUserID,
+			Type:       "reply",
+			Content:    content,
+			ArticleID:  articleID,
+			WorkID:     workID,
+			CommentID:  &commentID,
+			IsRead:     false,
+		}
+		return database.DB.Create(notification).Error
+	}
+
+	// 构建通知内容：包含回复内容
+	var prefix string
+	if articleID != nil {
+		prefix = "回复了你的评论："
+	} else if workID != nil {
+		prefix = "回复了你的评论："
+	} else {
+		prefix = "回复："
+	}
+
+	// 限制评论内容长度（避免通知内容过长）
+	commentContent := comment.Content
+	if len(commentContent) > 100 {
+		commentContent = commentContent[:100] + "..."
+	}
+	content := prefix + commentContent
+
+	notification := &models.Notification{
+		UserID:     toUserID,
+		FromUserID: &fromUserID,
+		Type:       "reply",
+		Content:    content,
+		ArticleID:  articleID,
+		WorkID:     workID,
+		CommentID:  &commentID,
+		IsRead:     false,
+	}
+
+	return database.DB.Create(notification).Error
+}
+
+// CreateWorkAuditNotification 创建作品审核通知
+// status: 1=通过, 3=拒绝
+// rejectReason: 拒绝原因（可选）
+func (s *NotificationService) CreateWorkAuditNotification(workID uint, status int, rejectReason string) error {
+	// 查询作品信息
+	var work models.Work
+	if err := database.DB.First(&work, workID).Error; err != nil {
+		return fmt.Errorf("查询作品失败 (ID: %d): %w", workID, err)
+	}
+
+	// 系统通知，from_user_id 设为 0（表示系统）
+	var content string
+	if status == 1 {
+		// 审核通过
+		if rejectReason != "" {
+			// 如果有审核消息，包含在通知中
+			content = fmt.Sprintf("你的作品《%s》已通过审核。%s", work.Title, rejectReason)
+		} else {
+			content = fmt.Sprintf("你的作品《%s》已通过审核并发布", work.Title)
+		}
+	} else if status == 3 {
+		// 审核不通过
+		if rejectReason != "" {
+			content = fmt.Sprintf("你的作品《%s》未通过审核。原因：%s", work.Title, rejectReason)
+		} else {
+			content = fmt.Sprintf("你的作品《%s》未通过审核", work.Title)
+		}
+	} else {
+		// 其他状态不需要通知
 		return nil
 	}
 
-	notification := &models.NotificationRequest{
-		UserID:     toUserID,
-		FromUserID: fromUserID,
-		Type:       "system",
-		Title:      "新增粉丝",
-		Content:    "关注了你",
-		TargetType: "user",
-		TargetID:   fromUserID,
-		Link:       "/users/" + strconv.Itoa(int(fromUserID)),
-	}
-
-	_, err := s.Create(notification)
-	return err
-}
-
-// CreateLikeNotification 创建点赞文章通知
-func (s *NotificationService) CreateLikeNotification(fromUserID, toUserID, articleID uint) error {
-	if fromUserID == toUserID || toUserID == 0 {
-		return nil // 不给自己发通知，游客点赞不通知
-	}
-
-	notification := &models.NotificationRequest{
-		UserID:     toUserID,
-		FromUserID: fromUserID,
-		Type:       "like",
-		Title:      "收到点赞",
-		Content:    "赞了你的文章",
-		TargetType: "article",
-		TargetID:   articleID,
-		Link:       "/blog/" + strconv.Itoa(int(articleID)),
-	}
-
-	_, err := s.Create(notification)
-	return err
-}
-
-// CreateReplyNotification 创建回复评论通知（回复评论时通知被回复的评论作者）
-func (s *NotificationService) CreateReplyNotification(fromUserID, toUserID, articleID, commentID uint, replyContent string) error {
-	if fromUserID == toUserID || toUserID == 0 {
-		return nil // 不给自己发通知，游客回复不通知
-	}
-
-	// 截取回复内容前50个字符作为预览
-	content := replyContent
-	if len([]rune(content)) > 50 {
-		content = string([]rune(content)[:50]) + "..."
-	}
-
-	notification := &models.NotificationRequest{
-		UserID:     toUserID,
-		FromUserID: fromUserID,
-		Type:       "reply",
-		Title:      "收到回复",
+	// 系统通知，from_user_id 设为 nil（表示系统）
+	var fromUserID *uint = nil
+	notification := &models.Notification{
+		UserID:     work.AuthorID,
+		FromUserID: fromUserID, // nil 表示系统通知
+		Type:       "work_audit",
 		Content:    content,
-		TargetType: "comment",
-		TargetID:   commentID,
-		Link:       "/blog/" + strconv.Itoa(int(articleID)),
+		WorkID:     &workID,
+		IsRead:     false,
 	}
 
-	_, err := s.Create(notification)
-	return err
+	if err := database.DB.Create(notification).Error; err != nil {
+		return fmt.Errorf("创建通知记录失败: %w", err)
+	}
+
+	return nil
 }
 
-// CreateCommentLikeNotification 创建点赞评论通知（点赞评论时通知评论作者）
-func (s *NotificationService) CreateCommentLikeNotification(fromUserID, toUserID, articleID, commentID uint) error {
-	if fromUserID == toUserID || toUserID == 0 {
-		return nil // 不给自己发通知，游客点赞不通知
+// GetNotificationMessage 获取通知消息内容
+func (s *NotificationService) GetNotificationMessage(notification *models.Notification) string {
+	var fromUserName string
+	if notification.FromUserID == nil {
+		fromUserName = "系统"
+	} else if notification.FromUser != nil {
+		fromUserName = notification.FromUser.Nickname
+		if fromUserName == "" {
+			fromUserName = notification.FromUser.Username
+		}
 	}
 
-	notification := &models.NotificationRequest{
-		UserID:     toUserID,
-		FromUserID: fromUserID,
-		Type:       "like",
-		Title:      "收到点赞",
-		Content:    "赞了你的评论",
-		TargetType: "comment",
-		TargetID:   commentID,
-		Link:       "/blog/" + strconv.Itoa(int(articleID)),
-	}
-
-	_, err := s.Create(notification)
-	return err
+	message := fmt.Sprintf("%s %s", fromUserName, notification.Content)
+	return message
 }
-

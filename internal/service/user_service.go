@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 
 	"mysite/internal/database"
 	"mysite/internal/models"
@@ -17,6 +18,18 @@ func NewUserService() *UserService {
 }
 
 func (s *UserService) Register(req *models.UserRegisterRequest) (*models.User, error) {
+	// 检查注册功能是否开放
+	settingService := NewSettingService()
+	registerSetting, err := settingService.Get(models.SettingRegisterEnabled)
+	if err != nil {
+		// 如果配置不存在，默认允许注册（向后兼容）
+		log.Printf("警告: 无法获取注册配置，默认允许注册: %v", err)
+	} else {
+		if registerSetting.Value != "1" && registerSetting.Value != "true" {
+			return nil, errors.New("注册功能已关闭，可向管理员申请账号")
+		}
+	}
+
 	// Check if username exists
 	var count int64
 	if err := database.DB.Model(&models.User{}).Where("username = ?", req.Username).Count(&count).Error; err != nil {
@@ -95,29 +108,42 @@ func (s *UserService) GetUserByID(id uint) (*models.User, error) {
 }
 
 func (s *UserService) UpdateUser(id uint, req *models.UserUpdateRequest) (*models.User, error) {
-	user, err := s.GetUserByID(id)
-	if err != nil {
-		return nil, err
-	}
+	// 使用WHERE条件更新，确保只能更新自己的信息
+	updateData := make(map[string]interface{})
 
 	if req.Nickname != "" {
-		user.Nickname = req.Nickname
+		updateData["nickname"] = req.Nickname
 	}
 	if req.Email != "" {
-		user.Email = req.Email
+		updateData["email"] = req.Email
 	}
 	if req.Bio != "" {
-		user.Bio = req.Bio
+		updateData["bio"] = req.Bio
 	}
 	if req.Avatar != "" {
-		user.Avatar = req.Avatar
+		updateData["avatar"] = req.Avatar
 	}
 
-	if err := database.DB.Save(user).Error; err != nil {
-		return nil, err
+	if len(updateData) == 0 {
+		// 没有需要更新的字段，直接返回用户信息
+		return s.GetUserByID(id)
 	}
 
-	return user, nil
+	// 使用WHERE条件确保只能更新自己的信息
+	result := database.DB.Model(&models.User{}).
+		Where("id = ?", id).
+		Updates(updateData)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, errors.New("用户不存在")
+	}
+
+	// 重新加载用户信息
+	return s.GetUserByID(id)
 }
 
 func (s *UserService) GetUserList(page, pageSize int) ([]*models.User, int64, error) {
@@ -156,8 +182,9 @@ func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword strin
 	}
 
 	// 更新密码
-	user.Password = hashedPassword
-	if err := database.DB.Save(user).Error; err != nil {
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", user.ID).
+		Update("password", hashedPassword).Error; err != nil {
 		return err
 	}
 
@@ -166,13 +193,9 @@ func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword strin
 
 // UpdateUserStatus 更新用户状态
 func (s *UserService) UpdateUserStatus(userID uint, status int) error {
-	user, err := s.GetUserByID(userID)
-	if err != nil {
-		return err
-	}
-
-	user.Status = status
-	if err := database.DB.Save(user).Error; err != nil {
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("status", status).Error; err != nil {
 		return err
 	}
 
@@ -181,13 +204,9 @@ func (s *UserService) UpdateUserStatus(userID uint, status int) error {
 
 // UpdateUserRole 更新用户角色
 func (s *UserService) UpdateUserRole(userID uint, role string) error {
-	user, err := s.GetUserByID(userID)
-	if err != nil {
-		return err
-	}
-
-	user.Role = role
-	if err := database.DB.Save(user).Error; err != nil {
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("role", role).Error; err != nil {
 		return err
 	}
 
@@ -212,4 +231,3 @@ func (s *UserService) DeleteUser(userID uint) error {
 
 	return nil
 }
-

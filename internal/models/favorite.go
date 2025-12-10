@@ -34,8 +34,11 @@ type FavoriteListQuery struct {
 type FavoriteResponse struct {
 	ID        uint             `json:"id"`
 	UserID    uint             `json:"user_id"`
-	ArticleID uint             `json:"article_id"`
+	ArticleID uint             `json:"article_id,omitempty"`
+	WorkID    uint             `json:"work_id,omitempty"`
+	Type      string           `json:"type"` // "article" or "work"
 	Article   *ArticleResponse `json:"article,omitempty"`
+	Work      *WorkResponse    `json:"work,omitempty"`
 	CreatedAt time.Time        `json:"created_at"`
 }
 
@@ -52,5 +55,26 @@ func (f *ArticleFavorite) ToResponse() *FavoriteResponse {
 	}
 
 	return resp
+}
+
+// Favorite 统一收藏表（支持文章和作品）
+type Favorite struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	UserID    uint  `gorm:"not null;index:idx_user_target" json:"user_id"`
+	ArticleID *uint `gorm:"index:idx_user_target;index:idx_article" json:"article_id,omitempty"` // 可为空
+	WorkID    *uint `gorm:"index:idx_user_target;index:idx_work" json:"work_id,omitempty"`       // 可为空
+
+	User    *User    `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Article *Article `gorm:"foreignKey:ArticleID" json:"article,omitempty"`
+	Work    *Work    `gorm:"foreignKey:WorkID" json:"work,omitempty"`
+}
+
+// TableName 指定表名
+func (Favorite) TableName() string {
+	return "favorites"
 }
 

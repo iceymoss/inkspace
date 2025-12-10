@@ -23,16 +23,30 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="推荐" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.is_recommend ? 'warning' : ''">
+              {{ row.is_recommend ? '★ 推荐' : '-' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="view_count" label="浏览" width="100" />
         <el-table-column label="创建时间" width="180">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="350" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="$router.push(`/articles/${row.id}`)">查看</el-button>
             <el-button size="small" type="primary" @click="$router.push(`/articles/${row.id}/edit`)">编辑</el-button>
+            <el-button 
+              size="small" 
+              :type="row.is_recommend ? 'warning' : 'default'"
+              @click="handleToggleRecommend(row)"
+            >
+              {{ row.is_recommend ? '取消推荐' : '推荐' }}
+            </el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -80,12 +94,24 @@ const loadArticles = async () => {
   }
 }
 
+const handleToggleRecommend = async (row) => {
+  try {
+    await adminApi.put(`/admin/articles/${row.id}/recommend`, {
+      is_recommend: !row.is_recommend
+    })
+    ElMessage.success(row.is_recommend ? '已取消推荐' : '设置推荐成功')
+    loadArticles()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm('确定要删除这篇文章吗？', '提示', {
       type: 'warning'
     })
-    await adminApi.delete(`/articles/${row.id}`)
+    await adminApi.delete(`/admin/articles/${row.id}`)
     ElMessage.success('删除成功')
     loadArticles()
   } catch (error) {

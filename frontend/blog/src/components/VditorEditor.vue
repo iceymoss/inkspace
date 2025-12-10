@@ -3,9 +3,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
 
 const props = defineProps({
   modelValue: {
@@ -23,14 +24,33 @@ const emit = defineEmits(['update:modelValue'])
 const vditorRef = ref(null)
 let vditor = null
 
-onMounted(() => {
-  vditor = new Vditor(vditorRef.value, {
+onMounted(async () => {
+  // 等待 DOM 准备好
+  await nextTick()
+  
+  // 检查 ref 是否存在
+  if (!vditorRef.value) {
+    console.error('VditorEditor: vditorRef.value is null')
+    return
+  }
+  
+  // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
+  const codeThemeValue = await loadCodeTheme()
+  await loadHighlightTheme(codeThemeValue)
+  const mdTheme = await getMarkdownTheme()
+  
+  // 使用加载的配置初始化 Vditor
+  // 已手动设置window.VditorI18n，Vditor不会尝试动态加载i18n文件
+  try {
+    vditor = new Vditor(vditorRef.value, {
     height: props.height,
     mode: 'sv', // 分屏预览模式
     placeholder: '请输入文章内容，支持 Markdown 语法...',
     theme: 'classic',
     icon: 'material',
     typewriterMode: false,
+    lang: 'zh_CN', // 设置语言为中文（已通过window.VditorI18n设置）
+    // 不设置 cdn，使用 Vditor 默认的 CDN（unpkg.com）
     toolbarConfig: {
       pin: true,
     },
@@ -44,24 +64,22 @@ onMounted(() => {
     preview: {
       delay: 500,
       hljs: {
-        style: 'github',
+        style: codeThemeValue || 'github', // 使用配置的代码主题
         lineNumber: true,
       },
       markdown: {
         toc: true,
         mark: true,
         footnotes: true,
-        autoSpace: true, // 自动空格
+        autoSpace: true,
       },
     },
     upload: {
-      url: '/api/upload/image',
+      url: '/api/upload/markdown-image',
       max: 5 * 1024 * 1024, // 5MB
       accept: 'image/*',
       fieldName: 'file',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('user_token')}`
-      },
+      // 不需要Authorization header，这是公开API
       format(files, responseText) {
         const response = JSON.parse(responseText)
         if (response.code === 0) {
@@ -71,7 +89,8 @@ onMounted(() => {
             data: {
               errFiles: [],
               succMap: {
-                [files[0].name]: `http://localhost:8081${response.data.url}`
+                // 直接使用相对路径（博客系统）
+                [files[0].name]: response.data.url
               }
             }
           })
@@ -92,7 +111,10 @@ onMounted(() => {
     input: (value) => {
       emit('update:modelValue', value)
     },
-  })
+    })
+  } catch (error) {
+    console.error('VditorEditor: Failed to initialize Vditor', error)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -103,12 +125,15 @@ onBeforeUnmount(() => {
 })
 
 watch(() => props.modelValue, (newVal) => {
-  if (vditor && newVal !== vditor.getValue()) {
-    vditor.setValue(newVal || '')
+  if (vditor) {
+    const currentValue = vditor.getValue()
+    // 只有当值真正改变时才更新，避免循环更新
+    if (newVal !== currentValue) {
+      vditor.setValue(newVal || '')
+    }
   }
-})
+}, { immediate: false })
 
-// 暴露方法给父组件
 defineExpose({
   getValue: () => vditor?.getValue(),
   setValue: (value) => vditor?.setValue(value),
@@ -119,8 +144,8 @@ defineExpose({
 <style scoped>
 .vditor-container {
   border-radius: 8px;
-  overflow: hidden;
   width: 100%;
+  min-width: 0;
 }
 
 :deep(.vditor) {
@@ -133,10 +158,6 @@ defineExpose({
   background-color: #fff;
   border-bottom: 1px solid #e4e7ed;
   padding: 8px 12px;
-}
-
-:deep(.vditor-toolbar .vditor-tooltipped) {
-  border-radius: 4px;
 }
 
 :deep(.vditor-sv) {
@@ -164,10 +185,6 @@ defineExpose({
   padding-right: 32px !important;
 }
 
-:deep(.vditor.vditor--fullscreen .vditor-sv) {
-  padding: 0 !important;
-}
-
 :deep(.vditor.vditor--fullscreen .vditor-sv textarea) {
   padding-left: 32px !important;
   padding-right: 32px !important;
@@ -178,111 +195,18 @@ defineExpose({
   padding-right: 40px !important;
 }
 
+:deep(.vditor.vditor--fullscreen .vditor-sv) {
+  padding: 0 !important;
+}
+
+:deep(.vditor-sv .vditor-sv__preview) {
+  padding: 20px 32px;
+}
+
 :deep(.vditor-reset) {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.8;
   color: #24292e;
 }
-
-:deep(.vditor-reset h1) {
-  font-size: 2em;
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
-}
-
-:deep(.vditor-reset h2) {
-  font-size: 1.5em;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
-}
-
-:deep(.vditor-reset h3) {
-  font-size: 1.25em;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-:deep(.vditor-reset p) {
-  margin-top: 0;
-  margin-bottom: 16px;
-  line-height: 1.8;
-}
-
-:deep(.vditor-reset code) {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
-  font-size: 85%;
-  padding: 0.2em 0.4em;
-  margin: 0;
-  background-color: rgba(175, 184, 193, 0.2);
-  border-radius: 6px;
-}
-
-:deep(.vditor-reset pre) {
-  background-color: #f6f8fa;
-  border-radius: 6px;
-  padding: 16px;
-  overflow: auto;
-  font-size: 85%;
-  line-height: 1.45;
-  margin-bottom: 16px;
-}
-
-:deep(.vditor-reset pre code) {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-}
-
-:deep(.vditor-reset blockquote) {
-  padding: 0 1em;
-  color: #57606a;
-  border-left: 0.25em solid #d0d7de;
-  margin: 0 0 16px;
-}
-
-:deep(.vditor-reset a) {
-  color: #0969da;
-  text-decoration: none;
-}
-
-:deep(.vditor-reset a:hover) {
-  text-decoration: underline;
-}
-
-:deep(.vditor-reset table) {
-  border-spacing: 0;
-  border-collapse: collapse;
-  margin-bottom: 16px;
-  width: 100%;
-}
-
-:deep(.vditor-reset table th,
-.vditor-reset table td) {
-  padding: 6px 13px;
-  border: 1px solid #d0d7de;
-}
-
-:deep(.vditor-reset table th) {
-  font-weight: 600;
-  background-color: #f6f8fa;
-}
-
-:deep(.vditor-reset img) {
-  max-width: 100%;
-  box-sizing: content-box;
-  background-color: #fff;
-  border-radius: 6px;
-}
 </style>
-

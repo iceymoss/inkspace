@@ -93,12 +93,22 @@ SET favorite_count = (
     AND af.deleted_at IS NULL
 );
 
+-- 11. 同步作品的评论数 🆕
+UPDATE works w 
+SET comment_count = (
+    SELECT COUNT(*) 
+    FROM comments c 
+    WHERE c.work_id = w.id 
+    AND c.deleted_at IS NULL
+);
+
 -- 显示同步结果
 SELECT '========================================' AS '';
 SELECT '✅ 计数器同步完成！' AS '状态';
 SELECT '========================================' AS '';
 SELECT CONCAT('用户总数: ', COUNT(*)) AS '统计' FROM users WHERE deleted_at IS NULL;
 SELECT CONCAT('文章总数: ', COUNT(*)) AS '统计' FROM articles WHERE deleted_at IS NULL;
+SELECT CONCAT('作品总数: ', COUNT(*)) AS '统计' FROM works WHERE deleted_at IS NULL;
 SELECT CONCAT('评论总数: ', COUNT(*)) AS '统计' FROM comments WHERE deleted_at IS NULL;
 SELECT CONCAT('分类总数: ', COUNT(*)) AS '统计' FROM categories WHERE deleted_at IS NULL;
 SELECT CONCAT('标签总数: ', COUNT(*)) AS '统计' FROM tags WHERE deleted_at IS NULL;
@@ -106,6 +116,7 @@ SELECT '========================================' AS '';
 SELECT '统计字段已同步：' AS '提示';
 SELECT '  - 用户文章数、评论数、关注数、粉丝数、收藏数' AS '提示';
 SELECT '  - 文章评论数、收藏数' AS '提示';
+SELECT '  - 作品评论数' AS '提示';
 SELECT '  - 分类文章数、标签文章数' AS '提示';
 SELECT '  - 评论回复数' AS '提示';
 SELECT '========================================' AS '';

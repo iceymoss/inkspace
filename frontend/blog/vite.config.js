@@ -15,6 +15,10 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8081',  // 用户服务
         changeOrigin: true
+      },
+      '/uploads': {
+        target: 'http://localhost:8081',  // 静态文件服务
+        changeOrigin: true
       }
     }
   }

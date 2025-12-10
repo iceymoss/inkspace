@@ -45,11 +45,6 @@ const routes = [
         path: 'users/:id',
         name: 'UserProfile',
         component: () => import('@/views/UserProfile.vue')
-      },
-      {
-        path: 'users/:id/follows',
-        name: 'FollowList',
-        component: () => import('@/views/FollowList.vue')
       }
     ]
   },
@@ -58,30 +53,50 @@ const routes = [
     name: 'Login',
     component: () => import('@/views/Login.vue')
   },
-  {
-    path: '/dashboard',
-    component: () => import('@/layouts/UserCenterLayout.vue'),
-    meta: { requiresAuth: true },
-    children: [
+    {
+      path: '/dashboard',
+      component: () => import('@/layouts/UserCenterLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'Dashboard',
+          component: () => import('@/views/user/Dashboard.vue')
+        },
+        {
+          path: 'articles',
+          name: 'MyArticles',
+          component: () => import('@/views/user/MyArticles.vue')
+        },
+        {
+          path: 'articles/create',
+          name: 'CreateArticle',
+          component: () => import('@/views/user/ArticleEdit.vue')
+        },
+        {
+          path: 'articles/:id/edit',
+          name: 'EditArticle',
+          component: () => import('@/views/user/ArticleEdit.vue')
+        },
       {
-        path: '',
-        name: 'UserDashboard',
-        component: () => import('@/views/user/Dashboard.vue')
+        path: 'works',
+        name: 'MyWorks',
+        component: () => import('@/views/user/MyWorks.vue')
       },
       {
-        path: 'articles',
-        name: 'MyArticles',
-        component: () => import('@/views/user/MyArticles.vue')
+        path: 'works/create',
+        name: 'CreateWork',
+        component: () => import('@/views/user/WorkEdit.vue')
       },
       {
-        path: 'articles/create',
-        name: 'CreateArticle',
-        component: () => import('@/views/user/ArticleEdit.vue')
+        path: 'works/:id/edit',
+        name: 'EditWork',
+        component: () => import('@/views/user/WorkEdit.vue')
       },
       {
-        path: 'articles/:id/edit',
-        name: 'EditArticle',
-        component: () => import('@/views/user/ArticleEdit.vue')
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/user/Notifications.vue')
       },
       {
         path: 'comments',
@@ -99,18 +114,6 @@ const routes = [
         path: '',
         name: 'Favorites',
         component: () => import('@/views/Favorites.vue')
-      }
-    ]
-  },
-  {
-    path: '/notifications',
-    component: () => import('@/layouts/UserCenterLayout.vue'),
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: '',
-        name: 'Notifications',
-        component: () => import('@/views/Notifications.vue')
       }
     ]
   },

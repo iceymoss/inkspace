@@ -6,70 +6,62 @@ import (
 	"gorm.io/gorm"
 )
 
-// Notification 通知表
+// Notification 通知
 type Notification struct {
-	ID         uint           `gorm:"primarykey" json:"id"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
-	UserID     uint           `gorm:"index:idx_user_status;not null" json:"user_id"` // 接收者ID
-	User       *User          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
-	FromUserID uint           `gorm:"index:idx_from_user_id" json:"from_user_id"` // 发送者ID
-	FromUser   *User          `gorm:"foreignKey:FromUserID;constraint:OnDelete:CASCADE" json:"from_user,omitempty"`
-	Type       string         `gorm:"size:50;not null;index" json:"type"` // 类型: comment, reply, like, system, mention
-	Title      string         `gorm:"size:200;not null" json:"title"` // 标题
-	Content    string         `gorm:"type:text" json:"content"` // 内容
-	TargetType string         `gorm:"size:50" json:"target_type"` // 目标类型: article, comment, work
-	TargetID   uint           `gorm:"index" json:"target_id"` // 目标ID
-	Link       string         `gorm:"size:255" json:"link"` // 跳转链接
-	IsRead     bool           `gorm:"default:false;index:idx_user_status" json:"is_read"` // 是否已读
-	ReadAt     *time.Time     `gorm:"type:datetime(3)" json:"read_at"` // 阅读时间
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	UserID     uint   `gorm:"not null;index" json:"user_id"`             // 接收通知的用户
+	FromUserID *uint  `gorm:"index" json:"from_user_id,omitempty"`       // 触发通知的用户（NULL表示系统通知）
+	Type       string `gorm:"type:varchar(50);not null" json:"type"`     // comment/like/favorite/follow/reply
+	Content    string `gorm:"type:text" json:"content"`                  // 通知内容
+	ArticleID  *uint  `gorm:"index" json:"article_id,omitempty"`         // 相关文章ID
+	WorkID     *uint  `gorm:"index" json:"work_id,omitempty"`            // 相关作品ID
+	CommentID  *uint  `gorm:"index" json:"comment_id,omitempty"`         // 相关评论ID
+	IsRead     bool   `gorm:"default:false;index" json:"is_read"`        // 是否已读
+
+	User     *User    `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	FromUser *User    `gorm:"foreignKey:FromUserID" json:"from_user,omitempty"`
+	Article  *Article `gorm:"foreignKey:ArticleID" json:"article,omitempty"`
+	Work     *Work    `gorm:"foreignKey:WorkID" json:"work,omitempty"`
+	Comment  *Comment `gorm:"foreignKey:CommentID" json:"comment,omitempty"`
 }
 
-type NotificationRequest struct {
-	UserID     uint   `json:"user_id" binding:"required"`
-	FromUserID uint   `json:"from_user_id"`
-	Type       string `json:"type" binding:"required,oneof=comment reply like system mention"`
-	Title      string `json:"title" binding:"required,max=200"`
-	Content    string `json:"content"`
-	TargetType string `json:"target_type"`
-	TargetID   uint   `json:"target_id"`
-	Link       string `json:"link"`
+// TableName 指定表名
+func (Notification) TableName() string {
+	return "notifications"
 }
 
-type NotificationListQuery struct {
-	Page     int    `form:"page,default=1"`
-	PageSize int    `form:"page_size,default=20"`
-	Type     string `form:"type"`
-	IsRead   *bool  `form:"is_read"`
-}
-
+// NotificationResponse 通知响应
 type NotificationResponse struct {
-	ID         uint           `json:"id"`
-	Type       string         `json:"type"`
-	Title      string         `json:"title"`
-	Content    string         `json:"content"`
-	TargetType string         `json:"target_type"`
-	TargetID   uint           `json:"target_id"`
-	Link       string         `json:"link"`
-	IsRead     bool           `json:"is_read"`
-	FromUser   *UserResponse  `json:"from_user,omitempty"`
-	CreatedAt  time.Time      `json:"created_at"`
-	ReadAt     *time.Time     `json:"read_at"`
+	ID         uint          `json:"id"`
+	UserID     uint          `json:"user_id"`
+	FromUserID *uint         `json:"from_user_id,omitempty"`
+	FromUser   *UserResponse `json:"from_user,omitempty"`
+	Type       string        `json:"type"`
+	Content    string        `json:"content"`
+	ArticleID  *uint         `json:"article_id,omitempty"`
+	WorkID     *uint         `json:"work_id,omitempty"`
+	CommentID  *uint         `json:"comment_id,omitempty"`
+	IsRead     bool          `json:"is_read"`
+	CreatedAt  time.Time     `json:"created_at"`
 }
 
+// ToResponse 转换为响应格式
 func (n *Notification) ToResponse() *NotificationResponse {
 	resp := &NotificationResponse{
 		ID:         n.ID,
+		UserID:     n.UserID,
+		FromUserID: n.FromUserID,
 		Type:       n.Type,
-		Title:      n.Title,
 		Content:    n.Content,
-		TargetType: n.TargetType,
-		TargetID:   n.TargetID,
-		Link:       n.Link,
+		ArticleID:  n.ArticleID,
+		WorkID:     n.WorkID,
+		CommentID:  n.CommentID,
 		IsRead:     n.IsRead,
 		CreatedAt:  n.CreatedAt,
-		ReadAt:     n.ReadAt,
 	}
 
 	if n.FromUser != nil {
@@ -78,4 +70,3 @@ func (n *Notification) ToResponse() *NotificationResponse {
 
 	return resp
 }
-

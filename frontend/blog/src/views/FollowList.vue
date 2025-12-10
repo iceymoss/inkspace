@@ -21,7 +21,7 @@
             v-for="item in followingList" 
             :key="item.id" 
             class="user-item"
-            @click="goToUserProfile(item.following_id)"
+            @click="goToUserProfile(item.user?.id)"
           >
             <el-avatar :size="60" :src="item.user?.avatar" />
             <div class="user-info">
@@ -34,7 +34,7 @@
             </div>
             <div class="user-actions" @click.stop>
               <el-button
-                v-if="item.following_id !== userStore.user?.id"
+                v-if="item.user?.id !== userStore.user?.id && userStore.isLoggedIn"
                 :type="item.is_following ? 'default' : 'primary'"
                 size="small"
                 @click="handleFollowToggle(item)"
@@ -63,7 +63,7 @@
             v-for="item in followersList" 
             :key="item.id" 
             class="user-item"
-            @click="goToUserProfile(item.follower_id)"
+            @click="goToUserProfile(item.user?.id)"
           >
             <el-avatar :size="60" :src="item.user?.avatar" />
             <div class="user-info">
@@ -76,7 +76,7 @@
             </div>
             <div class="user-actions" @click.stop>
               <el-button
-                v-if="item.follower_id !== userStore.user?.id"
+                v-if="item.user?.id !== userStore.user?.id && userStore.isLoggedIn"
                 :type="item.is_following ? 'default' : 'primary'"
                 size="small"
                 @click="handleFollowToggle(item)"
@@ -182,7 +182,16 @@ const goToUserProfile = (uid) => {
 
 // 关注/取消关注
 const handleFollowToggle = async (item) => {
-  const targetUserId = item.following_id || item.follower_id
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  
+  const targetUserId = item.user?.id
+  if (!targetUserId) {
+    ElMessage.error('用户ID无效')
+    return
+  }
   
   try {
     if (item.is_following) {
@@ -195,7 +204,7 @@ const handleFollowToggle = async (item) => {
       item.is_following = true
     }
   } catch (error) {
-    ElMessage.error('操作失败')
+    ElMessage.error(error.response?.data?.message || '操作失败')
   }
 }
 
@@ -212,8 +221,12 @@ onMounted(() => {
 <style scoped>
 .follow-list {
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
+}
+
+.follow-list .el-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .container {
@@ -249,7 +262,7 @@ onMounted(() => {
 }
 
 .user-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-secondary);
   transform: translateX(5px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -265,7 +278,7 @@ onMounted(() => {
 
 .user-info .bio {
   margin: 0 0 8px 0;
-  color: #909399;
+  color: var(--theme-text-tertiary);
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -276,7 +289,7 @@ onMounted(() => {
   display: flex;
   gap: 15px;
   font-size: 13px;
-  color: #606266;
+  color: var(--theme-text-secondary);
 }
 
 .user-actions {

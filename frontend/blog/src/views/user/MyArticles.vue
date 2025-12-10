@@ -10,16 +10,18 @@
         </div>
       </template>
 
+      <!-- Tab 标签 -->
+      <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="status-tabs">
+        <el-tab-pane label="全部" name="all" />
+        <el-tab-pane label="已发布" name="published" />
+        <el-tab-pane label="私有" name="private" />
+        <el-tab-pane label="草稿" name="draft" />
+      </el-tabs>
+
       <!-- 搜索栏 -->
       <el-form :inline="true" class="search-form">
         <el-form-item label="标题">
-          <el-input v-model="searchForm.title" placeholder="请输入标题" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="草稿" :value="0" />
-            <el-option label="已发布" :value="1" />
-          </el-select>
+          <el-input v-model="searchForm.title" placeholder="请输入标题" clearable @clear="handleSearch" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -36,10 +38,10 @@
             {{ row.category?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'">
-              {{ row.status === 1 ? '已发布' : '草稿' }}
+            <el-tag :type="getStatusType(row.status)">
+              {{ getStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -57,10 +59,34 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="handleView(row)">查看</el-button>
             <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button 
+              v-if="row.status === 0" 
+              type="success" 
+              size="small" 
+              @click="handlePublish(row)"
+            >
+              发布
+            </el-button>
+            <el-button 
+              v-if="row.status === 1" 
+              type="warning" 
+              size="small" 
+              @click="handleMakePrivate(row)"
+            >
+              设为私有
+            </el-button>
+            <el-button 
+              v-if="row.status === 2" 
+              type="success" 
+              size="small" 
+              @click="handleMakePublic(row)"
+            >
+              设为公开
+            </el-button>
             <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -93,10 +119,10 @@ const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const articles = ref([])
+const activeTab = ref('all') // all, published, private, draft
 
 const searchForm = reactive({
-  title: '',
-  status: ''
+  title: ''
 })
 
 const pagination = reactive({
@@ -116,11 +142,27 @@ const fetchArticles = async () => {
 
   loading.value = true
   try {
+    // 根据 tab 设置 status
+    let status = null
+    if (activeTab.value === 'published') {
+      status = 1
+    } else if (activeTab.value === 'private') {
+      status = 2
+    } else if (activeTab.value === 'draft') {
+      status = 0
+    }
+    // activeTab.value === 'all' 时，status 为 null，显示所有状态
+
     const params = {
       page: pagination.page,
       page_size: pagination.pageSize,
       author_id: userStore.user.id, // 只获取当前用户的文章
       ...searchForm
+    }
+    
+    // 如果 status 不为 null，添加到参数中
+    if (status !== null) {
+      params.status = status
     }
     
     // 清理空值参数
@@ -140,6 +182,12 @@ const fetchArticles = async () => {
   }
 }
 
+// Tab 切换
+const handleTabChange = () => {
+  pagination.page = 1
+  fetchArticles()
+}
+
 const handleSearch = () => {
   pagination.page = 1
   fetchArticles()
@@ -147,9 +195,139 @@ const handleSearch = () => {
 
 const handleReset = () => {
   searchForm.title = ''
-  searchForm.status = ''
+  activeTab.value = 'all'
   pagination.page = 1
   fetchArticles()
+}
+
+// 获取状态文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 0:
+      return '草稿'
+    case 1:
+      return '已发布'
+    case 2:
+      return '私有'
+    default:
+      return '未知'
+  }
+}
+
+// 获取状态标签类型
+const getStatusType = (status) => {
+  switch (status) {
+    case 0:
+      return 'info'
+    case 1:
+      return 'success'
+    case 2:
+      return 'warning'
+    default:
+      return ''
+  }
+}
+
+// 发布草稿
+const handlePublish = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要发布这篇文章吗？', '提示', {
+      type: 'warning'
+    })
+    
+    // 使用编辑API获取完整的文章详情（确保权限检查）
+    const detailResponse = await api.get(`/articles/${row.id}/edit`)
+    const article = detailResponse.data
+    
+    // 更新status字段
+    await api.put(`/articles/${row.id}`, {
+      title: article.title,
+      content: article.content,
+      summary: article.summary || '',
+      cover: article.cover || '',
+      category_id: article.category_id || null,
+      tag_ids: article.tags?.map(t => t.id) || [],
+      status: 1,
+      is_top: article.is_top || false,
+      is_recommend: article.is_recommend || false
+    })
+    
+    ElMessage.success('发布成功')
+    fetchArticles()
+  } catch (error) {
+    if (error !== 'cancel') {
+      const errorMessage = error.response?.data?.message || error.message || '发布失败'
+      ElMessage.error(errorMessage)
+    }
+  }
+}
+
+// 设为私有
+const handleMakePrivate = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要将这篇文章设为私有吗？设为私有后，只有您可以查看。', '提示', {
+      type: 'warning'
+    })
+    
+    // 使用编辑API获取完整的文章详情（确保权限检查）
+    const detailResponse = await api.get(`/articles/${row.id}/edit`)
+    const article = detailResponse.data
+    
+    // 更新status字段
+    await api.put(`/articles/${row.id}`, {
+      title: article.title,
+      content: article.content,
+      summary: article.summary || '',
+      cover: article.cover || '',
+      category_id: article.category_id || null,
+      tag_ids: article.tags?.map(t => t.id) || [],
+      status: 2,
+      is_top: article.is_top || false,
+      is_recommend: article.is_recommend || false
+    })
+    
+    ElMessage.success('已设为私有')
+    fetchArticles()
+  } catch (error) {
+    if (error !== 'cancel') {
+      const errorMessage = error.response?.data?.message || error.message || '操作失败'
+      ElMessage.error(errorMessage)
+    }
+  }
+}
+
+// 设为公开
+const handleMakePublic = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要将这篇文章设为公开吗？设为公开后，所有人都可以查看。', '提示', {
+      type: 'warning'
+    })
+    
+    // 使用编辑API获取完整的文章详情（确保权限检查）
+    const detailResponse = await api.get(`/articles/${row.id}/edit`)
+    const article = detailResponse.data
+    
+    // 更新status字段
+    await api.put(`/articles/${row.id}`, {
+      title: article.title,
+      content: article.content,
+      summary: article.summary || '',
+      cover: article.cover || '',
+      category_id: article.category_id || null,
+      tag_ids: article.tags?.map(t => t.id) || [],
+      status: 1,
+      is_top: article.is_top || false,
+      is_recommend: article.is_recommend || false
+    })
+    
+    ElMessage.success('已设为公开')
+    fetchArticles()
+  } catch (error) {
+    if (error !== 'cancel') {
+      const errorMessage = error.response?.data?.message || error.message || '操作失败'
+      ElMessage.error(errorMessage)
+    }
+  }
 }
 
 const handleView = (row) => {
@@ -204,10 +382,18 @@ onMounted(() => {
   max-width: 1400px;
 }
 
+.my-articles .el-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.status-tabs {
+  margin-bottom: 20px;
 }
 
 .search-form {

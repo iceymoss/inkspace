@@ -56,7 +56,12 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+	
 	user, err := h.service.GetUserByID(userID.(uint))
 	if err != nil {
 		utils.NotFound(c, "用户不存在")
@@ -73,7 +78,12 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+	
 	user, err := h.service.UpdateUser(userID.(uint), &req)
 	if err != nil {
 		utils.Error(c, 400, err.Error())
@@ -92,7 +102,12 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.Unauthorized(c, "未登录")
+		return
+	}
+	
 	if err := h.service.ChangePassword(userID.(uint), req.OldPassword, req.NewPassword); err != nil {
 		utils.Error(c, 400, err.Error())
 		return
@@ -186,7 +201,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	utils.Success(c, nil)
 }
 
-// GetUserProfile 获取用户主页信息
+// GetUserProfile 获取用户主页信息（公开API，只返回公开信息）
 // GET /api/users/:id
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -201,6 +216,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, user.ToResponse())
+	// 只返回公开信息，不包含Email、Role、Status等敏感信息
+	utils.Success(c, user.ToPublicResponse())
 }
 

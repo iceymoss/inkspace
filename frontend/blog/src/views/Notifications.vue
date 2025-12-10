@@ -184,6 +184,12 @@ onMounted(() => {
 <style scoped>
 .notifications-page {
   padding: 40px 0;
+  background-color: var(--theme-bg-secondary);
+  min-height: 100vh;
+}
+
+.notification-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .page-header {
@@ -209,7 +215,7 @@ onMounted(() => {
 
 .notification-card.is-unread {
   border-left: 3px solid var(--el-color-primary);
-  background-color: #f0f9ff;
+  background-color: var(--theme-bg-hover);
 }
 
 .notification-content {

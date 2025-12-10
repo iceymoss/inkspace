@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Site - 个人网站</title>
+    <title>InkSpace - 个人网站</title>
   </head>
   <body>
     <div id="app"></div>
+    <!-- 预加载Vditor i18n文件，避免Vditor动态加载导致404错误 -->
+    <script src="/dist/js/i18n/zh_CN.js"></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

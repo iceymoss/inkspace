@@ -65,11 +65,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Message } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { loadTheme } from '@/utils/theme'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -139,12 +140,19 @@ const handleSubmit = async () => {
         router.push('/')
       }
     } catch (error) {
-      ElMessage.error(error.message || '操作失败')
+      // API 拦截器已经处理了错误消息的显示，这里不需要再次显示
+      // 只需要处理其他逻辑（如果需要的话）
+      console.error('Login/Register error:', error)
     } finally {
       loading.value = false
     }
   })
 }
+
+// 加载主题配置
+onMounted(() => {
+  loadTheme()
+})
 </script>
 
 <style scoped>
@@ -153,7 +161,7 @@ const handleSubmit = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--theme-bg-secondary);
 }
 
 .login-card {
@@ -165,11 +173,34 @@ const handleSubmit = async () => {
 .login-card h2 {
   text-align: center;
   margin-bottom: 30px;
+  color: var(--theme-text-primary);
 }
 
 .form-footer {
   text-align: center;
   margin-top: 10px;
+}
+</style>
+
+<style>
+/* 白天主题使用更灰的背景，突出登录卡片 */
+body.theme-day .login-page {
+  background: linear-gradient(135deg, #dde0e4 0%, #e8eaed 50%, #d9dce0 100%);
+}
+
+/* 黑夜主题使用渐变背景 */
+body.theme-night .login-page {
+  background: var(--theme-hero-gradient);
+}
+
+/* 节假日主题下使用背景次色 */
+body.theme-holiday .login-page {
+  background: var(--theme-bg-secondary) !important;
+}
+
+/* 哀悼日主题使用渐变背景 */
+body.theme-mourning .login-page {
+  background: var(--theme-hero-gradient);
 }
 </style>
 

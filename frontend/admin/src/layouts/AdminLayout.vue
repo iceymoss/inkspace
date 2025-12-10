@@ -48,6 +48,10 @@
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </el-menu-item>
+          <el-menu-item index="/ads">
+            <el-icon><Promotion /></el-icon>
+            <span>广告管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -83,9 +87,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import adminApi from '@/utils/adminApi'
 import {
   House,
   Document,
@@ -95,7 +100,8 @@ import {
   ChatDotRound,
   Link,
   Setting,
-  User
+  User,
+  Promotion
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -114,7 +120,8 @@ const breadcrumbTitle = computed(() => {
     '/comments': '评论管理',
     '/links': '友链管理',
     '/settings': '系统配置',
-    '/users': '用户管理'
+    '/users': '用户管理',
+    '/ads': '广告管理'
   }
   return titles[route.path] || '管理'
 })
@@ -125,6 +132,47 @@ const handleCommand = (command) => {
     router.push('/login')
   }
 }
+
+// 加载网站设置并更新favicon
+const loadSiteSettings = async () => {
+  try {
+    const response = await adminApi.get('/admin/settings')
+    const settings = response.data || []
+    const siteLogoSetting = settings.find(s => s.key === 'site_logo')
+    
+    if (siteLogoSetting && siteLogoSetting.value) {
+      updateFavicon(siteLogoSetting.value)
+    }
+    
+    // 更新页面标题
+    const siteNameSetting = settings.find(s => s.key === 'site_name')
+    if (siteNameSetting && siteNameSetting.value) {
+      document.title = `${siteNameSetting.value} - 管理后台`
+    }
+  } catch (error) {
+    console.error('Failed to load site settings:', error)
+  }
+}
+
+// 更新favicon
+const updateFavicon = (logoUrl) => {
+  // 移除旧的favicon
+  const oldFavicon = document.querySelector('link[rel="icon"]')
+  if (oldFavicon) {
+    oldFavicon.remove()
+  }
+  
+  // 创建新的favicon
+  const link = document.createElement('link')
+  link.rel = 'icon'
+  link.type = 'image/png'
+  link.href = logoUrl
+  document.head.appendChild(link)
+}
+
+onMounted(() => {
+  loadSiteSettings()
+})
 </script>
 
 <style scoped>
