@@ -29,8 +29,6 @@ variables:
 # stage definition
 stages:
   - prepare
-  - build
-  - update-config
 
 # 工作流规则：支持分支测试和标签生产阶段部署
 workflow:
@@ -62,7 +60,7 @@ parse_trigger:
   <<: *parse_template  # 继承上述定义的模板配置
   # 添加一条规则：只有符合特定格式的标签才允许触发此任务
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^(pro|dev-([a-z-]+)-v[0-9]{14}$/'  # 只运行与正则表达式匹配的标签。
+    - if: '$CI_COMMIT_TAG =~ /^(pro|dev)-([a-z-]+)-v[0-9]{14}$/'  # 只运行与正则表达式匹配的标签。
       when: always  # 匹配时总是运行
   script:
     - |
@@ -70,7 +68,7 @@ parse_trigger:
       echo "📝 current tag: $CI_COMMIT_TAG"
 
       # Tag format regular expression: environment-service name-version timestamp
-      TAG_PATTERN="^(pro|dev|stag)-([a-z-]+)-v([0-9]{14})$"
+      TAG_PATTERN="^(pro|dev)-([a-z-]+)-v([0-9]{14})$"
 
       # Use grep to verify the Tag format (a more compatible way)
       if echo "$CI_COMMIT_TAG" | grep -qE "$TAG_PATTERN"; then
