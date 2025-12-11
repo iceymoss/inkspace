@@ -14,12 +14,12 @@
 variables:
   # 项目基本信息
   PROJECT_NAME: "inkspace"
-  ECR_REGISTRY: "192.168.4.104:5000"
+  ECR_REGISTRY: "https://hub.docker.com/r"
   KUBE_NAMESPACE: "inkspace"
   RNAMESPACE: "iceymoss"
   REGISTRY_USERNAME: "iceymoss"
-  REGISTRY_PASSWORD: "Qq/2013XiaoKUang"
-  GITOPS_CONFIG_REPO: "127.0.0.1/k8s/k8s-deploy.git"
+  REGISTRY_PASSWORD: "admin123"
+  GITOPS_CONFIG_REPO: "127.0.0.1/iceymoss/inkspace.git"
   # 服务列表定义
   ALL_SERVICES: "blog-api admin-api task blog-frontend  admin-frontend"
 
