@@ -1,0 +1,24 @@
+# blog-api/overlays/production/ingress-traefik-patch.yaml
+# 生产环境 Ingress 补丁：
+# - 基于 base 中的 Ingress（path: /blog-api）
+# - 将前缀调整为根路径 /demo，由生产环境决定暴露策略
+# - 从而实现：
+#   - /demo/key
+#   等路径都能通过 Traefik 转发到 blog-api 服务
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-api-ingress
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blog-api
+                port:
+                  number: 80
+
+

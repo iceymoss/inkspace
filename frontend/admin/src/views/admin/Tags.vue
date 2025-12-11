@@ -29,7 +29,18 @@
           <el-input v-model="form.slug" />
         </el-form-item>
         <el-form-item label="颜色">
-          <el-input v-model="form.color" placeholder="#409eff" />
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <el-color-picker v-model="form.color" />
+            <el-input 
+              v-model="form.color" 
+              placeholder="#409eff" 
+              style="width: 200px;"
+              @change="handleColorChange"
+            />
+          </div>
+          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+            点击颜色选择器选择颜色，或直接在输入框中输入颜色值（如：#409eff）
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -77,11 +88,22 @@ const showDialog = (tag = null) => {
   if (tag) {
     editingId.value = tag.id
     Object.assign(form, tag)
+    // 确保颜色值存在，如果没有则设置默认值
+    if (!form.color) {
+      form.color = '#409eff'
+    }
   } else {
     editingId.value = null
-    Object.assign(form, { name: '', slug: '', color: '' })
+    Object.assign(form, { name: '', slug: '', color: '#409eff' })
   }
   dialogVisible.value = true
+}
+
+const handleColorChange = (value) => {
+  // 确保颜色值格式正确（以#开头）
+  if (value && !value.startsWith('#')) {
+    form.color = '#' + value
+  }
 }
 
 const handleSubmit = async () => {

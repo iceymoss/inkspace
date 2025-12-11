@@ -1,0 +1,137 @@
+# .gitlab-ci.yml
+# 多服务项目CI/CD流水线配置——支持分支测试和标签生产部署
+#
+# 流水线触发规则：
+# 1. 分支推送触发器：用于开发和测试（例如 ci-deploy-config 分支）
+# 2. 标签推送触发器：用于生产环境部署
+#
+# 流水线阶段描述：
+# 1. prepare     : 解析触发信息，确定部署环境和目标服务
+# 2. build       : 并行构建每个服务的Docker镜像，并推送到镜像仓库
+# 3. update-config: 更新 GitOps 配置仓库并触发 ArgoCD 同步
+
+# 全局变量定义
+variables:
+  # 项目基本信息
+  PROJECT_NAME: "inkspace"
+  ECR_REGISTRY: "192.168.4.104:5000"
+  KUBE_NAMESPACE: "inkspace"
+  RNAMESPACE: "iceymoss"
+  REGISTRY_USERNAME: "iceymoss"
+  REGISTRY_PASSWORD: "Qq/2013XiaoKUang"
+  GITOPS_CONFIG_REPO: "127.0.0.1/k8s/k8s-deploy.git"
+  # 服务列表定义
+  ALL_SERVICES: "blog-api admin-api task blog-frontend  admin-frontend"
+
+  # default image tag policy
+  IMAGE_TAG_PREFIX: "${CI_COMMIT_REF_NAME//\//-}"
+
+# stage definition
+stages:
+  - prepare
+
+# 工作流规则：支持分支测试和标签生产阶段部署
+workflow:
+  rules:
+    # 标签触发器——Pro用于生产环境，Dev用于测试环境
+    - if: '$CI_COMMIT_TAG =~ /^(pro|dev)-([a-z-]+)-v[0-9]{14}$/'
+
+# =============================================
+# Phase 1: 准备阶段——仅通过标签控制部署
+# Purpose: 只允许特定格式的标签触发流水线，并完全禁用分支触发。
+# Rule: 标签格式必须为 (pro|dev)-<service>-vYYYYMMDDHHMMSS
+# =============================================
+
+# 定义可重复使用的作业模板锚定义
+.parse_template: &parse_template
+  stage: prepare  # 将工作阶段定义为准备阶段（准备阶段）
+  image: alpine:latest  # 使用轻量级 Alpine Linux 镜像
+  tags:
+    - docker  # 指定在运行器上运行，带有 Docker 标签
+  before_script:
+    - apk add --no-cache git  # 安装git工具（Alpine使用apk包管理器）
+  artifacts:
+    reports:
+      dotenv: build.env  # 关键：将build.env文件中的变量传递给后续作业
+  interruptible: true  # 允许在新流水线启动时中断当前作业
+
+# 标签解析工作——核心逻辑：仅处理标签触发器，拒绝分支触发器
+parse_trigger:
+  <<: *parse_template  # 继承上述定义的模板配置
+  # 添加一条规则：只有符合特定格式的标签才允许触发此任务
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^(pro|dev)-([a-z-]+)-v[0-9]{14}$/'  # 只运行与正则表达式匹配的标签。
+      when: always  # 匹配时总是运行
+  script:
+    - |
+      echo "🚀 Tag trigger mode - production/staging/development environment deployment"
+      echo "📝 current tag: $CI_COMMIT_TAG"
+
+      # Tag format regular expression: environment-service name-version timestamp
+      TAG_PATTERN="^(pro|dev)-([a-z-]+)-v([0-9]{14})$"
+
+      # Use grep to verify the Tag format (a more compatible way)
+      if echo "$CI_COMMIT_TAG" | grep -qE "$TAG_PATTERN"; then
+        # extract various parts of the tag
+        DEPLOY_ENV=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\1/")  # Extraction environment (pro/dev/stag)
+        TARGET_SERVICE=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\2/")  # extract service name
+        VERSION_TIMESTAMP=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\3/")  # extraction time
+
+        # set environment variables
+        export TRIGGER_TYPE="tag"  # the trigger type is fixed to tag
+        export DEPLOY_ENV="$DEPLOY_ENV"  # Deployment environment (pro-production, dev-development, stag-staging)
+        export TARGET_SERVICE="$TARGET_SERVICE"  # target service name
+        export VERSION_TIMESTAMP="$VERSION_TIMESTAMP"  # version timestamp 14 digits
+
+        # format time display：YYYY-MM-DD HH:MM:SS
+        VERSION_DATE="${VERSION_TIMESTAMP:0:8}"  # Extract date part (YYYYMMDD)
+        VERSION_TIME="${VERSION_TIMESTAMP:8:6}"  # Extract time part (HHMMSS)
+        export VERSION_READABLE="${VERSION_DATE:0:4}-${VERSION_DATE:4:2}-${VERSION_DATE:6:2} ${VERSION_TIME:0:2}:${VERSION_TIME:2:2}:${VERSION_TIME:4:2}"
+
+        echo "✅ tag parsed successfully"
+        echo "   environment: $DEPLOY_ENV"
+        echo "   target service: $TARGET_SERVICE"
+        echo "   time: $VERSION_TIMESTAMP"
+        echo "   readable time: $VERSION_READABLE"
+
+      else
+        # If the Tag format does not match, output an error message and exit (theoretically it will not be executed here because the rules have been filtered)
+        echo "❌ tag format is incorrect"
+        echo "📋 expected-format: (pro|dev|stag)-<service>-vYYYYMMDDHHMMSS"
+        echo "💡 example:"
+        echo "   - production environment: pro-em-v20241201143025"
+        echo "   - development environment: dev-em-v20241201143025"
+        echo "   - staging environment: stag-em-v20241201143025"
+        echo "🔧 supported services: em, admin-api, exchange-rate, renderers, wc-server"
+        exit 1  # Exit code 1 indicates failure and stops the pipeline.
+      fi
+
+      # determine the scope of services to be addressed
+      if [ "$TARGET_SERVICE" = "all" ]; then
+        # If the service name is all, all services are processed
+        export SERVICES_TO_PROCESS="em admin-api exchange-rate renderers wc-server"
+        echo "🎯 scope of processing all services"
+      else
+        # Otherwise, only the specified single service will be processed
+        export SERVICES_TO_PROCESS="$TARGET_SERVICE"
+        echo "🎯 processing scope single service - $TARGET_SERVICE"
+      fi
+
+      # set image label for docker image naming
+      export IMAGE_TAG="${DEPLOY_ENV}-${TARGET_SERVICE}-${VERSION_TIMESTAMP}"
+      echo "🐳 mirror tag: $IMAGE_TAG"
+
+      # Write environment variables to the build.env file (for use by subsequent jobs)
+      {
+        echo "TRIGGER_TYPE=$TRIGGER_TYPE"  # trigger type
+        echo "DEPLOY_ENV=$DEPLOY_ENV"  # deployment environment
+        echo "TARGET_SERVICE=$TARGET_SERVICE"  # target service
+        echo "SERVICES_TO_PROCESS=$SERVICES_TO_PROCESS"  # list of services to process
+        echo "IMAGE_TAG=$IMAGE_TAG"  # docker image tags
+        echo "VERSION_TIMESTAMP=$VERSION_TIMESTAMP"  # version timestamp
+        echo "VERSION_READABLE=$VERSION_READABLE"  # readable version time
+      } > build.env
+
+      echo "📄 Environment variables have been written to the build.env file"
+      echo "🔍 file content preview:"
+      cat build.env

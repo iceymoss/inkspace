@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-api
+spec:
+  replicas: 1 # 开发环境设置为 1 份副本
+  template:
+    spec:
+      containers:
+        - name: blog-api-container
+          resources:
+            # 开发环境的资源要求较低
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+            requests:
+              memory: "128Mi"
+              cpu: "150m"
