@@ -6,8 +6,8 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: http://127.0.0.1/k8s/k8s-deploy.git
-        revision: develop # 开发环境监听 develop 分支
+        repoURL: http://127.0.0.1/iceymoss/inkspace.git
+        revision: k8s-deploy-dev # 开发环境监听 k8s-deploy-dev 分支
         directories:
           # 扫描 overlays/development 目录
           - path: /deploy/apps/*/overlays/development
@@ -21,8 +21,8 @@ spec:
     spec:
       project: default
       source:
-        repoURL: http://127.0.0.1/k8s/k8s-deploy.git
-        targetRevision: develop # 使用 develop 分支作为源
+        repoURL: http://127.0.0.1/iceymoss/inkspace.git
+        targetRevision: k8s-deploy-dev # 使用 k8s-deploy-dev 分支作为源
         path: "{{path}}"
       destination:
         # !!! 关键：部署到你在 ArgoCD 中注册的测试 K3d 集群的名称
