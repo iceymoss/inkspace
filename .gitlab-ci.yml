@@ -19,7 +19,7 @@ variables:
   RNAMESPACE: "iceymoss"
   REGISTRY_USERNAME: "iceymoss"
   REGISTRY_PASSWORD: "Qq/2013XiaoKUang"
-  GITOPS_CONFIG_REPO: "127.0.0.1/k8s/ic2-deploy-config.git"
+  GITOPS_CONFIG_REPO: "127.0.0.1/k8s/k8s-deploy.git"
   # 服务列表定义
   ALL_SERVICES: "blog-api admin-api task blog-frontend  admin-frontend"
 

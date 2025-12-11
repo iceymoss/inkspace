@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-api # Deployment 名称，也是 Kustomize 补丁的目标名称
+  labels:
+    app.kubernetes.io/name: blog-api
+    app.kubernetes.io/instance: inkspace-blog-api
+    project: inkspace # 组织项目标签
+spec:
+  replicas: 1 # 基础配置默认副本数，将被 overlays 覆盖
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: blog-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: blog-api
+    spec:
+      imagePullSecrets:
+        - name: registry-secret # 添加secret
+      containers:
+        - name: blog-api-container
+          # ！！！关键：这是一个占位符，不是实际的镜像地址。
+          # 实际的仓库地址和 Tag 将在 overlays/kustomization.yaml 中被配置和替换。
+          image: inkspace-blog-api-image
+          ports:
+            - containerPort: 8081
+              name: http-blog-api # 容器内部端口名
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+          envFrom:
+            - secretRef:
+                name: blog-api-secrets
+          volumeMounts:
+            - name: config-data
+              mountPath: /app/config # 添加 GloVe 数据文件挂载
+              readOnly: true
+      volumes:
+        - name: config-data
+          hostPath:
+            path: /mnt/config-data # 集群的配置
+            type: DirectoryOrCreate
