@@ -1,0 +1,98 @@
+version: '3.8'
+
+# 简化版本：使用外部已有的 MySQL 和 Redis 容器
+# 使用方法: docker-compose -f docker-compose.external-db.yml up -d --build
+#
+# 前提条件：
+# 1. 确保外部 MySQL 容器 (mysql-inkspace) 和 Redis 容器 (redis-inkspace) 已运行
+# 2. 将外部容器加入 inkspace-network 网络：
+#    docker network create inkspace-network
+#    docker network connect inkspace-network mysql-inkspace
+#    docker network connect inkspace-network redis-inkspace
+# 3. 确保 config/config.yaml 和 config/admin.yaml 中的数据库配置指向外部容器
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inkspace-backend
+    restart: always
+    ports:
+      - "8081:8081"
+    # 注意：使用外部 MySQL/Redis，不需要 depends_on
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  admin-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inkspace-admin-backend
+    restart: always
+    command: ["./admin"]
+    ports:
+      - "8083:8083"
+    # 注意：使用外部 MySQL/Redis，不需要 depends_on
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inkspace-scheduler
+    restart: always
+    command: ["./scheduler"]
+    # 注意：使用外部 MySQL/Redis，不需要 depends_on
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  blog-frontend:
+    build:
+      context: ./web/blog
+      dockerfile: Dockerfile
+    container_name: inkspace-blog-frontend
+    restart: always
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    networks:
+      - inkspace-network
+
+  admin-frontend:
+    build:
+      context: ./web/admin
+      dockerfile: Dockerfile
+    container_name: inkspace-admin-frontend
+    restart: always
+    ports:
+      - "3002:80"
+    depends_on:
+      - admin-backend
+    networks:
+      - inkspace-network
+
+networks:
+  inkspace-network:
+    driver: bridge
+    name: inkspace-network
+    # 如果网络已存在，取消下面的注释
+    # external: true
+
