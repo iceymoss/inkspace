@@ -68,14 +68,54 @@ services:
     networks:
       - inkspace-network
 
-  backend:
+  backend-1:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: inkspace-backend
+    container_name: inkspace-backend-1
     restart: always
-    ports:
-      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  backend-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inkspace-backend-2
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  backend-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inkspace-backend-3
+    restart: always
     depends_on:
       mysql:
         condition: service_healthy
@@ -144,9 +184,11 @@ services:
     container_name: inkspace-blog-frontend
     restart: always
     ports:
-      - "3001:80"
+      - "0.0.0.0:3001:80"
     depends_on:
-      - backend
+      - backend-1
+      - backend-2
+      - backend-3
     networks:
       - inkspace-network
 
