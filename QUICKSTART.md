@@ -15,6 +15,20 @@
 
 ## ⚡ 快速启动（推荐）
 
+### 步骤0：配置环境变量（可选）
+
+项目支持使用 `.env` 文件或环境变量来配置，环境变量会覆盖 YAML 配置文件中的值。
+
+```bash
+# 复制配置模板
+cp .env.example .env
+
+# 编辑 .env 文件，修改数据库、Redis等配置
+# 如果不创建 .env 文件，将使用 config/config.yaml 中的默认配置
+```
+
+**配置优先级**：环境变量 > .env 文件 > YAML 配置文件
+
 ### 步骤1：启动数据库
 ```bash
 docker-compose up -d mysql redis

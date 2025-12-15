@@ -73,6 +73,36 @@ cd frontend/admin && pnpm dev   # 管理前端 :3002
 
 ---
 
+## ⚙️ 配置说明
+
+项目支持多种配置方式，优先级从高到低：
+
+1. **环境变量** - 系统环境变量
+2. **.env 文件** - 项目根目录下的 `.env` 文件
+3. **YAML 配置文件** - `config/config.yaml` 和 `config/admin.yaml`
+
+### 使用 .env 文件（推荐）
+
+```bash
+# 复制配置模板
+cp env.example .env
+
+# 编辑 .env 文件，修改数据库、Redis等配置
+# 注意：.env 文件不会被提交到 Git（已在 .gitignore 中）
+```
+
+### 环境变量列表
+
+主要环境变量：
+- `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
+- `JWT_SECRET`, `JWT_ADMIN_SECRET`
+- `SERVER_PORT`, `ADMIN_PORT`
+
+完整列表请参考 `env.example` 文件。
+
+---
+
 ## 📝 命令
 
 ```bash
@@ -83,7 +113,7 @@ make db-sync       # 同步计数器
 
 # 开发（WSL终端）
 make dev           # 启动后端
-cd frontend && npm run dev  # 启动前端
+cd web/blog && pnpm dev  # 启动前端
 
 # Docker
 make docker-up     # 启动
