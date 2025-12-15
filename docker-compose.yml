@@ -199,9 +199,27 @@ services:
     container_name: inkspace-admin-frontend
     restart: always
     ports:
-      - "3002:80"
+      - "0.0.0.0:3002:80"
     depends_on:
       - admin-backend
+    networks:
+      - inkspace-network
+
+  # Nginx 反向代理（用于子域名访问）
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: inkspace-nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"  # HTTPS 端口（如果有 SSL 证书）
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # 如果有 SSL 证书，取消注释下面这行并配置证书路径
+      # - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - blog-frontend
+      - admin-frontend
     networks:
       - inkspace-network
 
