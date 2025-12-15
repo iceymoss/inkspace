@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"mysite/internal/config"
+	"github.com/iceymoss/inkspace/internal/config"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -29,4 +29,3 @@ func InitRedis() error {
 	_, err := RDB.Ping(ctx).Result()
 	return err
 }
-

@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -193,12 +193,12 @@ func (h *WorkHandler) GetEdit(c *gin.Context) {
 	// 查询作品，但使用WHERE条件确保权限（非管理员只能查询自己的作品）
 	var work models.Work
 	query := database.DB.Where("id = ?", uint(id))
-	
+
 	// 非管理员只能查询自己的作品
 	if roleStr != "admin" {
 		query = query.Where("author_id = ?", userID.(uint))
 	}
-	
+
 	if err := query.Preload("Author").First(&work).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.Error(c, 403, "作品不存在或无权限编辑")
@@ -354,8 +354,8 @@ func (h *WorkHandler) UpdateWorkStatus(c *gin.Context) {
 	}
 
 	var req struct {
-		Status       int    `json:"status" binding:"required"`       // 1=通过, 3=拒绝
-		AuditMessage string `json:"audit_message"`                   // 审核消息（可选，用于记录审核通过或拒绝的原因）
+		Status       int    `json:"status" binding:"required"` // 1=通过, 3=拒绝
+		AuditMessage string `json:"audit_message"`             // 审核消息（可选，用于记录审核通过或拒绝的原因）
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, err.Error())
@@ -381,7 +381,7 @@ func (h *WorkHandler) UpdateWorkStatus(c *gin.Context) {
 func (h *WorkHandler) GetHotWorks(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	
+
 	// 兼容旧的limit参数
 	if limitStr := c.Query("limit"); limitStr != "" {
 		limit, _ := strconv.Atoi(limitStr)

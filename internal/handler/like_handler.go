@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

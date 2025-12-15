@@ -3,9 +3,9 @@ package handler
 import (
 	"strconv"
 
-	"mysite/internal/models"
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,7 +61,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		utils.Unauthorized(c, "未登录")
 		return
 	}
-	
+
 	user, err := h.service.GetUserByID(userID.(uint))
 	if err != nil {
 		utils.NotFound(c, "用户不存在")
@@ -83,7 +83,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		utils.Unauthorized(c, "未登录")
 		return
 	}
-	
+
 	user, err := h.service.UpdateUser(userID.(uint), &req)
 	if err != nil {
 		utils.Error(c, 400, err.Error())
@@ -107,7 +107,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		utils.Unauthorized(c, "未登录")
 		return
 	}
-	
+
 	if err := h.service.ChangePassword(userID.(uint), req.OldPassword, req.NewPassword); err != nil {
 		utils.Error(c, 400, err.Error())
 		return
@@ -219,4 +219,3 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	// 只返回公开信息，不包含Email、Role、Status等敏感信息
 	utils.Success(c, user.ToPublicResponse())
 }
-

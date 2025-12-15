@@ -3,9 +3,9 @@ package handler
 import (
 	"strconv"
 
-	"mysite/internal/models"
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -87,4 +87,3 @@ func (h *CategoryHandler) GetList(c *gin.Context) {
 
 	utils.Success(c, categoryResponses)
 }
-

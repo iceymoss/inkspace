@@ -17,9 +17,11 @@
 | 分类 | 表名 | 数量 |
 |------|------|------|
 | **核心表** | users, articles, categories, tags, article_tags, comments, works | 7 |
-| **扩展表** | links, settings, attachments, article_likes, comment_likes, **article_favorites**, **user_follows**, notifications, subscriptions | 9 |
+| **扩展表** | links, settings, attachments, likes, favorites, user_follows, notifications, subscriptions | 8 |
 | **日志表** | visit_logs, visit_log_summaries | 2 |
 | **总计** | | **18张表** |
+
+> 注：`article_favorites` 表为兼容旧版本保留，新功能请使用统一的 `favorites` 表。
 
 ## 表结构设计
 
@@ -335,59 +337,61 @@
 
 ---
 
-### 11. 文章点赞记录表 (article_likes)
+### 11. 点赞表 (likes)
 
-记录文章点赞，防止重复点赞。
-
-| 字段名 | 类型 | 长度 | 默认值 | 允许空 | 说明 |
-|--------|------|------|--------|--------|------|
-| id | BIGINT UNSIGNED | - | AUTO_INCREMENT | NOT NULL | 主键 |
-| created_at | DATETIME(3) | - | CURRENT_TIMESTAMP(3) | NOT NULL | 创建时间 |
-| deleted_at | DATETIME(3) | - | NULL | NULL | 软删除时间 |
-| article_id | BIGINT UNSIGNED | - | - | NOT NULL | 文章ID |
-| user_id | BIGINT UNSIGNED | - | - | NOT NULL | 用户ID（0表示游客） |
-| ip | VARCHAR | 50 | - | NULL | IP地址（游客点赞） |
-
-**索引：**
-- PRIMARY KEY: `id`
-- INDEX: `idx_deleted_at` (deleted_at)
-- UNIQUE INDEX: `idx_article_user` (article_id, user_id) - 防止重复点赞
-- INDEX: `idx_user_id` (user_id)
-- INDEX: `idx_ip` (ip)
-
-**外键：**
-- `fk_article_likes_article`: article_id REFERENCES articles(id) ON DELETE CASCADE
-- `fk_article_likes_user`: user_id REFERENCES users(id) ON DELETE CASCADE
-
----
-
-### 12. 评论点赞记录表 (comment_likes)
-
-记录评论点赞，防止重复点赞。
+统一的点赞表，支持文章和作品的点赞。
 
 | 字段名 | 类型 | 长度 | 默认值 | 允许空 | 说明 |
 |--------|------|------|--------|--------|------|
 | id | BIGINT UNSIGNED | - | AUTO_INCREMENT | NOT NULL | 主键 |
 | created_at | DATETIME(3) | - | CURRENT_TIMESTAMP(3) | NOT NULL | 创建时间 |
+| updated_at | DATETIME(3) | - | CURRENT_TIMESTAMP(3) ON UPDATE | NOT NULL | 更新时间 |
 | deleted_at | DATETIME(3) | - | NULL | NULL | 软删除时间 |
-| comment_id | BIGINT UNSIGNED | - | - | NOT NULL | 评论ID |
-| user_id | BIGINT UNSIGNED | - | - | NOT NULL | 用户ID（0表示游客） |
-| ip | VARCHAR | 50 | - | NULL | IP地址（游客点赞） |
+| user_id | BIGINT UNSIGNED | - | - | NOT NULL | 用户ID |
+| article_id | BIGINT UNSIGNED | - | NULL | NULL | 文章ID（可为空） |
+| work_id | BIGINT UNSIGNED | - | NULL | NULL | 作品ID（可为空） |
 
 **索引：**
 - PRIMARY KEY: `id`
 - INDEX: `idx_deleted_at` (deleted_at)
-- UNIQUE INDEX: `idx_comment_user` (comment_id, user_id) - 防止重复点赞
-- INDEX: `idx_user_id` (user_id)
-- INDEX: `idx_ip` (ip)
+- INDEX: `idx_user_target` (user_id, article_id, work_id)
+- INDEX: `idx_article` (article_id)
+- INDEX: `idx_work` (work_id)
 
-**外键：**
-- `fk_comment_likes_comment`: comment_id REFERENCES comments(id) ON DELETE CASCADE
-- `fk_comment_likes_user`: user_id REFERENCES users(id) ON DELETE CASCADE
+**约束：**
+- article_id 和 work_id 至少有一个不为空
+- 同一用户对同一目标只能点赞一次（由应用层保证）
 
 ---
 
-### 13. 文章收藏表 (article_favorites) 🆕
+### 12. 收藏表 (favorites)
+
+统一的收藏表，支持文章和作品的收藏。
+
+| 字段名 | 类型 | 长度 | 默认值 | 允许空 | 说明 |
+|--------|------|------|--------|--------|------|
+| id | BIGINT UNSIGNED | - | AUTO_INCREMENT | NOT NULL | 主键 |
+| created_at | DATETIME(3) | - | CURRENT_TIMESTAMP(3) | NOT NULL | 创建时间 |
+| updated_at | DATETIME(3) | - | CURRENT_TIMESTAMP(3) ON UPDATE | NOT NULL | 更新时间 |
+| deleted_at | DATETIME(3) | - | NULL | NULL | 软删除时间 |
+| user_id | BIGINT UNSIGNED | - | - | NOT NULL | 用户ID |
+| article_id | BIGINT UNSIGNED | - | NULL | NULL | 文章ID（可为空） |
+| work_id | BIGINT UNSIGNED | - | NULL | NULL | 作品ID（可为空） |
+
+**索引：**
+- PRIMARY KEY: `id`
+- INDEX: `idx_deleted_at` (deleted_at)
+- INDEX: `idx_user_target` (user_id, article_id, work_id)
+- INDEX: `idx_article` (article_id)
+- INDEX: `idx_work` (work_id)
+
+**约束：**
+- article_id 和 work_id 至少有一个不为空
+- 同一用户对同一目标只能收藏一次（由应用层保证）
+
+---
+
+### 13. 文章收藏表 (article_favorites) - 兼容旧版本
 
 记录用户收藏的文章，实现收藏功能。
 
@@ -600,9 +604,8 @@ users (用户表)
   ├── 1:N → articles (作者)
   ├── 1:N → comments (评论者)
   ├── 1:N → attachments (上传者)
-  ├── 1:N → article_likes (点赞记录)
-  ├── 1:N → comment_likes (点赞记录)
-  ├── 1:N → article_favorites (收藏记录) 🆕
+  ├── 1:N → likes (点赞记录)
+  ├── 1:N → favorites (收藏记录)
   ├── 1:N → user_follows (关注记录 - 作为关注者) 🆕
   ├── 1:N → user_follows (被关注记录 - 作为被关注者) 🆕
   ├── 1:N → notifications (接收通知)
@@ -613,8 +616,8 @@ articles (文章表)
   ├── N:1 → categories (分类)
   ├── N:M → tags (标签，通过 article_tags)
   ├── 1:N → comments (评论)
-  ├── 1:N → article_likes (点赞记录)
-  └── 1:N → article_favorites (收藏记录) 🆕
+  ├── 1:N → likes (点赞记录)
+  └── 1:N → favorites (收藏记录)
 
 categories (分类表)
   ├── 1:N → articles (文章)
@@ -627,7 +630,6 @@ comments (评论表)
   ├── N:1 → articles (所属文章)
   ├── N:1 → users (评论者，可选)
   ├── 1:N → comments (父子评论，自关联)
-  └── 1:N → comment_likes (点赞记录)
 
 works (作品表)
   └── 独立表，无外键关系
@@ -641,19 +643,21 @@ settings (系统配置表)
 attachments (附件表)
   └── N:1 → users (上传者)
 
-article_likes (文章点赞表)
-  ├── N:1 → articles (文章)
+likes (统一点赞表)
+  ├── N:1 → articles (文章，可选)
+  ├── N:1 → works (作品，可选)
   └── N:1 → users (用户)
 
-comment_likes (评论点赞表)
-  ├── N:1 → comments (评论)
+favorites (统一收藏表)
+  ├── N:1 → articles (文章，可选)
+  ├── N:1 → works (作品，可选)
   └── N:1 → users (用户)
 
-article_favorites (文章收藏表) 🆕
+article_favorites (文章收藏表 - 兼容旧版本)
   ├── N:1 → users (用户)
   └── N:1 → articles (文章)
 
-user_follows (用户关注表) 🆕
+user_follows (用户关注表)
   ├── N:1 → users (关注者)
   └── N:1 → users (被关注者，自关联)
 
@@ -676,8 +680,8 @@ visit_log_summaries (访问统计汇总表)
 **1. 核心业务表（7张）**
 - users, articles, categories, tags, article_tags, comments, works
 
-**2. 扩展功能表（9张）**
-- links, settings, attachments, article_likes, comment_likes, **article_favorites**, **user_follows**, notifications, subscriptions
+**2. 扩展功能表（8张）**
+- links, settings, attachments, likes, favorites, user_follows, notifications, subscriptions
 
 **3. 日志统计表（2张）**
 - visit_logs, visit_log_summaries

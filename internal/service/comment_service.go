@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"gorm.io/gorm"
 )
@@ -31,7 +31,7 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 
 	// 检查评论功能是否开放
 	settingService := NewSettingService()
-	
+
 	// 检查文章评论是否开放
 	if req.ArticleID != nil && *req.ArticleID > 0 {
 		articleCommentSetting, err := settingService.Get(models.SettingArticleCommentEnabled)
@@ -79,7 +79,7 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 			}
 			return nil, err
 		}
-		
+
 		// 检查作品是否已发布（status=1），只有已发布的作品才允许评论
 		if work.Status != 1 {
 			return nil, errors.New("该作品尚未发布，无法评论")
@@ -126,8 +126,8 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		// 如果开启了审核，设置为待审核状态（status=0）
 		// 数据库存储的是字符串 '1' 或 '0'
 		// 前端保存时会将布尔值转换为 '1' 或 '0'
-		auditEnabled := commentAuditSetting.Value == "1" || 
-			commentAuditSetting.Value == "true" || 
+		auditEnabled := commentAuditSetting.Value == "1" ||
+			commentAuditSetting.Value == "true" ||
 			commentAuditSetting.Value == "True" ||
 			commentAuditSetting.Value == "TRUE"
 		if auditEnabled {
@@ -160,7 +160,7 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 		if err := tx.Create(comment).Error; err != nil {
 			return err
 		}
-		
+
 		// 如果审核已开启（commentStatus=0），立即在同一个事务中更新 status 为 0
 		// 这样可以覆盖 GORM 的 default:1 标签和数据库的默认值
 		if commentStatus == 0 {
@@ -170,7 +170,7 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 			comment.Status = 0 // 同步更新内存中的值
 			log.Printf("评论创建后，已将 Status 更新为 0（待审核），ID: %d", comment.ID)
 		}
-		
+
 		// 调试：检查创建后的 Status 值
 		log.Printf("创建评论后（事务内），comment.Status=%d", comment.Status)
 
@@ -375,7 +375,7 @@ func (s *CommentService) Delete(id uint, userID uint, role string) error {
 				// 这里直接删除，因为权限已经验证
 			}
 		}
-		
+
 		if err := deleteQuery.Delete(&models.Comment{}).Error; err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-module mysite
+module github.com/iceymoss/inkspace
 
 go 1.21
 

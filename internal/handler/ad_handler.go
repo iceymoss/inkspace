@@ -3,9 +3,9 @@ package handler
 import (
 	"strconv"
 
-	"mysite/internal/models"
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -292,7 +292,7 @@ func (h *AdHandler) GetAdsByPositionCode(c *gin.Context) {
 		utils.BadRequest(c, "位置代码不能为空")
 		return
 	}
-	
+
 	ads, err := h.service.GetAdsByPositionCode(code)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
@@ -325,4 +325,3 @@ func (h *AdHandler) RecordAdView(c *gin.Context) {
 
 	utils.SuccessWithMessage(c, "记录成功", nil)
 }
-

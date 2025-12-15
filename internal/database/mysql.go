@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"mysite/internal/config"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/config"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

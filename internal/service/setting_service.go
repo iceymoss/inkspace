@@ -1,9 +1,9 @@
 package service
 
 import (
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 	"gorm.io/gorm"
-	"mysite/internal/database"
-	"mysite/internal/models"
 )
 
 type SettingService struct{}
@@ -123,8 +123,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				} else if key == models.SettingSiteTheme {
 					group = "theme"
 					isPublic = true // 主题设置需要公开，前端才能使用
-				} else if key == "holiday_type" || key == "holiday_bg_primary" || 
-					key == "holiday_bg_secondary" || key == "holiday_text_primary" || 
+				} else if key == "holiday_type" || key == "holiday_bg_primary" ||
+					key == "holiday_bg_secondary" || key == "holiday_text_primary" ||
 					key == "holiday_primary" {
 					group = "theme"
 					isPublic = true // 节假日主题设置需要公开，前端才能使用
@@ -137,8 +137,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				} else if key == models.SettingSiteTheme {
 					group = "theme"
 					isPublic = true
-				} else if key == "holiday_type" || key == "holiday_bg_primary" || 
-					key == "holiday_bg_secondary" || key == "holiday_text_primary" || 
+				} else if key == "holiday_type" || key == "holiday_bg_primary" ||
+					key == "holiday_bg_secondary" || key == "holiday_text_primary" ||
 					key == "holiday_primary" {
 					group = "theme"
 					isPublic = true

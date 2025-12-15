@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"mysite/internal/models"
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -99,4 +99,3 @@ func (h *SettingHandler) DeleteSetting(c *gin.Context) {
 
 	utils.SuccessWithMessage(c, "删除成功", nil)
 }
-

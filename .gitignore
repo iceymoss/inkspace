@@ -36,6 +36,9 @@ uploads/
 # Config files with sensitive data
 config/config.local.yaml
 *.local.yaml
+.env
+.env.local
+.env.*.local
 
 # Log files
 *.log
@@ -58,19 +61,19 @@ bin/
 .DS_Store
 Thumbs.db
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.env.local
-frontend/.env.*.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-frontend/pnpm-debug.log*
+# web
+web/node_modules/
+web/dist/
+web/.env.local
+web/.env.*.local
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+web/pnpm-debug.log*
 
-# Frontend node_modules (specific paths)
-frontend/blog/node_modules/
-frontend/admin/node_modules/
+# web node_modules (specific paths)
+web/blog/node_modules/
+web/admin/node_modules/
 # Docker
 .dockerignore
 

@@ -6,7 +6,7 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: http://127.0.0.1/iceymoss/inkspace.git
+        repoURL: http://gitlab.iceymoss.com/iceymoss/inkspace.git
         revision: k8s-deploy-dev # 开发环境监听 k8s-deploy-dev 分支
         directories:
           # 扫描 overlays/development 目录
@@ -21,7 +21,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: http://127.0.0.1/iceymoss/inkspace.git
+        repoURL: http://gitlab.iceymoss.com/iceymoss/inkspace.git
         targetRevision: k8s-deploy-dev # 使用 k8s-deploy-dev 分支作为源
         path: "{{path}}"
       destination:

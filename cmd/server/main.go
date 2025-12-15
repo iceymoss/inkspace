@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/iceymoss/inkspace/internal/config"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/router"
 	"log"
-	"mysite/internal/config"
-	"mysite/internal/database"
-	"mysite/internal/router"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,9 +43,8 @@ func main() {
 	log.Println("  用户服务: make dev 或 go run cmd/server/main.go")
 	log.Println("  管理后台: make dev-admin 或 go run cmd/admin/main.go")
 	log.Println("============================================")
-	
+
 	if err := r.Run(fmt.Sprintf(":%d", port)); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
 	}
 }
-

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strconv"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
-	"mysite/internal/service"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/service"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -176,12 +176,12 @@ func (h *ArticleHandler) GetEdit(c *gin.Context) {
 	// 查询文章，但使用WHERE条件确保权限（非管理员只能查询自己的文章）
 	var article models.Article
 	query := database.DB.Where("id = ?", uint(id))
-	
+
 	// 非管理员只能查询自己的文章
 	if roleStr != "admin" {
 		query = query.Where("author_id = ?", userID.(uint))
 	}
-	
+
 	if err := query.Preload("Category").Preload("Tags").Preload("Author").First(&article).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.Error(c, 403, "文章不存在或无权限编辑")
@@ -264,7 +264,7 @@ func (h *ArticleHandler) GetUserArticles(c *gin.Context) {
 
 	// 设置作者ID过滤
 	query.AuthorID = uint(authorID)
-	
+
 	// 数据安全：如果查看的是自己的文章，显示所有状态；如果是别人的文章，只显示公开的
 	if currentUserID == uint(authorID) {
 		// 查看自己的文章，显示所有状态（草稿、私有、公开）

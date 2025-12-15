@@ -1,8 +1,8 @@
 package router
 
 import (
-	"mysite/internal/handler"
-	"mysite/internal/middleware"
+	"github.com/iceymoss/inkspace/internal/handler"
+	"github.com/iceymoss/inkspace/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
