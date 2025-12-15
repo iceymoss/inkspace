@@ -4,9 +4,9 @@ import (
 	"log"
 	"time"
 
-	"mysite/internal/config"
-	"mysite/internal/database"
-	"mysite/internal/scheduler"
+	"github.com/iceymoss/inkspace/internal/config"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/scheduler"
 )
 
 func main() {

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"mysite/internal/config"
-	"mysite/internal/database"
-	"mysite/internal/models"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/config"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -28,7 +28,7 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 	if status != 0 && status != 1 && status != 2 {
 		status = 1 // 默认已发布
 	}
-	
+
 	article := &models.Article{
 		Title:       req.Title,
 		Content:     req.Content,
@@ -100,12 +100,12 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 	// 先查询文章，但使用WHERE条件确保权限（非管理员只能查询自己的文章）
 	var article models.Article
 	query := database.DB.Where("id = ?", id)
-	
+
 	// 非管理员只能更新自己的文章
 	if role != "admin" {
 		query = query.Where("author_id = ?", userID)
 	}
-	
+
 	if err := query.Preload("Category").Preload("Tags").First(&article).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("文章不存在或无权限修改")
@@ -152,29 +152,29 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 			"is_top":       req.IsTop,
 			"is_recommend": req.IsRecommend,
 		}
-		
+
 		// 确保 status 正确设置：0=草稿, 1=已发布, 2=私有
 		status := req.Status
 		if status == 0 || status == 1 || status == 2 {
 			updateData["status"] = status
 		}
-		
+
 		updateQuery := tx.Model(&models.Article{}).Where("id = ?", id)
 		// 非管理员只能更新自己的文章
 		if role != "admin" {
 			updateQuery = updateQuery.Where("author_id = ?", userID)
 		}
-		
+
 		if err := updateQuery.Updates(updateData).Error; err != nil {
 			return err
 		}
-		
+
 		// 重新加载文章以获取最新数据（用于 Association 操作）
 		var updatedArticle models.Article
 		if err := tx.First(&updatedArticle, id).Error; err != nil {
 			return err
 		}
-		
+
 		// 计算需要更新计数的标签ID（旧标签和新标签的差集）
 		oldTagIDSet := make(map[uint]bool)
 		for _, tagID := range oldTagIDs {
@@ -184,7 +184,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 		for _, tagID := range req.TagIDs {
 			newTagIDSet[tagID] = true
 		}
-		
+
 		// 找出需要减少计数的标签（在旧标签中但不在新标签中）
 		tagsToDecrease := make([]uint, 0)
 		for tagID := range oldTagIDSet {
@@ -192,7 +192,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 				tagsToDecrease = append(tagsToDecrease, tagID)
 			}
 		}
-		
+
 		// 找出需要增加计数的标签（在新标签中但不在旧标签中）
 		tagsToIncrease := make([]uint, 0)
 		for tagID := range newTagIDSet {
@@ -200,12 +200,12 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 				tagsToIncrease = append(tagsToIncrease, tagID)
 			}
 		}
-		
+
 		// 更新标签关联
 		if err := tx.Model(&updatedArticle).Association("Tags").Clear(); err != nil {
 			return err
 		}
-		
+
 		// 如果有新标签，添加关联
 		if len(req.TagIDs) > 0 {
 			var tags []models.Tag
@@ -218,7 +218,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 				}
 			}
 		}
-		
+
 		// 更新标签文章数（减少旧标签的计数）
 		if len(tagsToDecrease) > 0 {
 			if err := tx.Model(&models.Tag{}).
@@ -227,7 +227,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 				return err
 			}
 		}
-		
+
 		// 更新标签文章数（增加新标签的计数）
 		if len(tagsToIncrease) > 0 {
 			if err := tx.Model(&models.Tag{}).
@@ -236,7 +236,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 				return err
 			}
 		}
-		
+
 		// 重新加载文章以获取最新数据（包括标签）
 		if err := tx.Preload("Category").Preload("Tags").First(&article, id).Error; err != nil {
 			return err
@@ -260,12 +260,12 @@ func (s *ArticleService) Delete(id uint, userID uint, role string) error {
 	// 先查询文章以获取相关信息（用于更新计数）
 	var article models.Article
 	query := database.DB.Where("id = ?", id)
-	
+
 	// 非管理员只能查询自己的文章
 	if role != "admin" {
 		query = query.Where("author_id = ?", userID)
 	}
-	
+
 	if err := query.Preload("Tags").First(&article).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("文章不存在或无权限删除")
@@ -285,7 +285,7 @@ func (s *ArticleService) Delete(id uint, userID uint, role string) error {
 		if role != "admin" {
 			deleteQuery = deleteQuery.Where("author_id = ?", userID)
 		}
-		
+
 		result := deleteQuery.Delete(&models.Article{})
 		if result.Error != nil {
 			return result.Error
@@ -722,7 +722,7 @@ func (s *ArticleService) GetHotArticles(limit int) ([]*models.Article, error) {
 	// 将置顶文章放在最前面，然后按照热度排序
 	topArticles := make([]*models.Article, 0)
 	normalArticles := make([]*models.Article, 0)
-	
+
 	for _, article := range sortedArticles {
 		if article.IsTop {
 			topArticles = append(topArticles, article)
@@ -730,7 +730,7 @@ func (s *ArticleService) GetHotArticles(limit int) ([]*models.Article, error) {
 			normalArticles = append(normalArticles, article)
 		}
 	}
-	
+
 	// 置顶文章在前，非置顶文章在后（都保持原有的热度排序）
 	result := make([]*models.Article, 0, len(sortedArticles))
 	result = append(result, topArticles...)

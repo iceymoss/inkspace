@@ -3,8 +3,8 @@ package service
 import (
 	"errors"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 )
 
 type TagService struct{}
@@ -87,4 +87,3 @@ func (s *TagService) GetList() ([]*models.Tag, error) {
 	}
 	return tags, nil
 }
-

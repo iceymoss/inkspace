@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"gorm.io/gorm"
 )
@@ -426,4 +426,3 @@ func AfterDeleteComment(db *gorm.DB, comment *models.Comment) error {
 
 	return nil
 }
-

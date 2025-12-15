@@ -7,8 +7,8 @@ import (
 	"log"
 	"strconv"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"gorm.io/gorm"
 )
@@ -29,7 +29,7 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 		if len(req.Images) == 0 {
 			return nil, errors.New("摄影作品至少需要1张照片")
 		}
-		
+
 		// 检查每日配额（摄影作品）
 		canCreate, err := s.CheckDailyQuota(authorID, "photography")
 		if err != nil {
@@ -38,7 +38,7 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 		if !canCreate {
 			return nil, errors.New("今日摄影作品发布数量已达上限（3个相册/天）")
 		}
-		
+
 		// 更新相册元数据中的照片数量
 		if req.Metadata == nil {
 			req.Metadata = make(map[string]interface{})
@@ -67,8 +67,8 @@ func (s *WorkService) Create(req *models.WorkRequest, authorID uint, role string
 	} else {
 		// 如果开启了审核，设置为待审核状态（status=2）
 		// 数据库存储的是字符串 '1' 或 '0'
-		auditEnabled := workAuditSetting.Value == "1" || 
-			workAuditSetting.Value == "true" || 
+		auditEnabled := workAuditSetting.Value == "1" ||
+			workAuditSetting.Value == "true" ||
 			workAuditSetting.Value == "True" ||
 			workAuditSetting.Value == "TRUE"
 		if auditEnabled && workStatus == 1 {
@@ -131,12 +131,12 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 	// 先查询作品，但使用WHERE条件确保权限（非管理员只能查询自己的作品）
 	var work models.Work
 	query := database.DB.Where("id = ?", id)
-	
+
 	// 非管理员只能更新自己的作品
 	if role != "admin" {
 		query = query.Where("author_id = ?", userID)
 	}
-	
+
 	if err := query.First(&work).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("作品不存在或无权限修改")
@@ -153,7 +153,7 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 		if len(req.Images) == 0 {
 			return nil, errors.New("摄影作品至少需要1张照片")
 		}
-		
+
 		// 更新相册元数据中的照片数量
 		if req.Metadata == nil {
 			req.Metadata = make(map[string]interface{})
@@ -181,7 +181,7 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 				workAuditSetting.Value == "true" ||
 				workAuditSetting.Value == "True" ||
 				workAuditSetting.Value == "TRUE"
-			
+
 			if auditEnabled {
 				// 如果审核已开启，无论作品原本是什么状态，只要尝试设置为已发布，都需要重新审核
 				// 这样可以防止：先发布正常内容通过审核，然后修改为违规内容绕过审核
@@ -203,7 +203,7 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 		"type":         req.Type,
 		"metadata":     string(metadataJSON),
 		"daily_quota":  req.Type == "photography",
-		"description": req.Description,
+		"description":  req.Description,
 		"cover":        req.Cover,
 		"images":       string(imagesJSON),
 		"link":         req.Link,
@@ -214,13 +214,13 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 		"status":       workStatus, // 使用处理后的状态
 		"is_recommend": req.IsRecommend,
 	}
-	
+
 	updateQuery := database.DB.Model(&models.Work{}).Where("id = ?", id)
 	// 非管理员只能更新自己的作品
 	if role != "admin" {
 		updateQuery = updateQuery.Where("author_id = ?", userID)
 	}
-	
+
 	if err := updateQuery.Updates(updateData).Error; err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func (s *WorkService) Update(id uint, req *models.WorkRequest, userID uint, role
 			log.Printf("更新用户作品数失败: %v", err)
 		}
 	}
-	
+
 	// 重新加载作品以获取最新数据
 	if err := database.DB.Preload("Author").First(&work, id).Error; err != nil {
 		return nil, err
@@ -264,12 +264,12 @@ func (s *WorkService) Delete(id uint, userID uint, role string) error {
 	// 先查询作品以获取状态和作者ID
 	var work models.Work
 	query := database.DB.Where("id = ?", id)
-	
+
 	// 非管理员只能删除自己的作品
 	if role != "admin" {
 		query = query.Where("author_id = ?", userID)
 	}
-	
+
 	if err := query.First(&work).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("作品不存在或无权限删除")
@@ -295,7 +295,7 @@ func (s *WorkService) Delete(id uint, userID uint, role string) error {
 			log.Printf("更新用户作品数失败: %v", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -331,7 +331,7 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int, 
 	}
 
 	offset := (page - 1) * pageSize
-	
+
 	// 根据排序参数决定排序方式
 	orderBy := "sort DESC, created_at DESC" // 默认排序
 	switch sortBy {
@@ -351,7 +351,7 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int, 
 		// 默认：推荐优先，然后按时间
 		orderBy = "sort DESC, created_at DESC"
 	}
-	
+
 	if err := db.Preload("Author").Order(orderBy).Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {
 		return nil, 0, err
 	}

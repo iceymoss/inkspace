@@ -8,8 +8,8 @@ import (
 	"math"
 	"time"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"github.com/go-redis/redis/v8"
 )

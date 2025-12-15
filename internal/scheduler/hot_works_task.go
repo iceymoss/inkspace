@@ -7,8 +7,8 @@ import (
 	"math"
 	"time"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -51,7 +51,7 @@ func (t *HotWorksTask) Run(ctx context.Context) error {
 
 	// 2. 计算每个作品的得分并存储到ZSET
 	key := "hot:works:zset"
-	
+
 	// 先清空旧的ZSET
 	if err := database.RDB.Del(ctx, key).Err(); err != nil {
 		log.Printf("警告: 清空旧ZSET失败: %v", err)
@@ -60,7 +60,7 @@ func (t *HotWorksTask) Run(ctx context.Context) error {
 	// 批量添加作品到ZSET（最多500个）
 	maxCount := 500
 	addedCount := 0
-	
+
 	// 先计算所有作品的得分并排序
 	scores := make([]WorkScore, 0, len(works))
 	for _, work := range works {
@@ -95,17 +95,17 @@ func (t *HotWorksTask) Run(ctx context.Context) error {
 		})
 		addedCount++
 	}
-	
+
 	// 设置过期时间为1小时
 	pipe.Expire(ctx, key, time.Hour)
-	
+
 	if _, err := pipe.Exec(ctx); err != nil {
 		return fmt.Errorf("存储到Redis ZSET失败: %w", err)
 	}
 
 	log.Printf("✅ 热门作品计算完成，共 %d 个作品，已存储前 %d 个到Redis ZSET", len(works), addedCount)
 	if addedCount >= 3 {
-		log.Printf("📊 Top 3 热门作品ID: %v (得分: %.2f, %.2f, %.2f)", 
+		log.Printf("📊 Top 3 热门作品ID: %v (得分: %.2f, %.2f, %.2f)",
 			[]uint{scores[0].ID, scores[1].ID, scores[2].ID},
 			scores[0].Score, scores[1].Score, scores[2].Score)
 	}
@@ -117,7 +117,7 @@ func (t *HotWorksTask) Run(ctx context.Context) error {
 // 权重：浏览量 40%、评论数 25%、点赞数 20%、收藏数 10%、时间衰减 5%
 func (t *HotWorksTask) calculateScore(work models.Work) float64 {
 	// 归一化处理：使用对数函数降低极端值的影响
-	viewScore := math.Log1p(float64(work.ViewCount)) * 0.4        // 40%
+	viewScore := math.Log1p(float64(work.ViewCount)) * 0.4         // 40%
 	commentScore := math.Log1p(float64(work.CommentCount)) * 0.25  // 25%
 	likeScore := math.Log1p(float64(work.LikeCount)) * 0.2         // 20%
 	favoriteScore := math.Log1p(float64(work.FavoriteCount)) * 0.1 // 10%
@@ -130,4 +130,3 @@ func (t *HotWorksTask) calculateScore(work models.Work) float64 {
 
 	return totalScore
 }
-

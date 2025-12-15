@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"mysite/internal/database"
+	"github.com/iceymoss/inkspace/internal/database"
 
 	"github.com/go-redis/redis/v8"
 )

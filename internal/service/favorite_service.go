@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -137,18 +137,18 @@ func (s *FavoriteService) IsFavorited(userID, articleID uint) (bool, error) {
 // 数据安全：只返回用户自己的收藏，并且只返回公开的内容
 func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*models.FavoriteResponse, int64, error) {
 	var allFavorites []*models.FavoriteResponse
-	
+
 	// 1. 获取文章收藏
 	articleDB := database.DB.Model(&models.ArticleFavorite{}).
 		Joins("JOIN articles ON articles.id = article_favorites.article_id").
 		Where("article_favorites.user_id = ?", userID).
 		Where("(articles.status = ? OR (articles.status = ? AND articles.author_id = ?))", 1, 2, userID)
-	
+
 	var articleTotal int64
 	if err := articleDB.Count(&articleTotal).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 获取所有文章收藏（不分页，用于合并排序）
 	var articleFavorites []*models.ArticleFavorite
 	if err := articleDB.Select("article_favorites.*").
@@ -156,14 +156,14 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 		Find(&articleFavorites).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 预加载文章信息
 	if len(articleFavorites) > 0 {
 		articleIDs := make([]uint, len(articleFavorites))
 		for i, f := range articleFavorites {
 			articleIDs[i] = f.ArticleID
 		}
-		
+
 		var articles []*models.Article
 		if err := database.DB.Where("id IN ?", articleIDs).
 			Where("(status = ? OR (status = ? AND author_id = ?))", 1, 2, userID).
@@ -171,7 +171,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 			Find(&articles).Error; err != nil {
 			return nil, 0, err
 		}
-		
+
 		articleMap := make(map[uint]*models.Article)
 		for _, article := range articles {
 			articleMap[article.ID] = article
@@ -181,7 +181,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 				articleFavorites[i].Article = article
 			}
 		}
-		
+
 		// 转换为响应格式，只添加有文章数据的收藏项
 		for _, favorite := range articleFavorites {
 			// 只处理有文章数据的收藏项
@@ -192,25 +192,25 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 			}
 		}
 	}
-	
+
 	// 2. 获取作品收藏（只获取已发布的作品）
 	workDB := database.DB.Model(&models.Favorite{}).
 		Joins("JOIN works ON works.id = favorites.work_id").
 		Where("favorites.user_id = ? AND favorites.work_id IS NOT NULL", userID).
 		Where("works.status = ?", 1)
-	
+
 	var workTotal int64
 	if err := workDB.Count(&workTotal).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 获取所有作品收藏（不分页，用于合并排序）
 	var workFavorites []*models.Favorite
 	if err := workDB.Order("created_at DESC").
 		Find(&workFavorites).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 预加载作品信息
 	if len(workFavorites) > 0 {
 		workIDs := make([]uint, 0, len(workFavorites))
@@ -219,7 +219,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 				workIDs = append(workIDs, *f.WorkID)
 			}
 		}
-		
+
 		if len(workIDs) > 0 {
 			var works []*models.Work
 			if err := database.DB.Where("id IN ? AND status = ?", workIDs, 1).
@@ -227,7 +227,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 				Find(&works).Error; err != nil {
 				return nil, 0, err
 			}
-			
+
 			workMap := make(map[uint]*models.Work)
 			for _, work := range works {
 				workMap[work.ID] = work
@@ -239,7 +239,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 					}
 				}
 			}
-			
+
 			// 转换为响应格式
 			for _, favorite := range workFavorites {
 				if favorite.WorkID != nil && favorite.Work != nil {
@@ -258,7 +258,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 			}
 		}
 	}
-	
+
 	// 3. 按创建时间降序排序（使用简单的冒泡排序，数据量不大时性能可接受）
 	for i := 0; i < len(allFavorites)-1; i++ {
 		for j := i + 1; j < len(allFavorites); j++ {
@@ -267,14 +267,14 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 			}
 		}
 	}
-	
+
 	// 4. 应用分页
 	// 使用实际过滤后的数量作为总数，确保总数和实际返回的数据一致
 	total := int64(len(allFavorites))
 	offset := (page - 1) * pageSize
 	start := offset
 	end := offset + pageSize
-	
+
 	if start >= len(allFavorites) {
 		allFavorites = []*models.FavoriteResponse{}
 	} else if end > len(allFavorites) {
@@ -282,7 +282,7 @@ func (s *FavoriteService) GetFavoriteList(userID uint, page, pageSize int) ([]*m
 	} else {
 		allFavorites = allFavorites[start:end]
 	}
-	
+
 	return allFavorites, total, nil
 }
 

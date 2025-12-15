@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 
 	"gorm.io/gorm"
 )
@@ -215,7 +215,7 @@ func (s *FollowService) GetFollowingList(userID uint, page, pageSize int, curren
 			// 返回公开信息，不包含Email、Role等敏感信息
 			responses[i].User = follow.Following.ToPublicResponse()
 		}
-		
+
 		// 如果当前用户已登录，检查是否已关注列表中的用户
 		if currentUserID > 0 && follow.FollowingID > 0 {
 			isFollowing, _ := s.IsFollowing(currentUserID, follow.FollowingID)
@@ -260,7 +260,7 @@ func (s *FollowService) GetFollowerList(userID uint, page, pageSize int, current
 			// 返回公开信息，不包含Email、Role等敏感信息
 			responses[i].User = follow.Follower.ToPublicResponse()
 		}
-		
+
 		// 如果当前用户已登录，检查是否已关注列表中的用户（粉丝）
 		if currentUserID > 0 && follow.FollowerID > 0 {
 			isFollowing, _ := s.IsFollowing(currentUserID, follow.FollowerID)
@@ -270,4 +270,3 @@ func (s *FollowService) GetFollowerList(userID uint, page, pageSize int, current
 
 	return responses, total, nil
 }
-

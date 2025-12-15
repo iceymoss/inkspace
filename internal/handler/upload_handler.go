@@ -2,17 +2,17 @@ package handler
 
 import (
 	"fmt"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/utils"
 	"io"
-	"mysite/internal/database"
-	"mysite/internal/utils"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 )
 
 type UploadHandler struct{}
@@ -249,11 +249,11 @@ func (h *UploadHandler) UploadPhoto(c *gin.Context) {
 func (h *UploadHandler) UploadMarkdownImage(c *gin.Context) {
 	// 获取客户端IP作为标识
 	clientIP := c.ClientIP()
-	
+
 	// 获取当前日期作为Redis key的一部分
 	today := time.Now().Format("2006-01-02")
 	limitKey := fmt.Sprintf("upload:markdown-image:%s:%s", today, clientIP)
-	
+
 	// 检查今天是否已上传超过100张
 	ctx := c.Request.Context()
 	count, err := database.RDB.Get(ctx, limitKey).Int()
@@ -261,12 +261,12 @@ func (h *UploadHandler) UploadMarkdownImage(c *gin.Context) {
 		utils.InternalServerError(c, "检查上传限制失败")
 		return
 	}
-	
+
 	if count >= 100 {
 		utils.Error(c, 429, "今天上传图片数量已达上限（100张），请明天再试")
 		return
 	}
-	
+
 	// 获取上传的文件
 	file, err := c.FormFile("file")
 	if err != nil {

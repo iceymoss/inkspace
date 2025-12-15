@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"mysite/internal/database"
+	"github.com/iceymoss/inkspace/internal/database"
 )
 
 func SetCache(key string, value interface{}, expiration time.Duration) error {
@@ -38,4 +38,3 @@ func DeleteCachePattern(pattern string) error {
 	}
 	return iter.Err()
 }
-

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"mysite/internal/database"
-	"mysite/internal/models"
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )

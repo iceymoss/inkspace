@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"mysite/internal/config"
+	"github.com/iceymoss/inkspace/internal/config"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -53,7 +53,7 @@ func ParseToken(tokenString string) (*Claims, error) {
 // GenerateAdminToken 生成管理员Token（使用独立的secret）
 func GenerateAdminToken(userID uint, username, role string) (string, error) {
 	cfg := config.AppConfig.JWT
-	
+
 	// 使用管理员专用secret，如果未配置则使用默认secret+后缀
 	adminSecret := cfg.AdminSecret
 	if adminSecret == "" {
@@ -78,7 +78,7 @@ func GenerateAdminToken(userID uint, username, role string) (string, error) {
 // ParseAdminToken 解析管理员Token（使用独立的secret）
 func ParseAdminToken(tokenString string) (*Claims, error) {
 	cfg := config.AppConfig.JWT
-	
+
 	// 使用管理员专用secret
 	adminSecret := cfg.AdminSecret
 	if adminSecret == "" {
@@ -103,4 +103,3 @@ func ParseAdminToken(tokenString string) (*Claims, error) {
 
 	return nil, errors.New("invalid admin token")
 }
-

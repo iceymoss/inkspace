@@ -3,7 +3,7 @@ package middleware
 import (
 	"strings"
 
-	"mysite/internal/utils"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
