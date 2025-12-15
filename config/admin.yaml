@@ -6,11 +6,11 @@ admin:
 
 # 数据库配置（与主服务共享）
 database:
-  host: localhost
+  host: mysql
   port: 3306
-  username: iceymoss
-  password: Yk?123456
-  database: mysite
+  username: inkspace
+  password: inkspace123
+  database: inkspace
   charset: utf8mb4
   parseTime: true
   loc: Local
@@ -19,7 +19,7 @@ database:
 
 # Redis配置（与主服务共享）
 redis:
-  host: localhost
+  host: redis
   port: 6379
   password: ""
   db: 0

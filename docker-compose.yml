@@ -3,13 +3,13 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: mysite-mysql
+    container_name: inkspace-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: mysite
-      MYSQL_USER: mysite
-      MYSQL_PASSWORD: mysite123
+      MYSQL_DATABASE: inkspace
+      MYSQL_USER: inkspace
+      MYSQL_PASSWORD: inkspace123
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
@@ -18,27 +18,27 @@ services:
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     networks:
-      - mysite-network
+      - inkspace-network
 
   redis:
     image: redis:7-alpine
-    container_name: mysite-redis
+    container_name: inkspace-redis
     restart: always
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - mysite-network
+      - inkspace-network
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mysite-backend
+    container_name: inkspace-backend
     restart: always
     ports:
-      - "8080:8080"
+      - "8081:8081"
     depends_on:
       - mysql
       - redis
@@ -48,26 +48,77 @@ services:
       - ./config:/app/config
       - ./uploads:/app/uploads
     networks:
-      - mysite-network
+      - inkspace-network
 
-  frontend:
+  admin-backend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
-    container_name: mysite-frontend
+    container_name: inkspace-admin-backend
+    restart: always
+    command: ["./admin"]
+    ports:
+      - "8083:8083"
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inkspace-scheduler
+    restart: always
+    command: ["./scheduler"]
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./uploads:/app/uploads
+    networks:
+      - inkspace-network
+
+  blog-frontend:
+    build:
+      context: ./web/blog
+      dockerfile: Dockerfile
+    container_name: inkspace-blog-frontend
     restart: always
     ports:
-      - "80:80"
+      - "3001:80"
     depends_on:
       - backend
     networks:
-      - mysite-network
+      - inkspace-network
+
+  admin-frontend:
+    build:
+      context: ./web/admin
+      dockerfile: Dockerfile
+    container_name: inkspace-admin-frontend
+    restart: always
+    ports:
+      - "3002:80"
+    depends_on:
+      - admin-backend
+    networks:
+      - inkspace-network
 
 volumes:
   mysql_data:
   redis_data:
 
 networks:
-  mysite-network:
+  inkspace-network:
     driver: bridge
 
