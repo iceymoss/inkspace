@@ -95,10 +95,10 @@ make docker-down   # 停止
 ## 📚 文档
 
 - [QUICKSTART.md](QUICKSTART.md) - 快速启动指南
+- [DEPLOYMENT.md](DEPLOYMENT.md) - 部署指南
 - [docs/database-design.md](docs/database-design.md) - 数据库设计（18张表详解）
 - [docs/API-REFERENCE.md](docs/API-REFERENCE.md) - API文档（53个接口）
 - [docs/SCHEDULER.md](docs/SCHEDULER.md) - 定时任务调度器文档
-- [scripts/database-maintenance.md](scripts/database-maintenance.md) - 数据库维护指南
 
 ---
 

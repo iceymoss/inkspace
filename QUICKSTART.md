@@ -148,6 +148,3 @@ npm install -g pnpm
 ### 数据库连接失败
 检查 `config/config.yaml` 中的数据库配置
 
----
-
-**现在是真正的企业级四服务架构！** 🎉
