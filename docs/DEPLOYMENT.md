@@ -12,38 +12,6 @@
 ## 🚀 部署方式
 
 本项目提供两种部署方式，根据你的实际情况选择：
-```shell
-# 1. 先按原样启动容器
-mkdir -p /docker/mysql/data
-mkdir -p /docker/mysql/conf
-
-cat > /docker/mysql/conf/my.cnf <<EOF
-[mysqld]
-character-set-server=utf8mb4
-collation-server=utf8mb4_unicode_ci
-default_authentication_plugin=mysql_native_password
-max_connections=200
-innodb_buffer_pool_size=512M
-EOF
-
-docker run -d \
-  --name mysql-inkspace \
-  -p 3306:3306 \
-  -e MYSQL_ROOT_PASSWORD=123456 \
-  -e MYSQL_DATABASE=inkspace \
-  -v /docker/mysql/data:/var/lib/mysql \
-  -v /docker/mysql/conf:/etc/mysql/conf.d \
-  --restart=always \
-  mysql:8.0
-  
-docker exec -i mysql-inkspace mysql -uroot -p123456 <<EOF
-   CREATE USER IF NOT EXISTS 'inkspace'@'%' IDENTIFIED BY '123456';
-   GRANT ALL PRIVILEGES ON inkspace.* TO 'inkspace' @'%';
-   GRANT SELECT, INSERT , UPDATE, DELETE ON other_db.* TO 'inkspace' @'%';
-   FLUSH PRIVILEGES;
-   SHOW GRANTS FOR 'inkspace' @'%';
-EOF 
-```
 
 ### 方式一：完整部署（包含 MySQL 和 Redis）
 
@@ -81,8 +49,6 @@ cd inkspace
 
 ### 3. 配置环境变量（可选）
 
-项目支持使用 `.env` 文件或环境变量来配置，环境变量会覆盖 YAML 配置文件中的值。
-
 ```bash
 # 复制配置模板
 cp env.example .env
@@ -90,6 +56,8 @@ cp env.example .env
 # 编辑 .env 文件，修改数据库、Redis等配置
 # 如果不创建 .env 文件，将使用 config/config.yaml 中的默认配置
 ```
+
+**配置优先级**：环境变量 > .env 文件 > YAML 配置文件
 
 **默认配置：**
 - MySQL 端口：3306
