@@ -107,7 +107,7 @@ onMounted(async () => {
             data: {
               errFiles: [],
               succMap: {
-                [files[0].name]: `http://localhost:8083${response.data.url}`
+                [files[0].name]: response.data.url
               }
             }
           })
