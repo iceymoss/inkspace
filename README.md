@@ -1,4 +1,4 @@
-# Inkspace - 现代化个人博客系统
+# InkSpace - 现代化个人博客系统
 
 <div align="center">
 
@@ -32,7 +32,7 @@
   - 友链管理：友情链接的增删改查
 - ✅ **定时任务** - 独立的调度器服务，自动处理热门文章统计、数据更新等后台任务
 
-### 为什么选择 Inkspace
+### 为什么选择 InkSpace
 - 🎯 **开箱即用** - 完整的博客系统，无需从零开始搭建
 - 🚀 **快速部署** - Docker Compose 一键启动，几分钟即可上线
 - 🎨 **现代化 UI** - 基于 Vue 3 和 Element Plus，界面美观易用
@@ -216,6 +216,6 @@ inkspace/
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star！**
 
-Made with ❤️ by Inkspace Team
+Made with ❤️ by InkSpace Team
 
 </div>
