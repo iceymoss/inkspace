@@ -307,8 +307,13 @@ const rules = {
   type: [{ required: true, message: '请选择作品类型', trigger: 'change' }]
 }
 
-const uploadImageUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/upload/image`
-const uploadPhotoUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/upload/photo`
+// 使用相对路径，通过 Nginx 代理到后端
+const uploadImageUrl = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/upload/image`
+  : '/api/upload/image'
+const uploadPhotoUrl = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api/upload/photo`
+  : '/api/upload/photo'
 const uploadHeaders = computed(() => ({
   Authorization: `Bearer ${userStore.token}`
 }))
