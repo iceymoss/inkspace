@@ -17,19 +17,28 @@
 docker-compose up -d mysql redis
 
 # 2. 初始化数据库
-make db-migrate && make db-init
+# 数据库迁移会在服务启动时自动执行
+# 初始化基础数据（可选）
+mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
 
 # 3. 启动后端（2个终端）
-make dev          # 用户服务 :8081
-make dev-admin    # 管理服务 :8083
+go run cmd/server/main.go    # 用户服务 :8081
+go run cmd/admin/main.go     # 管理服务 :8083
 
 # 4. 启动前端（2个终端）
-cd frontend/blog && pnpm dev    # 博客前端 :3001
-cd frontend/admin && pnpm dev   # 管理前端 :3002
+cd web/blog && pnpm dev    # 博客前端 :3001
+cd web/admin && pnpm dev   # 管理前端 :3002
 ```
 
-**博客**: http://localhost:3001  
-**管理**: http://localhost:3002/login (admin / admin123)
+**开发环境访问：**
+- **博客**: http://localhost:3001  
+- **管理**: http://localhost:3002/login (admin / admin123)
+
+**生产环境访问（Docker 部署）：**
+- **博客**: http://is.iceymoss.com  
+- **管理**: http://admin.is.iceymoss.com/login (admin / admin123)
+
+**注意：** 生产环境需要先配置 DNS 记录指向服务器 IP，详见 [部署指南](docs/DEPLOYMENT.md)
 
 详细步骤：[QUICKSTART.md](QUICKSTART.md)
 
@@ -107,17 +116,20 @@ cp env.example .env
 
 ```bash
 # 数据库
-make db-migrate    # 创建18张表
-make db-init       # 导入初始数据
-make db-sync       # 同步计数器
+# 数据库迁移会在服务启动时自动执行（通过 GORM AutoMigrate）
+# 初始化基础数据（可选）
+mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
 
-# 开发（WSL终端）
-make dev           # 启动后端
-cd web/blog && pnpm dev  # 启动前端
+# 开发
+go run cmd/server/main.go    # 启动用户服务
+go run cmd/admin/main.go     # 启动管理服务
+go run cmd/scheduler/main.go # 启动定时任务调度器
+cd web/blog && pnpm dev       # 启动博客前端
+cd web/admin && pnpm dev     # 启动管理前端
 
 # Docker
-make docker-up     # 启动
-make docker-down   # 停止
+docker-compose up -d          # 启动
+docker-compose down           # 停止
 ```
 
 ---
@@ -125,7 +137,7 @@ make docker-down   # 停止
 ## 📚 文档
 
 - [QUICKSTART.md](QUICKSTART.md) - 快速启动指南
-- [DEPLOYMENT.md](DEPLOYMENT.md) - 部署指南
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - 部署指南
 - [docs/database-design.md](docs/database-design.md) - 数据库设计（18张表详解）
 - [docs/API-REFERENCE.md](docs/API-REFERENCE.md) - API文档（53个接口）
 - [docs/SCHEDULER.md](docs/SCHEDULER.md) - 定时任务调度器文档

@@ -1,0 +1,657 @@
+# 部署指南
+
+## 📋 环境要求
+
+- Docker 20.10+
+- Docker Compose 2.0+
+- MySQL 8.0+（如果使用外部数据库）
+- Redis 7+（如果使用外部 Redis）
+
+---
+
+## 🚀 部署方式
+
+本项目提供两种部署方式，根据你的实际情况选择：
+
+### 方式一：完整部署（包含 MySQL 和 Redis）
+
+适用于：**全新部署、开发环境、测试环境**
+
+使用 `docker-compose.yml`，一键启动所有服务，包括 MySQL 和 Redis。
+
+### 方式二：使用外部数据库
+
+适用于：**生产环境、已有数据库服务**
+
+使用 `docker-compose.external-db.yml`，只启动业务服务，连接外部已有的 MySQL 和 Redis。
+
+---
+
+## 方式一：完整部署（包含 MySQL 和 Redis）
+
+### 1. 配置 DNS（必需）
+
+在 DNS 服务商处添加以下 A 记录，指向服务器 IP：
+
+```
+is.iceymoss.com        A    <your-server-ip>
+admin.is.iceymoss.com  A    <your-server-ip>
+```
+
+**注意：** 确保 DNS 解析生效后再继续部署。
+
+### 2. 克隆项目
+
+```bash
+git clone <repository-url>
+cd inkspace
+```
+
+### 3. 配置环境变量（可选）
+
+项目支持使用 `.env` 文件或环境变量来配置，环境变量会覆盖 YAML 配置文件中的值。
+
+```bash
+# 复制配置模板
+cp env.example .env
+
+# 编辑 .env 文件，修改数据库、Redis等配置
+# 如果不创建 .env 文件，将使用 config/config.yaml 中的默认配置
+```
+
+**默认配置：**
+- MySQL 端口：3306
+- Redis 端口：6379
+- 数据库名：inkspace
+- 数据库用户：inkspace
+- 数据库密码：inkspace123
+
+### 4. 启动所有服务
+
+```bash
+# 构建并启动所有服务（包括 MySQL、Redis、后端、前端）
+docker-compose up -d --build
+```
+
+**启动的服务包括：**
+- `mysql` - MySQL 数据库 (端口 3306)
+- `redis` - Redis 缓存 (端口 6379)
+- `backend-1/2/3` - 用户服务（3个实例，负载均衡）
+- `admin-backend` - 管理后台服务 (端口 8083)
+- `scheduler` - 定时任务调度器
+- `blog-frontend` - 博客前端（通过 Nginx 代理）
+- `admin-frontend` - 管理前端（通过 Nginx 代理）
+- `nginx-proxy` - Nginx 反向代理 (端口 80/443)
+
+### 5. 查看服务状态
+
+```bash
+# 查看所有服务状态
+docker-compose ps
+
+# 查看服务日志
+docker-compose logs -f
+
+# 查看特定服务日志
+docker-compose logs -f backend-1
+docker-compose logs -f admin-backend
+```
+
+### 6. 初始化数据库
+
+数据库迁移会在服务启动时自动执行（通过 GORM AutoMigrate）。
+
+如果需要初始化基础数据（包含默认管理员账号等）：
+
+```bash
+# 等待 MySQL 服务完全启动后执行
+docker-compose exec mysql mysql -u inkspace -pinkspace123 inkspace < /docker-entrypoint-initdb.d/init.sql
+```
+
+或者从宿主机执行：
+
+```bash
+mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
+```
+
+### 7. 访问服务
+
+启动成功后，通过子域名访问：
+
+- **博客前端**: http://is.iceymoss.com
+- **管理前端**: http://admin.is.iceymoss.com
+- **管理 API**: http://admin.is.iceymoss.com/api（或直接访问 http://<server-ip>:8083/api）
+
+**注意：**
+- 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
+- 确保 DNS 解析已生效
+- 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
+
+### 8. 默认账号
+
+- **管理后台**: admin / admin123
+- **博客系统**: 可注册新账号
+
+### 9. 停止服务
+
+```bash
+# 停止所有服务（保留数据）
+docker-compose stop
+
+# 停止并删除容器（保留数据卷）
+docker-compose down
+
+# 停止并删除容器和数据卷（⚠️ 危险操作）
+docker-compose down -v
+```
+
+---
+
+## 方式二：使用外部数据库
+
+### 前置条件
+
+1. **配置 DNS（必需）**
+
+在 DNS 服务商处添加以下 A 记录，指向服务器 IP：
+
+```
+is.iceymoss.com        A    <your-server-ip>
+admin.is.iceymoss.com  A    <your-server-ip>
+```
+
+**注意：** 确保 DNS 解析生效后再继续部署。
+
+2. **已有 MySQL 和 Redis 服务**
+   - MySQL 8.0+ 已运行
+   - Redis 7+ 已运行
+
+3. **创建数据库和用户**
+
+```bash
+# 连接到 MySQL
+mysql -u root -p
+
+# 创建数据库
+CREATE DATABASE IF NOT EXISTS inkspace CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+# 创建用户（如果不存在）
+CREATE USER IF NOT EXISTS 'inkspace'@'%' IDENTIFIED BY 'inkspace123';
+
+# 授权
+GRANT ALL PRIVILEGES ON inkspace.* TO 'inkspace'@'%';
+FLUSH PRIVILEGES;
+```
+
+4. **初始化基础数据（可选）**
+
+```bash
+mysql -h <your-mysql-host> -u inkspace -pinkspace123 inkspace < scripts/init.sql
+```
+
+### 1. 克隆项目
+
+```bash
+git clone <repository-url>
+cd inkspace
+```
+
+### 2. 配置数据库连接
+
+编辑 `config/config.yaml` 和 `config/admin.yaml`，修改数据库和 Redis 连接信息：
+
+```yaml
+# config/config.yaml
+database:
+  host: <your-mysql-host>      # 例如: localhost 或 192.168.1.100
+  port: 3306
+  username: inkspace
+  password: inkspace123
+  database: inkspace
+
+redis:
+  host: <your-redis-host>       # 例如: localhost 或 192.168.1.100
+  port: 6379
+  password: ""                  # 如果有密码，填写密码
+```
+
+### 3. 配置上传文件目录（可选）
+
+默认情况下，上传文件挂载到 `/var/www/inkspace/uploads`。如果需要修改路径：
+
+1. **创建上传目录**（如果使用默认路径）：
+```bash
+sudo mkdir -p /var/www/inkspace/uploads
+sudo chown -R $USER:$USER /var/www/inkspace/uploads
+```
+
+2. **修改挂载路径**（如果需要）：
+编辑 `docker-compose.external-db.yml`，将所有服务中的：
+```yaml
+volumes:
+  - /var/www/inkspace/uploads:/app/uploads
+```
+修改为你想要的路径，例如：
+```yaml
+volumes:
+  - /data/inkspace/uploads:/app/uploads  # 或其他路径
+```
+
+**注意：**
+- 确保目录存在且有正确的读写权限
+- 所有后端服务（backend-1/2/3、admin-backend、scheduler）必须使用相同的挂载路径
+- 建议使用绝对路径，避免相对路径带来的问题
+
+### 4. 创建 Docker 网络（如果使用外部容器）
+
+如果你的 MySQL 和 Redis 也是 Docker 容器，需要将它们加入同一个网络：
+
+```bash
+# 创建网络（如果不存在）
+docker network create inkspace-network
+
+# 将外部 MySQL 容器加入网络
+docker network connect inkspace-network <your-mysql-container-name>
+
+# 将外部 Redis 容器加入网络
+docker network connect inkspace-network <your-redis-container-name>
+```
+
+**注意：** 如果 MySQL/Redis 容器在不同的网络，需要确保：
+- 在配置文件中使用容器名作为 host（如果在同一网络）
+- 或使用宿主机 IP 地址（如果不在同一网络）
+
+### 5. 启动业务服务
+
+```bash
+# 使用外部数据库配置启动服务
+docker-compose -f docker-compose.external-db.yml up -d --build
+```
+
+**启动的服务包括：**
+- `backend-1/2/3` - 用户服务（3个实例，负载均衡）
+- `admin-backend` - 管理后台服务 (端口 8083)
+- `scheduler` - 定时任务调度器
+- `blog-frontend` - 博客前端（通过 Nginx 代理）
+- `admin-frontend` - 管理前端（通过 Nginx 代理）
+- `nginx-proxy` - Nginx 反向代理 (端口 80/443)
+
+### 6. 查看服务状态
+
+```bash
+# 查看服务状态
+docker-compose -f docker-compose.external-db.yml ps
+
+# 查看服务日志
+docker-compose -f docker-compose.external-db.yml logs -f
+```
+
+### 7. 访问服务
+
+通过子域名访问：
+
+- **博客前端**: http://is.iceymoss.com
+- **管理前端**: http://admin.is.iceymoss.com
+- **管理 API**: http://admin.is.iceymoss.com/api（或直接访问 http://<server-ip>:8083/api）
+
+**注意：**
+- 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
+- 确保 DNS 解析已生效
+- 用户服务有 3 个实例（backend-1/2/3），通过前端 Nginx 进行负载均衡
+- 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
+
+### 8. 停止服务
+
+```bash
+# 停止服务
+docker-compose -f docker-compose.external-db.yml stop
+
+# 停止并删除容器
+docker-compose -f docker-compose.external-db.yml down
+```
+
+---
+
+## 🔧 配置说明
+
+### 配置文件位置
+
+- `config/config.yaml` - 用户服务配置
+- `config/admin.yaml` - 管理服务配置
+- `.env` - 环境变量配置（可选，优先级最高）
+
+### 配置优先级
+
+1. **环境变量** - 系统环境变量
+2. **.env 文件** - 项目根目录下的 `.env` 文件
+3. **YAML 配置文件** - `config/config.yaml` 和 `config/admin.yaml`
+
+### 主要配置项
+
+**数据库配置：**
+```yaml
+database:
+  host: localhost
+  port: 3306
+  username: inkspace
+  password: inkspace123
+  database: inkspace
+  charset: utf8mb4
+```
+
+**Redis 配置：**
+```yaml
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+```
+
+**服务端口：**
+```yaml
+server:
+  port: 8081  # 用户服务端口
+
+admin:
+  port: 8083  # 管理服务端口
+```
+
+修改配置文件后，需要重启服务：
+
+```bash
+# 方式一：重启所有服务
+docker-compose restart
+
+# 方式二：重启特定服务
+docker-compose restart backend-1 admin-backend scheduler
+```
+
+---
+
+## 🌐 子域名配置
+
+### DNS 设置
+
+无论使用哪种部署方式，都需要配置 DNS 记录：
+
+```
+is.iceymoss.com        A    <your-server-ip>
+admin.is.iceymoss.com  A    <your-server-ip>
+```
+
+**DNS 配置步骤：**
+
+1. 登录你的 DNS 服务商（如 Cloudflare、阿里云 DNS、腾讯云 DNS 等）
+2. 添加两条 A 记录：
+   - 主机记录：`is`，记录值：服务器 IP 地址
+   - 主机记录：`admin`，记录值：服务器 IP 地址
+3. 等待 DNS 解析生效（通常几分钟到几小时）
+
+**验证 DNS 解析：**
+
+```bash
+# 检查 DNS 解析
+nslookup is.iceymoss.com
+nslookup admin.is.iceymoss.com
+
+# 或使用 dig
+dig is.iceymoss.com
+dig admin.is.iceymoss.com
+```
+
+### Nginx 配置
+
+Nginx 配置文件位于 `nginx/nginx.conf`，已配置两个子域名：
+
+- `is.iceymoss.com` → 博客前端
+- `admin.is.iceymoss.com` → 管理前端
+
+如需修改子域名，编辑 `nginx/nginx.conf` 中的 `server_name` 配置。
+
+### HTTPS 配置（可选）
+
+如果需要启用 HTTPS：
+
+1. **获取 SSL 证书**（推荐使用 Let's Encrypt）
+```bash
+# 使用 certbot 获取证书
+certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
+```
+
+2. **配置证书路径**
+   - 将证书文件放到 `./nginx/ssl/` 目录
+   - 取消注释 `nginx/nginx.conf` 中的 HTTPS 配置
+   - 修改证书路径
+
+3. **更新 docker-compose 配置**
+   - 取消注释 SSL 证书挂载配置
+
+---
+
+## 📊 服务架构
+
+### 方式一（完整部署）
+
+```
+┌─────────────────────────────────────┐
+│  Nginx Proxy (80/443)                │
+│  ├── is.iceymoss.com                │
+│  └── admin.is.iceymoss.com          │
+├─────────────────────────────────────┤
+│  Frontend Services                  │
+│  ├── Blog Frontend                  │
+│  └── Admin Frontend                 │
+├─────────────────────────────────────┤
+│  Backend Services                   │
+│  ├── Backend-1/2/3 (负载均衡)      │
+│  ├── Admin Backend (8083)           │
+│  └── Scheduler                      │
+├─────────────────────────────────────┤
+│  Data Services                      │
+│  ├── MySQL (3306)                   │
+│  └── Redis (6379)                   │
+└─────────────────────────────────────┘
+```
+
+### 方式二（外部数据库）
+
+```
+┌─────────────────────────────────────┐
+│  Nginx Proxy (80/443)                │
+│  ├── is.iceymoss.com                │
+│  └── admin.is.iceymoss.com          │
+├─────────────────────────────────────┤
+│  Frontend Services                  │
+│  ├── Blog Frontend                  │
+│  └── Admin Frontend                 │
+├─────────────────────────────────────┤
+│  Backend Services                   │
+│  ├── Backend-1/2/3 (负载均衡)      │
+│  ├── Admin Backend (8083)           │
+│  └── Scheduler                      │
+├─────────────────────────────────────┤
+│  External Services                  │
+│  ├── MySQL (外部)                   │
+│  └── Redis (外部)                   │
+└─────────────────────────────────────┘
+```
+
+---
+
+## ✅ 验证部署
+
+### 检查服务健康状态
+
+**方式一（完整部署）：**
+```bash
+# 检查用户服务
+curl http://localhost:8081/health
+# 预期响应: {"status":"ok"}
+
+# 检查管理服务
+curl http://localhost:8083/health
+# 预期响应: {"status":"ok","service":"admin"}
+
+# 检查前端
+curl http://localhost:3001
+curl http://localhost:3002
+```
+
+**方式二（外部数据库）：**
+```bash
+# 检查后端服务（通过容器内部）
+docker-compose -f docker-compose.external-db.yml exec backend-1 curl http://localhost:8081/health
+# 或检查所有3个实例
+docker-compose -f docker-compose.external-db.yml exec backend-1 curl http://localhost:8081/health
+docker-compose -f docker-compose.external-db.yml exec backend-2 curl http://localhost:8081/health
+docker-compose -f docker-compose.external-db.yml exec backend-3 curl http://localhost:8081/health
+
+# 检查管理服务
+curl http://localhost:8083/health
+# 预期响应: {"status":"ok","service":"admin"}
+
+# 检查前端（通过子域名访问）
+curl http://is.iceymoss.com
+curl http://admin.is.iceymoss.com
+```
+
+### 检查数据库连接
+
+```bash
+# 方式一：进入 MySQL 容器
+docker-compose exec mysql mysql -u inkspace -pinkspace123 inkspace -e "SHOW TABLES;"
+
+# 方式二：从宿主机连接
+mysql -h localhost -u inkspace -pinkspace123 inkspace -e "SHOW TABLES;"
+```
+
+### 检查 Redis 连接
+
+```bash
+# 方式一：进入 Redis 容器
+docker-compose exec redis redis-cli ping
+# 预期响应: PONG
+
+# 方式二：从宿主机连接
+redis-cli -h localhost ping
+```
+
+---
+
+## 🐛 常见问题
+
+### 端口冲突
+
+如果遇到端口冲突，可以修改：
+
+1. **修改 docker-compose.yml 中的端口映射**
+2. **修改配置文件中的端口设置**
+   - `config/config.yaml` - 用户服务端口
+   - `config/admin.yaml` - 管理服务端口
+
+### 数据库连接失败
+
+**方式一（完整部署）：**
+```bash
+# 检查 MySQL 容器是否运行
+docker-compose ps mysql
+
+# 查看 MySQL 日志
+docker-compose logs mysql
+
+# 检查网络连接
+docker-compose exec backend-1 ping mysql
+```
+
+**方式二（外部数据库）：**
+- 确认 MySQL 服务已启动
+- 检查配置文件中的 host、port、username、password
+- 确认防火墙允许连接
+- 如果使用容器，确认网络配置正确
+
+### Redis 连接失败
+
+```bash
+# 检查 Redis 容器是否运行
+docker-compose ps redis
+
+# 查看 Redis 日志
+docker-compose logs redis
+
+# 测试连接
+docker-compose exec backend-1 redis-cli -h redis ping
+```
+
+### 服务启动失败
+
+```bash
+# 查看详细日志
+docker-compose logs -f <service-name>
+
+# 检查容器状态
+docker-compose ps
+
+# 重启服务
+docker-compose restart <service-name>
+```
+
+### 数据持久化
+
+**方式一（完整部署）：**
+- MySQL 数据存储在 Docker volume `mysql_data`
+- Redis 数据存储在 Docker volume `redis_data`
+- 上传文件存储在 `./uploads` 目录（项目根目录）
+
+**方式二（外部数据库）：**
+- 上传文件存储在 `/var/www/inkspace/uploads`（默认路径，可在 docker-compose.external-db.yml 中修改）
+
+**查看 volumes：**
+```bash
+docker volume ls | grep inkspace
+```
+
+**备份数据：**
+```bash
+# 备份 MySQL
+docker-compose exec mysql mysqldump -u inkspace -pinkspace123 inkspace > backup.sql
+
+# 备份 Redis
+docker-compose exec redis redis-cli SAVE
+docker cp inkspace-redis:/data/dump.rdb ./backup.rdb
+```
+
+---
+
+## 📝 更多信息
+
+- [快速开始指南](../QUICKSTART.md)
+- [API 文档](API-REFERENCE.md)
+- [数据库设计](database-design.md)
+- [定时任务文档](SCHEDULER.md)
+
+---
+
+## 🔄 更新部署
+
+### 更新代码
+
+```bash
+# 1. 拉取最新代码
+git pull
+
+# 2. 重新构建并启动
+docker-compose up -d --build
+
+# 3. 查看更新日志
+docker-compose logs -f
+```
+
+### 数据库迁移
+
+数据库迁移会在服务启动时自动执行（通过 GORM AutoMigrate），无需手动操作。
+
+---
+
+**文档维护**: 部署方式变更时需同步更新此文档
+

@@ -36,41 +36,40 @@ docker-compose up -d mysql redis
 
 ### 步骤2：初始化数据库
 ```bash
-make db-migrate && make db-init
+# 数据库迁移会在服务启动时自动执行（通过 GORM AutoMigrate）
+# 初始化基础数据（可选，包含默认管理员账号等）
+mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
 ```
 
 ### 步骤3：启动后端服务
 
 **终端1 - 用户服务**:
 ```bash
-make dev
-# 或: go run cmd/server/main.go
+go run cmd/server/main.go
 ```
 
 **终端2 - 管理服务**:
 ```bash
-make dev-admin
-# 或: go run cmd/admin/main.go
+go run cmd/admin/main.go
 ```
 
 **终端3 - 定时任务调度器（可选但推荐）**:
 ```bash
-make dev-scheduler
-# 或: go run cmd/scheduler/main.go
+go run cmd/scheduler/main.go
 ```
 
 ### 步骤4：启动前端
 
 **终端4 - 博客前端**:
 ```bash
-cd frontend/blog
+cd web/blog
 pnpm install  # 首次
 pnpm dev
 ```
 
 **终端5 - 管理前端**:
 ```bash
-cd frontend/admin
+cd web/admin
 pnpm install  # 首次
 pnpm dev
 ```
@@ -103,18 +102,22 @@ pnpm dev
 
 ---
 
-## 📝 Makefile命令
+## 📝 常用命令
 
 ```bash
-make dev              # 启动用户服务 (8081)
-make dev-admin        # 启动管理服务 (8083)
-make dev-scheduler    # 启动定时任务调度器
-make build            # 编译用户服务
-make build-admin      # 编译管理服务
-make build-scheduler  # 编译定时任务调度器
-make build-all        # 编译所有服务
-make db-migrate       # 数据库迁移
-make db-init          # 初始化数据
+# 启动服务
+go run cmd/server/main.go    # 启动用户服务 (8081)
+go run cmd/admin/main.go     # 启动管理服务 (8083)
+go run cmd/scheduler/main.go # 启动定时任务调度器
+
+# 编译服务
+go build -o bin/server cmd/server/main.go      # 编译用户服务
+go build -o bin/admin cmd/admin/main.go        # 编译管理服务
+go build -o bin/scheduler cmd/scheduler/main.go # 编译定时任务调度器
+
+# 数据库
+# 数据库迁移会在服务启动时自动执行
+mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql  # 初始化数据
 ```
 
 ---
@@ -151,8 +154,8 @@ curl http://localhost:8083/health  # {"status":"ok","service":"admin"}
 修改对应的配置文件：
 - `config/config.yaml` - server.port (用户服务)
 - `config/admin.yaml` - server.port (管理服务)
-- `frontend/blog/vite.config.js` - server.port (博客前端)
-- `frontend/admin/vite.config.js` - server.port (管理前端)
+- `web/blog/vite.config.js` - server.port (博客前端)
+- `web/admin/vite.config.js` - server.port (管理前端)
 
 ### pnpm未安装
 ```bash

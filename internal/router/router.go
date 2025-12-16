@@ -125,7 +125,7 @@ func SetupRouterOld() *gin.Engine {
 		// ⚠️ 注意：所有管理后台路由已移至独立服务
 		// 用户服务不再提供 /api/admin/* 路由
 		// 请使用独立的管理后台服务 (端口 8083)
-		// 启动命令: make dev-admin 或 go run cmd/admin/main.go
+		// 启动命令: go run cmd/admin/main.go
 	}
 
 	// Health check

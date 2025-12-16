@@ -49,13 +49,13 @@
 
 ### 开发模式
 ```bash
-make dev-scheduler
+go run cmd/scheduler/main.go
 ```
 
 ### 编译并运行
 ```bash
 # 编译
-make build-scheduler
+go build -o bin/scheduler cmd/scheduler/main.go
 
 # 运行
 ./bin/scheduler
@@ -72,14 +72,15 @@ docker-compose up -d scheduler
 # 1. 启动数据库
 docker-compose up -d mysql redis
 
-# 2. 数据库迁移
-make db-migrate && make db-init
+# 2. 数据库迁移（会在服务启动时自动执行）
+# 初始化基础数据（可选）
+mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
 
 # 3. 启动服务（4个终端）
-make dev              # 终端1: 用户服务
-make dev-admin        # 终端2: 管理服务
-make dev-scheduler    # 终端3: 定时任务
-cd frontend/blog && pnpm dev    # 终端4: 前端
+go run cmd/server/main.go       # 终端1: 用户服务
+go run cmd/admin/main.go        # 终端2: 管理服务
+go run cmd/scheduler/main.go    # 终端3: 定时任务
+cd web/blog && pnpm dev         # 终端4: 前端
 ```
 
 ## 如何添加新任务
@@ -132,7 +133,7 @@ sched.RegisterTask("your_task", scheduler.NewYourTask(), 30*time.Minute)
 ```bash
 # 停止旧的调度器（Ctrl+C）
 # 启动新的调度器
-make dev-scheduler
+go run cmd/scheduler/main.go
 ```
 
 ## 任务管理
