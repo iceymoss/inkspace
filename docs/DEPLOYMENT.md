@@ -617,15 +617,39 @@ docker-compose exec backend-1 redis-cli -h redis ping
 
 ### 服务启动失败
 
+**如果遇到 ContainerConfig 错误：**
+```
+ERROR: for backend-1  'ContainerConfig'
+docker.errors.ImageNotFound: 404 Client Error: Not Found
+KeyError: 'ContainerConfig'
+```
+
+这是旧容器引用损坏镜像导致的，**请使用 [更新部署](#-更新部署) 部分的正确流程**：
+1. 先执行 `docker-compose down`（或 `docker-compose -f docker-compose.external-db.yml down`）
+2. 再执行 `docker-compose up -d --build --force-recreate`
+
+**普通服务启动失败：**
 ```bash
 # 查看详细日志
+# 方式一
 docker-compose logs -f <service-name>
 
+# 方式二
+docker-compose -f docker-compose.external-db.yml logs -f <service-name>
+
 # 检查容器状态
+# 方式一
 docker-compose ps
 
+# 方式二
+docker-compose -f docker-compose.external-db.yml ps
+
 # 重启服务
+# 方式一
 docker-compose restart <service-name>
+
+# 方式二
+docker-compose -f docker-compose.external-db.yml restart <service-name>
 ```
 
 ### 数据持久化
@@ -666,22 +690,102 @@ docker cp inkspace-redis:/data/dump.rdb ./backup.rdb
 
 ## 🔄 更新部署
 
-### 更新代码
+### 正确更新部署流程（避免 ContainerConfig 错误）
+
+**重要提示：** 更新部署时，必须先停止并删除旧容器，再重新构建和启动，这样可以避免 ContainerConfig 错误。
+
+#### 方式一（完整部署）
 
 ```bash
 # 1. 拉取最新代码
 git pull
 
-# 2. 重新构建并启动
-docker-compose up -d --build
+# 2. 停止并删除当前项目的所有容器和网络
+# 注意：docker-compose down 只影响当前 compose 文件中的容器，不会影响其他服务的容器
+docker-compose down
 
-# 3. 查看更新日志
+# 3. 重新构建镜像并启动服务（强制重新创建容器）
+docker-compose up -d --build --force-recreate
+
+# 4. 查看更新日志
 docker-compose logs -f
+```
+
+#### 方式二（外部数据库）
+
+```bash
+# 1. 拉取最新代码
+git pull
+
+# 2. 停止并删除当前项目的所有容器和网络
+# 注意：docker-compose down 只影响当前 compose 文件中的容器，不会影响其他服务的容器
+docker-compose -f docker-compose.external-db.yml down
+
+# 3. 重新构建镜像并启动服务（强制重新创建容器）
+docker-compose -f docker-compose.external-db.yml up -d --build --force-recreate
+
+# 4. 查看更新日志
+docker-compose -f docker-compose.external-db.yml logs -f
+```
+
+**命令说明：**
+- `docker-compose down` - 停止并删除当前 compose 文件中定义的所有容器和网络，**安全操作，只影响本项目容器**
+- `--build` - 重新构建镜像
+- `--force-recreate` - 强制重新创建所有容器，即使配置没有变化（**关键：避免 ContainerConfig 错误**）
+
+### 只更新特定服务（不推荐，可能出错）
+
+如果只修改了某个服务的代码，可以尝试只更新该服务，但**不推荐**，因为可能出现 ContainerConfig 错误：
+
+```bash
+# 方式一
+docker-compose up -d --build <service-name>
+
+# 方式二
+docker-compose -f docker-compose.external-db.yml up -d --build <service-name>
+```
+
+**如果遇到 ContainerConfig 错误，必须使用上述完整更新流程。**
+
+### 重新部署（完全重置）
+
+如果需要完全重新部署（例如配置更改、环境问题等）：
+
+**方式一：**
+```bash
+# 1. 停止并删除所有容器、网络、卷
+# ⚠️ 注意：-v 参数会删除数据卷，包括 MySQL 和 Redis 数据
+docker-compose down -v
+
+# 2. 重新构建并启动
+docker-compose up -d --build --force-recreate
+
+# 3. 重新初始化数据（如果需要）
+docker-compose exec mysql mysql -u inkspace -pinkspace123 inkspace < /docker-entrypoint-initdb.d/init.sql
+```
+
+**方式二：**
+```bash
+# 1. 停止并删除所有容器和网络
+# 注意：不会删除数据卷，因为方式二使用外部数据库
+docker-compose -f docker-compose.external-db.yml down
+
+# 2. 重新构建并启动
+docker-compose -f docker-compose.external-db.yml up -d --build --force-recreate
 ```
 
 ### 数据库迁移
 
 数据库迁移会在服务启动时自动执行（通过 GORM AutoMigrate），无需手动操作。
+
+如果遇到迁移问题，可以查看日志：
+```bash
+# 方式一
+docker-compose logs backend-1 | grep -i migrate
+
+# 方式二
+docker-compose -f docker-compose.external-db.yml logs backend-1 | grep -i migrate
+```
 
 ---
 
