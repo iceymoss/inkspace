@@ -12,6 +12,38 @@
 ## 🚀 部署方式
 
 本项目提供两种部署方式，根据你的实际情况选择：
+```shell
+# 1. 先按原样启动容器
+mkdir -p /docker/mysql/data
+mkdir -p /docker/mysql/conf
+
+cat > /docker/mysql/conf/my.cnf <<EOF
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+default_authentication_plugin=mysql_native_password
+max_connections=200
+innodb_buffer_pool_size=512M
+EOF
+
+docker run -d \
+  --name mysql-inkspace \
+  -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  -e MYSQL_DATABASE=inkspace \
+  -v /docker/mysql/data:/var/lib/mysql \
+  -v /docker/mysql/conf:/etc/mysql/conf.d \
+  --restart=always \
+  mysql:8.0
+  
+docker exec -i mysql-inkspace mysql -uroot -p123456 <<EOF
+   CREATE USER IF NOT EXISTS 'inkspace'@'%' IDENTIFIED BY '123456';
+   GRANT ALL PRIVILEGES ON inkspace.* TO 'inkspace' @'%';
+   GRANT SELECT, INSERT , UPDATE, DELETE ON other_db.* TO 'inkspace' @'%';
+   FLUSH PRIVILEGES;
+   SHOW GRANTS FOR 'inkspace' @'%';
+EOF 
+```
 
 ### 方式一：完整部署（包含 MySQL 和 Redis）
 
