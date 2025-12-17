@@ -35,6 +35,9 @@
                     <el-dropdown-item command="favorites">
                       <el-icon><Collection /></el-icon> 我的收藏
                     </el-dropdown-item>
+                    <el-dropdown-item command="searchUser">
+                      <el-icon><User /></el-icon> 搜索用户
+                    </el-dropdown-item>
                     <el-dropdown-item command="logout" divided>
                       <el-icon><SwitchButton /></el-icon> 退出登录
                     </el-dropdown-item>
@@ -153,6 +156,8 @@ const handleCommand = (command) => {
     router.push('/profile/edit')
   } else if (command === 'favorites') {
     router.push('/favorites')
+  } else if (command === 'searchUser') {
+    router.push('/user-search')
   }
 }
 

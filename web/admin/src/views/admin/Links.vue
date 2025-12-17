@@ -1,11 +1,49 @@
 <template>
   <div class="links">
-    <h2>友情链接管理</h2>
-    <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建友链</el-button>
+    <div class="header">
+      <h2>友情链接管理</h2>
+      <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建友链</el-button>
+    </div>
 
-    <el-table :data="links" style="width: 100%; margin-top: 20px;">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="名称" />
+    <!-- 筛选区域 -->
+    <div class="filter-bar">
+      <el-form inline>
+        <el-form-item label="关键字">
+          <el-input
+            v-model="filters.keyword"
+            placeholder="名称 / 链接 / 描述"
+            clearable
+            @keyup.enter="handleSearch"
+            style="width: 260px"
+          />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select
+            v-model="filters.status"
+            size="small"
+            style="width: 140px"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部" value="all" />
+            <el-option label="显示" value="1" />
+            <el-option label="隐藏" value="0" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="resetFilters">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <el-table
+      :data="links"
+      v-loading="tableLoading"
+      style="width: 100%; margin-top: 10px;"
+      @sort-change="handleSortChange"
+    >
+      <el-table-column prop="id" label="ID" width="80" sortable="custom" />
+      <el-table-column prop="name" label="名称" sortable="custom" />
       <el-table-column label="Logo" width="100">
         <template #default="{ row }">
           <el-avatar v-if="row.logo" :src="row.logo" :size="40" />
@@ -13,12 +51,17 @@
       </el-table-column>
       <el-table-column prop="url" label="链接" />
       <el-table-column prop="description" label="描述" show-overflow-tooltip />
-      <el-table-column prop="sort" label="排序" width="80" />
-      <el-table-column label="状态" width="100">
+      <el-table-column prop="sort" label="排序" width="80" sortable="custom" />
+      <el-table-column prop="status" label="状态" width="100" sortable="custom">
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">
             {{ row.status === 1 ? '显示' : '隐藏' }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="created_at" label="创建时间" width="180" sortable="custom">
+        <template #default="{ row }">
+          {{ formatDate(row.created_at) }}
         </template>
       </el-table-column>
       <el-table-column label="操作" width="150" fixed="right">
@@ -28,6 +71,16 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        layout="prev, pager, next, jumper, ->, total"
+        @current-change="handlePageChange"
+      />
+    </div>
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑友链' : '新建友链'" width="600px">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
@@ -92,6 +145,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import dayjs from 'dayjs'
 import adminApi from '@/utils/adminApi'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
 
@@ -99,9 +153,22 @@ const links = ref([])
 const dialogVisible = ref(false)
 const formRef = ref()
 const loading = ref(false)
+const tableLoading = ref(false)
 const editingId = ref(null)
 
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+
 const isEdit = computed(() => !!editingId.value)
+
+const filters = reactive({
+  keyword: '',
+  status: 'all' // 'all' | '1' | '0'
+})
+
+const sortField = ref('')
+const sortOrder = ref('') // ascending / descending
 
 const form = reactive({
   name: '',
@@ -117,20 +184,53 @@ const rules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   url: [
     { required: true, message: '请输入链接', trigger: 'blur' },
-    { 
-      type: 'url', 
-      message: '请输入有效的URL格式（例如：https://example.com）', 
-      trigger: 'blur' 
+    {
+      type: 'url',
+      message: '请输入有效的URL格式（例如：https://example.com）',
+      trigger: 'blur'
     }
   ]
 }
 
+const formatDate = (date) => {
+  if (!date) return ''
+  return dayjs(date).format('YYYY-MM-DD HH:mm')
+}
+
+const buildQueryParams = () => {
+  const params = {
+    page: currentPage.value,
+    page_size: pageSize.value
+  }
+
+  if (filters.keyword && filters.keyword.trim()) {
+    params.keyword = filters.keyword.trim()
+  }
+
+  if (filters.status && filters.status !== 'all') {
+    params.status = filters.status
+  }
+
+  if (sortField.value && sortOrder.value) {
+    const dir = sortOrder.value === 'ascending' ? 'asc' : 'desc'
+    params.sort = `${sortField.value}_${dir}`
+  }
+
+  return params
+}
+
 const loadLinks = async () => {
+  tableLoading.value = true
   try {
-    const response = await adminApi.get('/admin/links')
-    links.value = response.data || []
+    const response = await adminApi.get('/admin/links', {
+      params: buildQueryParams()
+    })
+    links.value = response.data?.list || []
+    total.value = response.data?.total || 0
   } catch (error) {
     ElMessage.error('加载失败')
+  } finally {
+    tableLoading.value = false
   }
 }
 
@@ -192,5 +292,37 @@ const handleDelete = async (link) => {
 onMounted(() => {
   loadLinks()
 })
+
+// 搜索与筛选
+const handleSearch = () => {
+  currentPage.value = 1
+  loadLinks()
+}
+
+const handleFilterChange = () => {
+  currentPage.value = 1
+  loadLinks()
+}
+
+const resetFilters = () => {
+  filters.keyword = ''
+  filters.status = 'all'
+  sortField.value = ''
+  sortOrder.value = ''
+  currentPage.value = 1
+  loadLinks()
+}
+
+// 排序
+const handleSortChange = ({ prop, order }) => {
+  sortField.value = order ? prop : ''
+  sortOrder.value = order || ''
+  loadLinks()
+}
+
+const handlePageChange = (page) => {
+  currentPage.value = page
+  loadLinks()
+}
 </script>
 

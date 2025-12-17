@@ -16,15 +16,25 @@
           <el-input v-model="searchForm.email" placeholder="请输入邮箱" clearable />
         </el-form-item>
         <el-form-item label="角色">
-          <el-select v-model="searchForm.role" placeholder="请选择角色" clearable>
+          <el-select
+            v-model="searchForm.role"
+            size="small"
+            style="width: 140px"
+          >
+            <el-option label="全部" value="all" />
             <el-option label="管理员" value="admin" />
             <el-option label="普通用户" value="user" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="正常" :value="1" />
-            <el-option label="禁用" :value="0" />
+          <el-select
+            v-model="searchForm.status"
+            size="small"
+            style="width: 140px"
+          >
+            <el-option label="全部" value="all" />
+            <el-option label="正常" value="1" />
+            <el-option label="禁用" value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -126,8 +136,8 @@ const users = ref([])
 const searchForm = reactive({
   username: '',
   email: '',
-  role: '',
-  status: ''
+  role: 'all',   // 默认“全部”
+  status: 'all'  // 默认“全部”
 })
 
 const pagination = reactive({
@@ -142,16 +152,22 @@ const fetchUsers = async () => {
   try {
     const params = {
       page: pagination.page,
-      page_size: pagination.pageSize,
-      ...searchForm
+      page_size: pagination.pageSize
     }
-    
-    // 过滤空参数
-    Object.keys(params).forEach(key => {
-      if (params[key] === '' || params[key] === null || params[key] === undefined) {
-        delete params[key]
-      }
-    })
+
+    if (searchForm.username && searchForm.username.trim()) {
+      params.username = searchForm.username.trim()
+    }
+    if (searchForm.email && searchForm.email.trim()) {
+      params.email = searchForm.email.trim()
+    }
+    if (searchForm.role && searchForm.role !== 'all') {
+      params.role = searchForm.role
+    }
+    if (searchForm.status && searchForm.status !== 'all') {
+      // 后端期望 int，这里转成数字字符串也可以被绑定
+      params.status = searchForm.status
+    }
 
     const response = await adminApi.get('/admin/users', { params })
     users.value = response.data.list || []
@@ -173,8 +189,8 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.username = ''
   searchForm.email = ''
-  searchForm.role = ''
-  searchForm.status = ''
+  searchForm.role = 'all'
+  searchForm.status = 'all'
   pagination.page = 1
   fetchUsers()
 }

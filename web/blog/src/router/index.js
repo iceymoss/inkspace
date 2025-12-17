@@ -32,6 +32,11 @@ const routes = [
         component: () => import('@/views/WorkDetail.vue')
       },
       {
+        path: 'user-search',
+        name: 'UserSearch',
+        component: () => import('@/views/UserSearch.vue')
+      },
+      {
         path: 'about',
         name: 'About',
         component: () => import('@/views/About.vue')

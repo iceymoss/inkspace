@@ -158,6 +158,10 @@ func (s *FollowService) GetFollowStats(userID, currentUserID uint) (*models.Foll
 	if err := database.DB.First(&user, userID).Error; err != nil {
 		return nil, err
 	}
+	// 同步一次统计，确保关注数/粉丝数与实际数据一致
+	if err := refreshUserStats(&user); err != nil {
+		return nil, err
+	}
 	stats.FollowingCount = user.FollowingCount
 	stats.FollowerCount = user.FollowerCount
 

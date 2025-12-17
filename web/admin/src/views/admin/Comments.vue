@@ -2,10 +2,48 @@
   <div class="comments">
     <h2>评论管理</h2>
 
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange" style="margin-top: 20px;">
+    <!-- 筛选区域 -->
+    <div class="filter-bar">
+      <el-form inline>
+        <el-form-item label="关键字">
+          <el-input
+            v-model="filters.keyword"
+            placeholder="内容 / 昵称 / 邮箱"
+            clearable
+            @keyup.enter="handleSearch"
+            style="width: 260px"
+          />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select
+            v-model="filters.status"
+            placeholder="全部状态"
+            clearable
+            style="width: 140px"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部" :value="''" />
+            <el-option label="待审核" value="0" />
+            <el-option label="已通过" value="1" />
+            <el-option label="已拒绝" value="-1" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="resetFilters">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" style="margin-top: 10px;">
       <el-tab-pane label="文章评论" name="articles">
-        <el-table :data="comments" style="width: 100%; margin-top: 20px;">
-          <el-table-column prop="id" label="ID" width="80" />
+        <el-table
+          :data="comments"
+          style="width: 100%; margin-top: 20px;"
+          v-loading="tableLoading"
+          @sort-change="handleSortChange"
+        >
+          <el-table-column prop="id" label="ID" width="80" sortable="custom" />
           <el-table-column label="内容" min-width="200">
             <template #default="{ row }">
               {{ row.content }}
@@ -21,6 +59,8 @@
               {{ row.article_id || '-' }}
             </template>
           </el-table-column>
+          <el-table-column prop="like_count" label="点赞" width="90" sortable="custom" />
+          <el-table-column prop="reply_count" label="回复" width="90" sortable="custom" />
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)" size="small">
@@ -28,7 +68,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" width="180">
+          <el-table-column prop="created_at" label="创建时间" width="180" sortable="custom">
             <template #default="{ row }">
               {{ formatDate(row.created_at) }}
             </template>
@@ -54,8 +94,13 @@
       </el-tab-pane>
 
       <el-tab-pane label="作品评论" name="works">
-        <el-table :data="comments" style="width: 100%; margin-top: 20px;">
-          <el-table-column prop="id" label="ID" width="80" />
+        <el-table
+          :data="comments"
+          style="width: 100%; margin-top: 20px;"
+          v-loading="tableLoading"
+          @sort-change="handleSortChange"
+        >
+          <el-table-column prop="id" label="ID" width="80" sortable="custom" />
           <el-table-column label="内容" min-width="200">
             <template #default="{ row }">
               {{ row.content }}
@@ -71,6 +116,8 @@
               {{ row.work_id || '-' }}
             </template>
           </el-table-column>
+          <el-table-column prop="like_count" label="点赞" width="90" sortable="custom" />
+          <el-table-column prop="reply_count" label="回复" width="90" sortable="custom" />
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)" size="small">
@@ -78,7 +125,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" width="180">
+          <el-table-column prop="created_at" label="创建时间" width="180" sortable="custom">
             <template #default="{ row }">
               {{ formatDate(row.created_at) }}
             </template>
@@ -117,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
@@ -127,6 +174,15 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const activeTab = ref('articles') // 默认显示文章评论
+const tableLoading = ref(false)
+
+const filters = reactive({
+  keyword: '',
+  status: '' // '', '0', '1', '-1'
+})
+
+const sortField = ref('')
+const sortOrder = ref('') // ascending / descending
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
@@ -158,18 +214,34 @@ const getStatusType = (status) => {
 
 const loadComments = async () => {
   try {
+    tableLoading.value = true
     const params = {
       page: currentPage.value,
       page_size: pageSize.value,
       show_all: true, // 管理后台显示所有状态的评论
       type: activeTab.value === 'articles' ? 'article' : activeTab.value === 'works' ? 'work' : '' // 根据标签页过滤类型
     }
-    
+
+    if (filters.keyword && filters.keyword.trim()) {
+      params.keyword = filters.keyword.trim()
+    }
+
+    if (filters.status !== '' && filters.status !== null && filters.status !== undefined) {
+      params.status = Number(filters.status)
+    }
+
+    if (sortField.value && sortOrder.value) {
+      const dir = sortOrder.value === 'ascending' ? 'asc' : 'desc'
+      params.sort = `${sortField.value}_${dir}`
+    }
+
     const response = await adminApi.get('/admin/comments', { params })
     comments.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
     ElMessage.error('加载失败')
+  } finally {
+    tableLoading.value = false
   }
 }
 
@@ -218,9 +290,45 @@ const handleDelete = async (comment) => {
 onMounted(() => {
   loadComments()
 })
+
+// 搜索与筛选
+const handleSearch = () => {
+  currentPage.value = 1
+  loadComments()
+}
+
+const handleFilterChange = () => {
+  currentPage.value = 1
+  loadComments()
+}
+
+const resetFilters = () => {
+  filters.keyword = ''
+  filters.status = ''
+  sortField.value = ''
+  sortOrder.value = ''
+  currentPage.value = 1
+  loadComments()
+}
+
+// 排序
+const handleSortChange = ({ prop, order }) => {
+  sortField.value = order ? prop : ''
+  sortOrder.value = order || ''
+  currentPage.value = 1
+  loadComments()
+}
 </script>
 
 <style scoped>
+.comments {
+  padding: 20px;
+}
+
+.filter-bar {
+  margin-top: 10px;
+}
+
 .pagination {
   margin-top: 20px;
   display: flex;

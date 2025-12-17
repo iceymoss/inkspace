@@ -40,7 +40,7 @@ type ArticleRequest struct {
 	Content     string `json:"content" binding:"required"`
 	Summary     string `json:"summary" binding:"max=500"`
 	Cover       string `json:"cover"`
-	CategoryID  uint   `json:"category_id"`
+	CategoryID  uint   `json:"category_id" binding:"required"`
 	TagIDs      []uint `json:"tag_ids"`
 	Status      int    `json:"status"`
 	IsTop       bool   `json:"is_top"`
@@ -49,7 +49,7 @@ type ArticleRequest struct {
 
 type ArticleListQuery struct {
 	Page       int    `form:"page,default=1"`
-	PageSize   int    `form:"page_size,default=10"`
+	PageSize   int    `form:"page_size,default=20"`
 	CategoryID uint   `form:"category_id"`
 	TagID      uint   `form:"tag_id"`
 	Keyword    string `form:"keyword"`
