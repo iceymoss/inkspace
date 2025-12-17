@@ -34,6 +34,8 @@ uploads/
 *~
 
 # Config files with sensitive data
+config/config.yaml
+config/admin.yaml
 config/config.local.yaml
 *.local.yaml
 .env

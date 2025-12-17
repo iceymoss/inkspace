@@ -4,6 +4,7 @@ admin:
   port: 8083
   mode: debug
 
+
 # 数据库配置（与主服务共享）
 database:
   host: 127.0.0.1
