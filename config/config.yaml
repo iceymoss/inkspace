@@ -27,7 +27,7 @@ jwt:
   expireHours: 168 # 7 days
 
 upload:
-  maxSize: 10485760 # 10MB
+  maxSize: 31457280 # 30MB
   allowTypes:
     - image/jpeg
     - image/jpg
