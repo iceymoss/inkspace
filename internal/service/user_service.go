@@ -104,6 +104,12 @@ func (s *UserService) GetUserByID(id uint) (*models.User, error) {
 	if err := database.DB.First(&user, id).Error; err != nil {
 		return nil, err
 	}
+
+	// 同步用户统计数据，避免各页面展示不一致
+	if err := refreshUserStats(&user); err != nil {
+		return nil, err
+	}
+
 	return &user, nil
 }
 
@@ -146,21 +152,140 @@ func (s *UserService) UpdateUser(id uint, req *models.UserUpdateRequest) (*model
 	return s.GetUserByID(id)
 }
 
-func (s *UserService) GetUserList(page, pageSize int) ([]*models.User, int64, error) {
+func (s *UserService) GetUserList(query *models.UserListQuery) ([]*models.User, int64, error) {
 	var users []*models.User
 	var total int64
 
 	db := database.DB.Model(&models.User{})
+
+	// 关键词过滤：用户名或昵称
+	if query.Username != "" {
+		like := "%" + query.Username + "%"
+		db = db.Where("username LIKE ? OR nickname LIKE ?", like, like)
+	}
+
+	// 邮箱模糊搜索
+	if query.Email != "" {
+		like := "%" + query.Email + "%"
+		db = db.Where("email LIKE ?", like)
+	}
+
+	// 角色过滤
+	if query.Role != "" {
+		db = db.Where("role = ?", query.Role)
+	}
+
+	// 状态过滤
+	if query.Status != nil {
+		db = db.Where("status = ?", *query.Status)
+	}
+
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	offset := (page - 1) * pageSize
-	if err := db.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.PageSize <= 0 || query.PageSize > 100 {
+		query.PageSize = 10
+	}
+
+	offset := (query.Page - 1) * query.PageSize
+	if err := db.Order("id DESC").Offset(offset).Limit(query.PageSize).Find(&users).Error; err != nil {
 		return nil, 0, err
 	}
 
+	// 同步每个用户的统计信息
+	for _, u := range users {
+		if err := refreshUserStats(u); err != nil {
+			return nil, 0, err
+		}
+	}
+
 	return users, total, nil
+}
+
+// SearchUsers 根据关键字搜索用户（用户名或昵称），只返回正常状态的用户
+func (s *UserService) SearchUsers(keyword string, limit int) ([]*models.User, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	var users []*models.User
+	like := "%" + keyword + "%"
+	if err := database.DB.
+		Where("status = ?", 1).
+		Where("username LIKE ? OR nickname LIKE ?", like, like).
+		Order("id DESC").
+		Limit(limit).
+		Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	// 为搜索结果同步统计数据，确保文章数、作品数、粉丝数等与个人主页一致
+	for _, u := range users {
+		if err := refreshUserStats(u); err != nil {
+			return nil, err
+		}
+	}
+
+	return users, nil
+}
+
+// refreshUserStats 同步用户相关统计字段，避免不同页面展示不一致
+func refreshUserStats(user *models.User) error {
+	var count int64
+
+	// 文章数
+	if err := database.DB.Model(&models.Article{}).
+		Where("author_id = ? AND deleted_at IS NULL", user.ID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	user.ArticleCount = int(count)
+
+	// 作品数
+	if err := database.DB.Model(&models.Work{}).
+		Where("author_id = ? AND deleted_at IS NULL", user.ID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	user.WorkCount = int(count)
+
+	// 评论数
+	if err := database.DB.Model(&models.Comment{}).
+		Where("user_id = ? AND deleted_at IS NULL", user.ID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	user.CommentCount = int(count)
+
+	// 关注数
+	if err := database.DB.Model(&models.UserFollow{}).
+		Where("follower_id = ? AND deleted_at IS NULL", user.ID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	user.FollowingCount = int(count)
+
+	// 粉丝数
+	if err := database.DB.Model(&models.UserFollow{}).
+		Where("following_id = ? AND deleted_at IS NULL", user.ID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	user.FollowerCount = int(count)
+
+	// 收藏数
+	if err := database.DB.Model(&models.Favorite{}).
+		Where("user_id = ? AND deleted_at IS NULL", user.ID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	user.FavoriteCount = int(count)
+
+	return nil
 }
 
 // ChangePassword 修改密码

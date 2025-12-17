@@ -85,6 +85,7 @@ func SetupUserRouter() *gin.Engine {
 			// Comments endpoint handles both article and work comments via query params
 
 			// User Profile (public)
+			public.GET("/users/search", userHandler.SearchUsers)
 			public.GET("/users/:id", userHandler.GetUserProfile)
 			public.GET("/users/:id/articles", articleHandler.GetUserArticles)
 			public.GET("/users/:id/works", workHandler.GetUserWorks)

@@ -2,7 +2,9 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
@@ -465,6 +467,12 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 		// If ShowAll=true or user_id > 0, don't filter by status (show all: pending, approved, rejected)
 	}
 
+	// Keyword search: 内容 / 昵称 / 邮箱
+	if query.Keyword != "" {
+		like := "%" + query.Keyword + "%"
+		db = db.Where("content LIKE ? OR nickname LIKE ? OR email LIKE ?", like, like, like)
+	}
+
 	// Only get root comments (when filtering by article/work, not when filtering by user)
 	if (query.ArticleID != nil && *query.ArticleID > 0) || (query.WorkID != nil && *query.WorkID > 0) {
 		db = db.Where("parent_id IS NULL")
@@ -475,9 +483,30 @@ func (s *CommentService) GetList(query *models.CommentListQuery) ([]*models.Comm
 		return nil, 0, err
 	}
 
+	// 排序
+	orderBy := "created_at DESC"
+	if query.Sort != "" {
+		parts := strings.Split(query.Sort, "_")
+		if len(parts) == 2 {
+			field := parts[0]
+			dir := strings.ToUpper(parts[1])
+			if dir != "ASC" && dir != "DESC" {
+				dir = "DESC"
+			}
+
+			switch field {
+			case "id", "created_at", "status", "like_count", "reply_count":
+				orderBy = fmt.Sprintf("%s %s", field, dir)
+			}
+		}
+	}
+
 	// Get list
 	offset := (query.Page - 1) * query.PageSize
-	db = db.Preload("User").Preload("Article").Preload("Work").Order("created_at DESC").Offset(offset).Limit(query.PageSize)
+	db = db.Preload("User").Preload("Article").Preload("Work").
+		Order(orderBy).
+		Offset(offset).
+		Limit(query.PageSize)
 
 	if err := db.Find(&comments).Error; err != nil {
 		return nil, 0, err

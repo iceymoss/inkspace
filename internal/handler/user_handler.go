@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/service"
@@ -117,21 +119,73 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUserList(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	var query models.UserListQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		log.Printf("绑定用户查询参数失败: %v", err)
+		utils.BadRequest(c, err.Error())
+		return
+	}
 
-	users, total, err := h.service.GetUserList(page, pageSize)
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.PageSize <= 0 || query.PageSize > 100 {
+		query.PageSize = 10
+	}
+
+	users, total, err := h.service.GetUserList(&query)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return
 	}
 
+	// 管理后台用户列表需要包含角色、状态等完整信息，使用 UserResponse
 	userResponses := make([]*models.UserResponse, len(users))
 	for i, user := range users {
 		userResponses[i] = user.ToResponse()
 	}
 
-	utils.PageResponse(c, userResponses, total, page, pageSize)
+	utils.PageResponse(c, userResponses, total, query.Page, query.PageSize)
+}
+
+// SearchUsers 根据关键字搜索用户（用户名或昵称）
+// GET /api/users/search?keyword=xxx&limit=10
+func (h *UserHandler) SearchUsers(c *gin.Context) {
+	keyword := strings.TrimSpace(c.Query("keyword"))
+	if keyword == "" {
+		utils.BadRequest(c, "keyword不能为空")
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "10")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	users, err := h.service.SearchUsers(keyword, limit)
+	if err != nil {
+		utils.InternalServerError(c, err.Error())
+		return
+	}
+
+	// 将精确匹配的用户放入 top，其余放入 users
+	top := make([]*models.PublicUserResponse, 0)
+	others := make([]*models.PublicUserResponse, 0)
+
+	for _, user := range users {
+		resp := user.ToPublicResponse()
+		if user.Username == keyword || user.Nickname == keyword {
+			top = append(top, resp)
+		} else {
+			others = append(others, resp)
+		}
+	}
+
+	utils.Success(c, gin.H{
+		"top":   top,
+		"users": others,
+	})
 }
 
 // UpdateUserStatus 更新用户状态

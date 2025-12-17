@@ -5,26 +5,49 @@
       <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建作品</el-button>
     </div>
 
-    <!-- 状态筛选 -->
+    <!-- 筛选区域 -->
     <div class="filter-bar" style="margin-top: 20px; margin-bottom: 20px;">
-      <el-radio-group v-model="statusFilter" @change="handleStatusFilterChange" size="default">
-        <el-radio-button :label="null">全部</el-radio-button>
-        <el-radio-button :label="1">审核通过</el-radio-button>
-        <el-radio-button :label="2">待审核</el-radio-button>
-        <el-radio-button :label="3">审核不通过</el-radio-button>
-        <el-radio-button :label="0">草稿</el-radio-button>
-      </el-radio-group>
+      <el-form inline>
+        <el-form-item label="关键字">
+          <el-input
+            v-model="keyword"
+            placeholder="标题 / 描述"
+            clearable
+            style="width: 240px"
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
+
+        <el-form-item label="状态">
+          <el-radio-group v-model="statusFilter" @change="handleStatusFilterChange" size="default">
+            <el-radio-button :label="null">全部</el-radio-button>
+            <el-radio-button :label="1">审核通过</el-radio-button>
+            <el-radio-button :label="2">待审核</el-radio-button>
+            <el-radio-button :label="3">审核不通过</el-radio-button>
+            <el-radio-button :label="0">草稿</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="resetFilters">重置</el-button>
+        </el-form-item>
+      </el-form>
     </div>
 
-    <el-table :data="works" style="width: 100%; margin-top: 20px;">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="title" label="标题" />
+    <el-table
+      :data="works"
+      style="width: 100%; margin-top: 20px;"
+      @sort-change="handleSortChange"
+    >
+      <el-table-column prop="id" label="ID" width="80" sortable="custom" />
+      <el-table-column prop="title" label="标题" sortable="custom" />
       <el-table-column label="封面" width="120">
         <template #default="{ row }">
           <el-image :src="row.cover" style="width: 80px; height: 60px;" fit="cover" />
         </template>
       </el-table-column>
-      <el-table-column label="类型" width="120">
+      <el-table-column prop="type" label="类型" width="120" sortable="custom">
         <template #default="{ row }">
           <el-tag :type="row.type === 'photography' ? 'warning' : 'primary'">
             {{ row.type === 'photography' ? '📷 摄影' : '💻 项目' }}
@@ -34,8 +57,8 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="view_count" label="浏览" width="100" />
-      <el-table-column label="状态" width="120">
+      <el-table-column prop="view_count" label="浏览" width="100" sortable="custom" />
+      <el-table-column prop="status" label="状态" width="120" sortable="custom">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)">
             {{ getStatusText(row.status) }}
@@ -45,11 +68,21 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="推荐" width="90" align="center">
+      <el-table-column prop="is_recommend" label="推荐" width="90" align="center" sortable="custom">
         <template #default="{ row }">
           <el-tag :type="row.is_recommend ? 'warning' : ''">
             {{ row.is_recommend ? '★ 推荐' : '-' }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="created_at" label="创建时间" width="180" sortable="custom">
+        <template #default="{ row }">
+          {{ formatDate(row.created_at) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="updated_at" label="处理时间" width="180" sortable="custom">
+        <template #default="{ row }">
+          {{ formatDate(row.updated_at) }}
         </template>
       </el-table-column>
       <el-table-column label="操作" width="350" fixed="right">
@@ -109,14 +142,24 @@
           <el-input v-model="form.title" placeholder="输入作品标题" />
         </el-form-item>
 
-        <el-form-item label="描述" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="作品描述" />
+        <el-form-item label="作品描述" prop="description">
+          <VditorEditor v-model="form.description" height="400px" />
         </el-form-item>
 
         <!-- 开源项目特有字段 -->
         <template v-if="form.type === 'project'">
           <el-form-item label="封面图" prop="cover">
-            <el-input v-model="form.cover" placeholder="封面图URL" />
+            <!-- 0 表示不限制比例，支持任意裁切 -->
+            <ImageCropUpload 
+              v-model="form.cover"
+              preview-size="160px"
+              :aspect-ratio="0"
+              :output-width="1600"
+              :output-height="1600"
+              placeholder="点击上传封面图"
+              tip="支持任意比例裁切，最大 5MB"
+              :max-size="5"
+            />
           </el-form-item>
 
           <el-form-item label="项目链接">
@@ -198,8 +241,18 @@
                 </template>
                 
                 <el-form label-width="100px" style="padding: 10px">
-                  <el-form-item label="照片URL" required>
-                    <el-input v-model="photo.url" placeholder="照片URL" />
+                  <el-form-item label="照片" required>
+                    <!-- aspect-ratio=0 支持任意裁切比例 -->
+                    <ImageCropUpload 
+                      v-model="photo.url"
+                      preview-size="160px"
+                      :aspect-ratio="0"
+                      :output-width="1600"
+                      :output-height="1600"
+                      placeholder="点击上传照片"
+                      tip="支持任意比例裁切，最大 5MB"
+                      :max-size="5"
+                    />
                   </el-form-item>
 
                   <el-form-item label="照片描述">
@@ -285,6 +338,9 @@ import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import adminApi from '@/utils/adminApi'
+import dayjs from 'dayjs'
+import ImageCropUpload from '@/components/ImageCropUpload.vue'
+import VditorEditor from '@/components/VditorEditor.vue'
 
 const works = ref([])
 const dialogVisible = ref(false)
@@ -292,6 +348,9 @@ const formRef = ref()
 const isEdit = ref(false)
 const activePhotoIndex = ref(0)
 const statusFilter = ref(null) // 状态筛选：null=全部, 0=草稿, 1=已发布, 2=待审核, 3=审核不通过
+const sortField = ref(null)
+const sortOrder = ref(null) // 'ascending' | 'descending' | null
+const keyword = ref('')
 
 const form = reactive({
   id: null,
@@ -322,11 +381,23 @@ const rules = {
   type: [{ required: true, message: '请选择类型', trigger: 'change' }]
 }
 
+const formatDate = (date) => {
+  if (!date) return ''
+  return dayjs(date).format('YYYY-MM-DD HH:mm')
+}
+
 const loadWorks = async () => {
   try {
     const params = {}
     if (statusFilter.value !== null) {
       params.status = statusFilter.value
+    }
+    if (keyword.value) {
+      params.keyword = keyword.value
+    }
+    if (sortField.value && sortOrder.value) {
+      const dir = sortOrder.value === 'ascending' ? 'asc' : 'desc'
+      params.sort = `${sortField.value}_${dir}`
     }
     const response = await adminApi.get('/admin/works', { params })
     works.value = response.data.list || []
@@ -336,6 +407,25 @@ const loadWorks = async () => {
 }
 
 const handleStatusFilterChange = () => {
+  loadWorks()
+}
+
+const handleSortChange = ({ prop, order }) => {
+  // Element Plus: order 为 'ascending' / 'descending' / null
+  sortField.value = order ? prop : null
+  sortOrder.value = order
+  loadWorks()
+}
+
+const handleSearch = () => {
+  loadWorks()
+}
+
+const resetFilters = () => {
+  keyword.value = ''
+  statusFilter.value = null
+  sortField.value = null
+  sortOrder.value = null
   loadWorks()
 }
 

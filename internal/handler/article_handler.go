@@ -206,7 +206,7 @@ func (h *ArticleHandler) GetList(c *gin.Context) {
 		query.Page = 1
 	}
 	if query.PageSize <= 0 || query.PageSize > 100 {
-		query.PageSize = 10
+		query.PageSize = 20
 	}
 
 	// 检查是否是管理后台请求（通过路径判断）
@@ -253,7 +253,7 @@ func (h *ArticleHandler) GetUserArticles(c *gin.Context) {
 		query.Page = 1
 	}
 	if query.PageSize <= 0 || query.PageSize > 100 {
-		query.PageSize = 10
+		query.PageSize = 20
 	}
 
 	// 获取当前登录用户ID（可能不存在）

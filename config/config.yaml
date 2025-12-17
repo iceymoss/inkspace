@@ -3,11 +3,11 @@ server:
   mode: debug # debug, release, test
 
 database:
-  host: mysql
+  host: 127.0.0.1
   port: 3306
-  username: inkspace
-  password: inkspace
-  database: inkspace
+  username: iceymoss
+  password: Yk?123456
+  database: mysite
   charset: utf8mb4
   parseTime: true
   loc: Local
@@ -15,7 +15,7 @@ database:
   maxOpenConns: 100
 
 redis:
-  host: redis
+  host: 127.0.0.1
   port: 6379
   password: ""
   db: 0

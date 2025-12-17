@@ -27,6 +27,16 @@
       </el-table-column>
     </el-table>
 
+    <div class="pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        layout="prev, pager, next, jumper, ->, total"
+        @current-change="handlePageChange"
+      />
+    </div>
+
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑分类' : '新建分类'" width="600px">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-form-item label="分类名称" prop="name">
@@ -68,6 +78,9 @@ import ImageCropUpload from '@/components/ImageCropUpload.vue'
 
 const adminStore = useAdminStore()
 const categories = ref([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const dialogVisible = ref(false)
 const formRef = ref()
 const loading = ref(false)
@@ -90,11 +103,26 @@ const rules = {
 
 const loadCategories = async () => {
   try {
-    const response = await adminApi.get('/admin/categories')
-    categories.value = response.data || []
+    const response = await adminApi.get('/admin/categories', {
+      params: {
+        page: currentPage.value,
+        page_size: pageSize.value
+      }
+    })
+    categories.value = response.data?.list || []
+    total.value = response.data?.total || 0
+    // 以服务端返回为准，防止后端默认值变化
+    if (response.data?.page_size) {
+      pageSize.value = response.data.page_size
+    }
   } catch (error) {
     ElMessage.error('加载失败')
   }
+}
+
+const handlePageChange = (page) => {
+  currentPage.value = page
+  loadCategories()
 }
 
 const showDialog = (category = null) => {
@@ -161,3 +189,10 @@ onMounted(() => {
 })
 </script>
 
+<style scoped>
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+</style>

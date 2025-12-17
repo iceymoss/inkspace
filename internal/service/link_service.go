@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
@@ -91,4 +93,60 @@ func (s *LinkService) GetList(status *int) ([]*models.Link, error) {
 	}
 
 	return links, nil
+}
+
+// GetAdminList 获取管理后台用的友链列表，支持分页、筛选和排序
+func (s *LinkService) GetAdminList(page, pageSize int, keyword string, status *int, sort string) ([]*models.Link, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	db := database.DB.Model(&models.Link{})
+
+	var links []*models.Link
+
+	// 关键字：按名称、URL 或描述模糊搜索
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		db = db.Where("name LIKE ? OR url LIKE ? OR description LIKE ?", like, like, like)
+	}
+
+	// 状态过滤
+	if status != nil {
+		db = db.Where("status = ?", *status)
+	}
+
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 默认按 sort DESC, id ASC 排序
+	orderBy := "sort DESC, id ASC"
+	if sort != "" {
+		parts := strings.Split(sort, "_")
+		if len(parts) == 2 {
+			field := parts[0]
+			dir := strings.ToUpper(parts[1])
+			if dir != "ASC" && dir != "DESC" {
+				dir = "DESC"
+			}
+			switch field {
+			case "id", "name", "sort", "status", "created_at":
+				orderBy = fmt.Sprintf("%s %s", field, dir)
+			}
+		}
+	}
+
+	if err := db.Order(orderBy).
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&links).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return links, total, nil
 }
