@@ -13,6 +13,17 @@
             <el-option label="👁️ 最多浏览" value="view" />
             <el-option label="❤️ 最多点赞" value="like" />
           </el-select>
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索作品（标题/描述）"
+            clearable
+            class="works-search-input"
+            @keyup.enter="handleSearch"
+          >
+            <template #suffix>
+              <el-icon class="search-icon" @click.stop="handleSearch"><Search /></el-icon>
+            </template>
+          </el-input>
         </div>
       </div>
       
@@ -85,7 +96,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { View, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
+import { View, Star, ChatDotRound, Collection, Search } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
 
@@ -96,6 +107,7 @@ const pageSize = ref(12)
 const total = ref(0)
 const filterType = ref('all')
 const sortBy = ref('time') // 默认最新发布
+const searchKeyword = ref('')
 
 const typeOptions = [
   { label: '全部', value: 'all' },
@@ -118,6 +130,10 @@ const loadWorks = async () => {
     if (sortBy.value) {
       params.sort = sortBy.value
     }
+
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
     
     const response = await api.get('/works', { params })
     works.value = response.data.list || []
@@ -128,6 +144,11 @@ const loadWorks = async () => {
 }
 
 const handleFilterChange = () => {
+  currentPage.value = 1
+  loadWorks()
+}
+
+const handleSearch = () => {
   currentPage.value = 1
   loadWorks()
 }

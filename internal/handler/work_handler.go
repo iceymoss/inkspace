@@ -217,6 +217,7 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	workType := c.Query("type")
 	sortBy := c.DefaultQuery("sort", "") // 排序方式：hot, time, view, like
+	keyword := c.Query("keyword")       // 标题或描述关键字
 
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
@@ -234,7 +235,7 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 		// 管理后台，status 保持为 nil，显示所有状态
 	}
 
-	works, total, err := h.service.GetList(page, pageSize, workType, status, sortBy)
+	works, total, err := h.service.GetList(page, pageSize, workType, status, sortBy, keyword)
 	if err != nil {
 		utils.InternalServerError(c, err.Error())
 		return

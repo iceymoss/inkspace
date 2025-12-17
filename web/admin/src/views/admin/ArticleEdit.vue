@@ -115,13 +115,20 @@ const form = reactive({
 
 const rules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
+  category_id: [{ required: true, message: '请选择分类', trigger: 'change' }],
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
 }
 
 const loadCategories = async () => {
   try {
-    const response = await adminApi.get('/admin/categories')
-    categories.value = response.data || []
+    const response = await adminApi.get('/admin/categories', {
+      params: {
+        page: 1,
+        page_size: 100
+      }
+    })
+    // 兼容分页结构和旧的数组结构
+    categories.value = response.data?.list || response.data || []
   } catch (error) {
     console.error('Failed to load categories:', error)
   }

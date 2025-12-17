@@ -126,3 +126,13 @@ func (u *User) ToPublicResponse() *PublicUserResponse {
 	}
 }
 
+// UserListQuery 用户列表查询参数（管理后台使用）
+type UserListQuery struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Username string `form:"username"` // 支持用户名或昵称模糊搜索
+	Email    string `form:"email"`
+	Role     string `form:"role"`   // admin/user
+	Status   *int   `form:"status"` // 1: active, 0: inactive
+}
+

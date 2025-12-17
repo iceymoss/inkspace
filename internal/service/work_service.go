@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
@@ -307,7 +308,7 @@ func (s *WorkService) GetByID(id uint) (*models.Work, error) {
 	return &work, nil
 }
 
-func (s *WorkService) GetList(page, pageSize int, workType string, status *int, sortBy string) ([]*models.Work, int64, error) {
+func (s *WorkService) GetList(page, pageSize int, workType string, status *int, sortBy string, keyword string) ([]*models.Work, int64, error) {
 	var works []*models.Work
 	var total int64
 
@@ -326,6 +327,12 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int, 
 	// 这样管理后台可以选择"全部"来查看所有状态的作品
 	// 用户端应该始终传递 status=1 来只显示已发布的作品
 
+	// 按标题或描述关键字搜索
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		db = db.Where("title LIKE ? OR description LIKE ?", like, like)
+	}
+
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -333,7 +340,7 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int, 
 	offset := (page - 1) * pageSize
 
 	// 根据排序参数决定排序方式
-	orderBy := "sort DESC, created_at DESC" // 默认排序
+	orderBy := "sort DESC, created_at DESC" // 默认排序：推荐/排序值优先，然后按创建时间
 	switch sortBy {
 	case "hot":
 		// 热度排序：综合浏览量、评论数、点赞数、收藏数
@@ -348,8 +355,25 @@ func (s *WorkService) GetList(page, pageSize int, workType string, status *int, 
 		// 点赞数排序
 		orderBy = "like_count DESC, created_at DESC"
 	default:
-		// 默认：推荐优先，然后按时间
-		orderBy = "sort DESC, created_at DESC"
+		// 支持更细粒度的字段排序（主要用于管理后台）
+		// 约定格式：field_direction，例如：id_desc、title_asc、view_count_desc 等
+		if sortBy != "" {
+			parts := strings.Split(sortBy, "_")
+			if len(parts) == 2 {
+				field := parts[0]
+				dir := strings.ToUpper(parts[1])
+				if dir != "ASC" && dir != "DESC" {
+					dir = "DESC"
+				}
+
+				switch field {
+				case "id", "title", "type", "view_count", "status", "is_recommend", "created_at", "updated_at":
+					orderBy = fmt.Sprintf("%s %s", field, dir)
+				default:
+					// 未识别的字段，保持默认排序
+				}
+			}
+		}
 	}
 
 	if err := db.Preload("Author").Order(orderBy).Offset(offset).Limit(pageSize).Find(&works).Error; err != nil {

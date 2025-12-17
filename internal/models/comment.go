@@ -52,6 +52,8 @@ type CommentListQuery struct {
 	Status    *int  `form:"status"`
 	ShowAll   bool  `form:"show_all"`   // 是否显示所有状态的评论（管理后台使用）
 	Type      string `form:"type"`      // 评论类型：'article' 只显示文章评论，'work' 只显示作品评论
+	Keyword   string `form:"keyword"`   // 关键字搜索（内容 / 昵称 / 邮箱）
+	Sort      string `form:"sort"`      // 排序字段: 例如 id_desc, created_at_desc, like_count_desc
 }
 
 type CommentResponse struct {

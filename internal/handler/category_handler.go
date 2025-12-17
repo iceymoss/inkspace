@@ -74,6 +74,45 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 }
 
 func (h *CategoryHandler) GetList(c *gin.Context) {
+	// 区分管理后台与前台博客的分类列表需求：
+	// - 管理后台（/api/admin/categories）：需要分页，并返回 total 等分页信息
+	// - 前台博客（/api/categories）：一次性返回全部分类，用于筛选下拉等
+
+	// 管理后台走分页逻辑
+	if c.Request.URL.Path == "/api/admin/categories" {
+		// 解析分页参数
+		pageStr := c.DefaultQuery("page", "1")
+		pageSizeStr := c.DefaultQuery("page_size", "10")
+
+		page, err := strconv.Atoi(pageStr)
+		if err != nil || page <= 0 {
+			page = 1
+		}
+
+		pageSize, err := strconv.Atoi(pageSizeStr)
+		if err != nil || pageSize <= 0 {
+			pageSize = 10
+		}
+		if pageSize > 100 {
+			pageSize = 100
+		}
+
+		categories, total, err := h.service.GetListPaged(page, pageSize)
+		if err != nil {
+			utils.InternalServerError(c, err.Error())
+			return
+		}
+
+		categoryResponses := make([]*models.CategoryResponse, len(categories))
+		for i, category := range categories {
+			categoryResponses[i] = category.ToResponse()
+		}
+
+		utils.PageResponse(c, categoryResponses, total, page, pageSize)
+		return
+	}
+
+	// 默认：前台接口返回全部分类列表
 	categories, err := h.service.GetList()
 	if err != nil {
 		utils.InternalServerError(c, err.Error())

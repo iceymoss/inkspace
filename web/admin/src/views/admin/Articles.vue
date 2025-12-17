@@ -8,6 +8,75 @@
     </div>
 
     <el-card>
+      <!-- 筛选区域 -->
+      <div class="filter-bar">
+        <el-form inline>
+          <el-form-item label="关键字">
+            <el-input
+              v-model="filters.keyword"
+              placeholder="标题 / 内容"
+              clearable
+              @keyup.enter="handleSearch"
+              style="width: 220px"
+            />
+          </el-form-item>
+
+          <el-form-item label="分类">
+            <el-select
+              v-model="filters.categoryId"
+              placeholder="全部分类"
+              clearable
+              filterable
+              style="width: 180px"
+              @change="handleFilterChange"
+            >
+              <el-option
+                v-for="cat in categories"
+                :key="cat.id"
+                :label="cat.name"
+                :value="cat.id"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="状态">
+            <el-select
+              v-model="filters.status"
+              placeholder="全部状态"
+              clearable
+              style="width: 140px"
+              @change="handleFilterChange"
+            >
+              <el-option :value="1" label="已发布" />
+              <el-option :value="0" label="草稿" />
+              <el-option :value="2" label="私有" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="排序">
+            <el-select
+              v-model="filters.sortBy"
+              placeholder="默认排序"
+              clearable
+              style="width: 160px"
+              @change="handleSortChange"
+            >
+              <el-option label="默认（置顶 + 最新）" value="" />
+              <el-option label="最新发布" value="time" />
+              <el-option label="最热排序" value="hot" />
+              <el-option label="最多浏览" value="view_count" />
+              <el-option label="最多点赞" value="like_count" />
+              <el-option label="最多评论" value="comment_count" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="resetFilters">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
       <el-table :data="articles" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="title" label="标题" min-width="200" />
@@ -73,25 +142,89 @@ import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 
 const articles = ref([])
+const categories = ref([])
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(20)
 const total = ref(0)
+
+const filters = ref({
+  keyword: '',
+  categoryId: null,
+  status: null,
+  sortBy: '',
+  sortOrder: 'desc'
+})
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
 const loadArticles = async () => {
   try {
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
+
+    if (filters.value.keyword) {
+      params.keyword = filters.value.keyword
+    }
+    if (filters.value.categoryId) {
+      params.category_id = filters.value.categoryId
+    }
+    if (filters.value.status !== null && filters.value.status !== undefined && filters.value.status !== '') {
+      params.status = filters.value.status
+    }
+    if (filters.value.sortBy) {
+      params.sort_by = filters.value.sortBy
+      params.sort_order = filters.value.sortOrder || 'desc'
+    }
+
     const response = await adminApi.get('/admin/articles', {
-      params: {
-        page: currentPage.value,
-        page_size: pageSize.value
-      }
+      params
     })
     articles.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
     ElMessage.error('加载失败')
   }
+}
+
+const loadCategories = async () => {
+  try {
+    const res = await adminApi.get('/admin/categories', {
+      params: { page: 1, page_size: 100 }
+    })
+    categories.value = res.data?.list || []
+  } catch (error) {
+    // 分类加载失败不影响文章列表，静默失败即可
+    console.error('加载分类失败', error)
+  }
+}
+
+const handleSearch = () => {
+  currentPage.value = 1
+  loadArticles()
+}
+
+const handleFilterChange = () => {
+  currentPage.value = 1
+  loadArticles()
+}
+
+const handleSortChange = () => {
+  currentPage.value = 1
+  loadArticles()
+}
+
+const resetFilters = () => {
+  filters.value = {
+    keyword: '',
+    categoryId: null,
+    status: null,
+    sortBy: '',
+    sortOrder: 'desc'
+  }
+  currentPage.value = 1
+  loadArticles()
 }
 
 const handleToggleRecommend = async (row) => {
@@ -122,6 +255,7 @@ const handleDelete = async (row) => {
 }
 
 onMounted(() => {
+  loadCategories()
   loadArticles()
 })
 </script>
@@ -132,6 +266,10 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.filter-bar {
+  margin-bottom: 16px;
 }
 
 .pagination {
