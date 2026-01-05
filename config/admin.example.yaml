@@ -10,8 +10,8 @@ database:
   host: 127.0.0.1
   port: 3306
   username: iceymoss
-  password: Yk?123456
-  database: mysite
+  password: inkspace123
+  database: inkspace
   charset: utf8mb4
   parseTime: true
   loc: Local
