@@ -97,30 +97,13 @@ docker-compose logs -f backend-1
 docker-compose logs -f admin-backend
 ```
 
-### 6. 初始化数据库
-
-数据库迁移会在服务启动时自动执行（通过 GORM AutoMigrate）。
-
-如果需要初始化基础数据（包含默认管理员账号等）：
-
-```bash
-# 等待 MySQL 服务完全启动后执行
-docker-compose exec mysql mysql -u inkspace -pinkspace123 inkspace < /docker-entrypoint-initdb.d/init.sql
-```
-
-或者从宿主机执行：
-
-```bash
-mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
-```
-
-### 7. 访问服务
+### 6. 访问服务
 
 启动成功后，通过子域名访问：
 
 - **博客前端**: http://is.iceymoss.com
 - **管理前端**: http://admin.is.iceymoss.com
-- **管理 API**: http://admin.is.iceymoss.com/api（或直接访问 http://<server-ip>:8083/api）
+- **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
 
 **注意：**
 - 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
@@ -181,12 +164,6 @@ CREATE USER IF NOT EXISTS 'inkspace'@'%' IDENTIFIED BY 'inkspace123';
 # 授权
 GRANT ALL PRIVILEGES ON inkspace.* TO 'inkspace'@'%';
 FLUSH PRIVILEGES;
-```
-
-4. **初始化基础数据（可选）**
-
-```bash
-mysql -h <your-mysql-host> -u inkspace -pinkspace123 inkspace < scripts/init.sql
 ```
 
 ### 1. 克隆项目
@@ -292,7 +269,7 @@ docker-compose -f docker-compose.external-db.yml logs -f
 
 - **博客前端**: http://is.iceymoss.com
 - **管理前端**: http://admin.is.iceymoss.com
-- **管理 API**: http://admin.is.iceymoss.com/api（或直接访问 http://<server-ip>:8083/api）
+- **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
 
 **注意：**
 - 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
@@ -647,14 +624,6 @@ docker cp inkspace-redis:/data/dump.rdb ./backup.rdb
 
 ---
 
-## 📝 更多信息
-
-- [快速开始指南](../QUICKSTART.md)
-- [API 文档](API-REFERENCE.md)
-- [数据库设计](database-design.md)
-- [定时任务文档](SCHEDULER.md)
-
----
 
 ## 🔄 更新部署
 
@@ -754,8 +723,3 @@ docker-compose logs backend-1 | grep -i migrate
 # 方式二
 docker-compose -f docker-compose.external-db.yml logs backend-1 | grep -i migrate
 ```
-
----
-
-**文档维护**: 部署方式变更时需同步更新此文档
-

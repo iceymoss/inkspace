@@ -64,8 +64,9 @@ docker-compose up -d mysql redis
 cp env.example .env
 # 编辑 .env 文件修改数据库配置
 
-# 4. 初始化数据库（可选，包含默认管理员账号）
-mysql -h localhost -u inkspace -pinkspace123 inkspace < scripts/init.sql
+# 4. 创建你的db
+CREATE DATABASE
+    inkspace CHARACTER SET = 'utf8mb4';
 
 # 5. 启动后端服务
 go run cmd/server/main.go    # 用户服务 :8081
@@ -90,6 +91,7 @@ cd web/admin && pnpm install && pnpm dev  # 管理前端 :3002
 docker-compose up -d
 
 # 方式二：使用外部数据库服务
+# 你需要配置好你的MySQL和Redis
 docker-compose -f docker-compose.external-db.yml up -d
 ```
 
@@ -140,11 +142,8 @@ docker-compose -f docker-compose.external-db.yml up -d
 
 ## 📚 文档
 
-- 📖 [快速开始指南](docs/QUICKSTART.md) - 详细的开发环境搭建步骤
 - 🚀 [部署文档](docs/DEPLOYMENT.md) - 生产环境部署指南（Docker Compose）
 - 🗄️ [数据库设计](docs/database-design.md) - 数据库表结构设计说明
-- 🔌 [API 参考](docs/API-REFERENCE.md) - 完整的 API 接口文档
-- ⏰ [定时任务](docs/SCHEDULER.md) - 调度器服务说明
 
 ---
 
