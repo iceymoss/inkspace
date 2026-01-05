@@ -697,9 +697,6 @@ docker-compose down -v
 # 2. 重新构建并启动
 docker-compose up -d --build --force-recreate
 
-# 3. 重新初始化数据（如果需要）
-docker-compose exec mysql mysql -u inkspace -pinkspace123 inkspace < /docker-entrypoint-initdb.d/init.sql
-```
 
 **方式二：**
 ```bash
