@@ -54,11 +54,6 @@ func Init() error {
 		return fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
-	// 检查数据库健康状态
-	if err := CheckDatabaseHealth(); err != nil {
-		return fmt.Errorf("数据库健康检查失败: %w", err)
-	}
-
 	return nil
 }
 

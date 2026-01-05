@@ -1,10 +1,12 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/iceymoss/inkspace/internal/models"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -30,6 +32,12 @@ func MigrateDB() error {
 	}
 
 	log.Println("数据库迁移完成！")
+
+	// 检查数据库健康状态
+	if err := CreateAdmin(); err != nil {
+		return fmt.Errorf("数据库健康检查失败: %w", err)
+	}
+
 	return nil
 }
 
@@ -424,5 +432,36 @@ func AfterDeleteComment(db *gorm.DB, comment *models.Comment) error {
 		}
 	}
 
+	return nil
+}
+
+func CreateAdmin() error {
+	log.Println("开始创建管理员...")
+	var user *models.User
+	res := DB.Model(&models.User{}).Where("role = ?", "admin").First(&user)
+	if res.Error != nil && errors.Is(res.Error, gorm.ErrRecordNotFound) {
+		log.Println("管理员不存在，开始创建...")
+		// 密码加密：
+		// Hash password
+		password := "admin123"
+		hashedPassword, err := utils.HashPassword(password)
+		if err != nil {
+			return err
+		}
+
+		user = &models.User{
+			Username: "admin",
+			Password: hashedPassword,
+			Role:     "admin",
+		}
+		res = DB.Model(&models.User{}).Create(&user)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return fmt.Errorf("创建管理员失败")
+		}
+		log.Println("管理员创建成功")
+	}
 	return nil
 }

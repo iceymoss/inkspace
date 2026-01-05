@@ -7,9 +7,13 @@ import (
 	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/scheduler"
+	"github.com/iceymoss/inkspace/internal/utils"
 )
 
 func main() {
+	// 初始化日志
+	utils.InitLogger()
+
 	log.Println("========================================")
 	log.Println("启动定时任务调度器...")
 	log.Println("========================================")

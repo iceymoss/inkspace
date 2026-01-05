@@ -217,7 +217,7 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	workType := c.Query("type")
 	sortBy := c.DefaultQuery("sort", "") // 排序方式：hot, time, view, like
-	keyword := c.Query("keyword")       // 标题或描述关键字
+	keyword := c.Query("keyword")        // 标题或描述关键字
 
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {

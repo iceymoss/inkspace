@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/router"
-	"log"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// 初始化日志
+	utils.InitLogger()
+
 	// 加载配置
 	if err := config.Init(); err != nil {
 		log.Fatalf("加载配置失败: %v", err)
