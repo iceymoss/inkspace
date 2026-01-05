@@ -7,7 +7,6 @@ import (
 
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
-	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -55,7 +54,7 @@ func (s *LikeService) LikeWork(userID, workID uint) error {
 		}
 
 		// 清除作品缓存
-		utils.DeleteCache(fmt.Sprintf("work:%d", workID))
+		database.DeleteCache(fmt.Sprintf("work:%d", workID))
 		return nil
 	}
 
@@ -80,7 +79,7 @@ func (s *LikeService) LikeWork(userID, workID uint) error {
 	}
 
 	// 清除作品缓存
-	utils.DeleteCache(fmt.Sprintf("work:%d", workID))
+	database.DeleteCache(fmt.Sprintf("work:%d", workID))
 
 	// 发送通知给作品作者
 	if work.AuthorID != userID {
@@ -117,7 +116,7 @@ func (s *LikeService) LikeArticle(userID, articleID uint) error {
 		}
 
 		// 清除文章缓存
-		utils.DeleteCache(fmt.Sprintf("article:%d", articleID))
+		database.DeleteCache(fmt.Sprintf("article:%d", articleID))
 		return nil
 	}
 
@@ -137,7 +136,7 @@ func (s *LikeService) LikeArticle(userID, articleID uint) error {
 	}
 
 	// 清除文章缓存
-	utils.DeleteCache(fmt.Sprintf("article:%d", articleID))
+	database.DeleteCache(fmt.Sprintf("article:%d", articleID))
 
 	// 发送通知给文章作者
 	var article models.Article

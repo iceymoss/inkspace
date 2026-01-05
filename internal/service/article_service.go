@@ -11,7 +11,6 @@ import (
 	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
-	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -91,7 +90,10 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 	}
 
 	// Clear cache
-	utils.DeleteCachePattern("article:*")
+	err = database.DeleteCachePattern("article:*")
+	if err != nil {
+		return nil, err
+	}
 
 	return article, nil
 }
@@ -250,8 +252,16 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 	}
 
 	// Clear cache
-	utils.DeleteCache(fmt.Sprintf("article:%d", id))
-	utils.DeleteCachePattern("article:list:*")
+	err = database.DeleteCache(fmt.Sprintf("article:%d", id))
+	if err != nil {
+		return nil, err
+	}
+
+	err = database.DeleteCachePattern("article:list:*")
+	if err != nil {
+
+		return nil, err
+	}
 
 	return &article, nil
 }
@@ -327,8 +337,8 @@ func (s *ArticleService) Delete(id uint, userID uint, role string) error {
 	}
 
 	// Clear cache
-	utils.DeleteCache(fmt.Sprintf("article:%d", id))
-	utils.DeleteCachePattern("article:list:*")
+	database.DeleteCache(fmt.Sprintf("article:%d", id))
+	database.DeleteCachePattern("article:list:*")
 
 	return nil
 }
@@ -338,7 +348,7 @@ func (s *ArticleService) GetByID(id uint) (*models.Article, error) {
 
 	// Try to get from cache
 	cacheKey := fmt.Sprintf("article:%d", id)
-	if err := utils.GetCache(cacheKey, &article); err == nil {
+	if err := database.GetCache(cacheKey, &article); err == nil {
 		return &article, nil
 	}
 
@@ -349,7 +359,7 @@ func (s *ArticleService) GetByID(id uint) (*models.Article, error) {
 
 	// Save to cache
 	expiration := time.Duration(config.AppConfig.Cache.ArticleExpire) * time.Second
-	utils.SetCache(cacheKey, &article, expiration)
+	database.SetCache(cacheKey, &article, expiration)
 
 	return &article, nil
 }
@@ -515,28 +525,28 @@ func (s *ArticleService) getListFromRank(query *models.ArticleListQuery) ([]*mod
 
 	// 从数据库查询文章详情
 	var articles []*models.Article
-	db := database.DB.Where("id IN ?", articleIDs).Where("status = ?", 1)
+	dbQuery := database.DB.Where("id IN ?", articleIDs).Where("status = ?", 1)
 
 	// 应用筛选条件
 	if query.CategoryID > 0 {
-		db = db.Where("category_id = ?", query.CategoryID)
+		dbQuery = dbQuery.Where("category_id = ?", query.CategoryID)
 	}
 	if query.TagID > 0 {
-		db = db.Joins("JOIN article_tags ON article_tags.article_id = articles.id").
+		dbQuery = dbQuery.Joins("JOIN article_tags ON article_tags.article_id = articles.id").
 			Where("article_tags.tag_id = ?", query.TagID)
 	}
 	if query.Keyword != "" {
 		keyword := "%" + query.Keyword + "%"
-		db = db.Where("title LIKE ? OR content LIKE ?", keyword, keyword)
+		dbQuery = dbQuery.Where("title LIKE ? OR content LIKE ?", keyword, keyword)
 	}
 
 	// 如果指定了排序方式（非热门排序），应用排序
 	if query.SortBy != "" && query.SortBy != "hot" {
 		orderBy := s.buildOrderBy(query)
-		db = db.Order(orderBy)
+		dbQuery = dbQuery.Order(orderBy)
 	}
 
-	if err := db.Preload("Category").Preload("Tags").Preload("Author").
+	if err := dbQuery.Preload("Category").Preload("Tags").Preload("Author").
 		Find(&articles).Error; err != nil {
 		return nil, 0, err
 	}
@@ -639,7 +649,7 @@ func (s *ArticleService) GetRecommended(limit int) ([]*models.Article, error) {
 // SetRecommend 设置文章推荐状态
 func (s *ArticleService) SetRecommend(id uint, isRecommend bool) error {
 	// Clear cache
-	defer utils.DeleteCachePattern("article:*")
+	defer database.DeleteCachePattern("article:*")
 
 	return database.DB.Model(&models.Article{}).
 		Where("id = ?", id).

@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/router"
-	"log"
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// 初始化日志
+	utils.InitLogger()
+
 	// 加载管理后台配置
 	// 尝试加载admin.yaml，如果不存在则使用默认config.yaml
 	if err := config.InitWithFile("admin"); err != nil {

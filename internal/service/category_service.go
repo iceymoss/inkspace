@@ -3,9 +3,9 @@ package service
 import (
 	"errors"
 	"fmt"
+	"github.com/iceymoss/inkspace/internal/database"
 	"strings"
 
-	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 )
 
