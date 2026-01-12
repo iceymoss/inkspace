@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
+
 	"gorm.io/gorm"
 )
 

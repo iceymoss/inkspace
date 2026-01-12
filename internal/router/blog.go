@@ -68,9 +68,6 @@ func SetupUserRouter() *gin.Engine {
 			public.POST("/comments/:id/like", likeHandler.LikeComment)
 			public.DELETE("/comments/:id/like", likeHandler.UnlikeComment)
 
-			// Markdown image upload (public, but rate limited)
-			public.POST("/upload/markdown-image", uploadHandler.UploadMarkdownImage)
-
 			// Categories and Tags
 			public.GET("/categories", categoryHandler.GetList)
 			public.GET("/tags", tagHandler.GetList)
@@ -129,6 +126,8 @@ func SetupUserRouter() *gin.Engine {
 			protected.POST("/articles", articleHandler.Create)
 			protected.PUT("/articles/:id", articleHandler.Update)
 			protected.DELETE("/articles/:id", articleHandler.Delete)
+			// Markdown image upload (public, but rate limited)
+			public.POST("/upload/markdown-image", uploadHandler.UploadMarkdownImage)
 
 			// Works (author can manage their own works)
 			protected.GET("/works/:id/edit", workHandler.GetEdit) // 编辑页专用API，需要权限检查

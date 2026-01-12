@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"github.com/iceymoss/inkspace/internal/utils"
 	"strings"
+
+	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
