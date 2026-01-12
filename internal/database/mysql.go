@@ -62,15 +62,6 @@ func HealthCheck() error {
 	return CheckDatabaseHealth()
 }
 
-//// CheckDatabaseHealth 检查数据库健康状态
-//func CheckDatabaseHealth() error {
-//	sqlDB, err := DB.DB()
-//	if err != nil {
-//		return err
-//	}
-//	return sqlDB.Ping()
-//}
-
 func autoMigrate() error {
 	return DB.AutoMigrate(
 		// 核心表

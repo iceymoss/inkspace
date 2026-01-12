@@ -1,4 +1,3 @@
-// errors/errors.go
 package errors
 
 import (

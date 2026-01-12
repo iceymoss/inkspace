@@ -57,9 +57,18 @@ type JWTConfig struct {
 }
 
 type UploadConfig struct {
-	MaxSize    int64    `mapstructure:"maxSize"`
-	AllowTypes []string `mapstructure:"allowTypes"`
-	SavePath   string   `mapstructure:"savePath"`
+	StorageType string           `mapstructure:"storageType"` // local or cos
+	MaxSize     int64            `mapstructure:"maxSize"`
+	AllowTypes  []string         `mapstructure:"allowTypes"`
+	SavePath    string           `mapstructure:"savePath"`
+	TencentCOS  TencentCOSConfig `mapstructure:"tencentCOS"`
+}
+
+type TencentCOSConfig struct {
+	BucketURL string `mapstructure:"bucketURL"`
+	SecretID  string `mapstructure:"secretID"`
+	SecretKey string `mapstructure:"secretKey"`
+	Domain    string `mapstructure:"domain"` // CDN域名
 }
 
 type PaginationConfig struct {
@@ -194,8 +203,15 @@ func bindEnvVars() {
 	viper.BindEnv("jwt.expireHours", "JWT_EXPIRE_HOURS")
 
 	// Upload 配置
+	viper.BindEnv("upload.storageType", "UPLOAD_STORAGE_TYPE")
 	viper.BindEnv("upload.maxSize", "UPLOAD_MAX_SIZE")
 	viper.BindEnv("upload.savePath", "UPLOAD_SAVE_PATH")
+
+	// COS 配置
+	viper.BindEnv("upload.tencentCOS.bucketURL", "COS_BUCKET_URL")
+	viper.BindEnv("upload.tencentCOS.secretID", "COS_SECRET_ID")
+	viper.BindEnv("upload.tencentCOS.secretKey", "COS_SECRET_KEY")
+	viper.BindEnv("upload.tencentCOS.domain", "COS_DOMAIN")
 
 	// Cache 配置
 	viper.BindEnv("cache.articleExpire", "CACHE_ARTICLE_EXPIRE")
