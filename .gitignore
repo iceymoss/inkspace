@@ -52,7 +52,7 @@ logs/
 
 # Temporary files
 tmp/
-temp/
+#temp/
 
 # Build output
 build/
