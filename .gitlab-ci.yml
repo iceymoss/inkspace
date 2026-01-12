@@ -1,5 +1,4 @@
 # .gitlab-ci.yml
-# 多服务项目CI/CD流水线配置——支持分支测试和标签生产部署
 #
 # 流水线触发规则：
 # 1. 分支推送触发器：用于开发和测试（例如 ci-deploy-config 分支）
@@ -36,12 +35,6 @@ workflow:
     # 标签触发器——Pro用于生产环境，Dev用于测试环境
     - if: '$CI_COMMIT_TAG =~ /^(pro|dev)-([a-z-]+)-v[0-9]{14}$/'
 
-# =============================================
-# Phase 1: 准备阶段——仅通过标签控制部署
-# Purpose: 只允许特定格式的标签触发流水线，并完全禁用分支触发。
-# Rule: 标签格式必须为 (pro|dev)-<service>-vYYYYMMDDHHMMSS
-# =============================================
-
 # 定义可重复使用的作业模板锚定义
 .parse_template: &parse_template
   stage: prepare  # 将工作阶段定义为准备阶段（准备阶段）
@@ -64,9 +57,6 @@ parse_trigger:
       when: always  # 匹配时总是运行
   script:
     - |
-      echo "🚀 Tag trigger mode - production/staging/development environment deployment"
-      echo "📝 current tag: $CI_COMMIT_TAG"
-
       # Tag format regular expression: environment-service name-version timestamp
       TAG_PATTERN="^(pro|dev)-([a-z-]+)-v([0-9]{14})$"
 
@@ -88,21 +78,7 @@ parse_trigger:
         VERSION_TIME="${VERSION_TIMESTAMP:8:6}"  # Extract time part (HHMMSS)
         export VERSION_READABLE="${VERSION_DATE:0:4}-${VERSION_DATE:4:2}-${VERSION_DATE:6:2} ${VERSION_TIME:0:2}:${VERSION_TIME:2:2}:${VERSION_TIME:4:2}"
 
-        echo "✅ tag parsed successfully"
-        echo "   environment: $DEPLOY_ENV"
-        echo "   target service: $TARGET_SERVICE"
-        echo "   time: $VERSION_TIMESTAMP"
-        echo "   readable time: $VERSION_READABLE"
-
       else
-        # If the Tag format does not match, output an error message and exit (theoretically it will not be executed here because the rules have been filtered)
-        echo "❌ tag format is incorrect"
-        echo "📋 expected-format: (pro|dev|stag)-<service>-vYYYYMMDDHHMMSS"
-        echo "💡 example:"
-        echo "   - production environment: pro-em-v20241201143025"
-        echo "   - development environment: dev-em-v20241201143025"
-        echo "   - staging environment: stag-em-v20241201143025"
-        echo "🔧 supported services: em, admin-api, exchange-rate, renderers, wc-server"
         exit 1  # Exit code 1 indicates failure and stops the pipeline.
       fi
 
@@ -131,7 +107,4 @@ parse_trigger:
         echo "VERSION_TIMESTAMP=$VERSION_TIMESTAMP"  # version timestamp
         echo "VERSION_READABLE=$VERSION_READABLE"  # readable version time
       } > build.env
-
-      echo "📄 Environment variables have been written to the build.env file"
-      echo "🔍 file content preview:"
       cat build.env

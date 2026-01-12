@@ -32,6 +32,52 @@
   - 友链管理：友情链接的增删改查
 - ✅ **定时任务** - 独立的调度器服务，自动处理热门文章统计、数据更新等后台任务
 
+
+### 功能展示
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/introduce/index0.png" alt="首页预览" />
+      <br/><p align="center"><b>首页 - 沉浸式阅读体验</b></p>
+    </td>
+    <td width="50%">
+      <img src="docs/introduce/index1.png" alt="首页交互" />
+      <br/><p align="center"><b>首页 - 现代化 UI 设计</b></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/introduce/blog_detail.png" alt="文章详情" />
+      <br/><p align="center"><b>文章详情 - Markdown 渲染与目录</b></p>
+    </td>
+    <td width="50%">
+      <img src="docs/introduce/blog_detail1.png" alt="评论互动" />
+      <br/><p align="center"><b>互动区域 - 评论与社交功能</b></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/introduce/blog_list.png" alt="分类浏览" />
+      <br/><p align="center"><b>内容发现 - 分类与标签筛选</b></p>
+    </td>
+    <td width="50%">
+      <img src="docs/introduce/work.png" alt="作品集" />
+      <br/><p align="center"><b>作品集 - 项目与摄影展示</b></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/introduce/user.png" alt="个人中心" />
+      <br/><p align="center"><b>个人中心 - 数据统计与管理</b></p>
+    </td>
+    <td width="50%">
+      <img src="docs/introduce/admin.png" alt="管理后台" />
+      <br/><p align="center"><b>管理后台 - 内容与系统管理</b></p>
+    </td>
+  </tr>
+</table>
+
 ### 为什么选择 InkSpace
 - 🎯 **开箱即用** - 完整的博客系统，无需从零开始搭建
 - 🚀 **快速部署** - Docker Compose 一键启动，几分钟即可上线
