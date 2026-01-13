@@ -233,6 +233,10 @@ inkspace/
 ├── config/                # 配置文件
 ├── scripts/               # 脚本文件
 ├── nginx/                 # Nginx 配置
+├── docker-compose.yml     # Docker Compose 配置
+├── docker-compose.external-db.yml # 使用外部数据库的 Docker Compose 配置
+├── deploy/                # GitOps 部署方案（Docker + Kubernetes + Argocd）
+├── gitlab-ci.yml          # GitLab CI/CD 配置
 └── docs/                  # 项目文档
 ```
 
