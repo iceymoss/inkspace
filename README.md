@@ -242,6 +242,12 @@ inkspace/
 
 ---
 
+## Star 趋势
+
+[![Star History Chart](https://api.star-history.com/svg?repos=iceymoss/inkspace&type=Date)](https://www.star-history.com/#iceymoss/inkspace&Date)
+
+---
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
