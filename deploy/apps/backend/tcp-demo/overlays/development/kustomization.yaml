@@ -1,0 +1,51 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/tcp-demo/overlays/development/kustomization.yaml
+# 作用: 定义 Development 环境的最终形态
+# -----------------------------------------------------------------
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# [资源引用]
+# 这里的 ../../base 指向了该应用的基础定义目录。
+# Kustomize 会先读取 base 里的 Deployment, Service, IngressRouteTCP，
+# 把它们当作"原材料"。
+resources:
+  - ../../base
+
+# [统一标签管理] (Kustomize v5+ 新语法)
+# 作用：给当前环境下的所有资源（包括 Service 的 selector, Deployment 的 Pod template）
+# 自动打上这些标签。
+# 好处：以后你可以通过 kubectl get all -l environment=development 一键查询开发环境所有资源。
+labels:
+  - pairs:
+      environment: development
+      project: inkspace
+
+# [补丁列表]
+# 这是 Kustomize 最强大的功能：在不修改 base 文件的前提下，修改特定配置。
+patches:
+  # 1. 针对 Deployment 的补丁
+  # 这个文件里定义了 replicas: 1 和 CPU/内存限制。
+  - path: patch-resources.yaml
+    target:
+      kind: Deployment
+      name: tcp-echo-demo
+
+  # 2. 针对 Traefik IngressRouteTCP 的补丁
+  # 这个文件里定义了路由规则的微调。
+  - path: ingress-traefik-patch.yaml
+    target:
+      # [CRD 关键点！！！]
+      # 对于 Kubernetes 原生资源 (如 Deployment, Service)，只写 kind 和 name 就够了。
+      # 但是！对于 CRD (自定义资源)，如 Traefik 的 IngressRouteTCP，
+      # Kustomize 有时会找不到它，所以必须显式指定 group 和 version。
+      group: traefik.io      # 对应 apiVersion 的斜杠前部分
+      version: v1alpha1      # 对应 apiVersion 的斜杠后部分
+      kind: IngressRouteTCP
+      name: tcp-echo-route
+# ！！！ 核心调整：镜像替换策略
+images:
+  - name: tcp-echo-server # 对应 Base 中的占位符
+    newName: iceymoss/tcp-echo    # 替换对应的镜像
+    newTag: "2.0"            # 替换 Tag

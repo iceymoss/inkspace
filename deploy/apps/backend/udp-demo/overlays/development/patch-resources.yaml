@@ -1,0 +1,25 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/overlays/development/patch-resources.yaml
+# 作用: 针对 Deployment 的补丁 (副本数 & 资源限制)
+# -----------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udp-echo-demo # 必须匹配 Base 中的名字
+  namespace: inkspace-backend
+spec:
+  # [环境差异] 开发环境只需要 1 个副本
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: proxy
+          # [环境差异] 资源限制
+          # 开发环境设置较小的 Requests/Limits 以节省集群资源。
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"

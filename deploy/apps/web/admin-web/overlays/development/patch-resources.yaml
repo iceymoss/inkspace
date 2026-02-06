@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-web
+spec:
+  # 开发环境副本数
+  replicas: 1

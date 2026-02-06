@@ -1,0 +1,60 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/tcp-demo/overlays/development/patch-resources.yaml
+# 作用: 针对 Development 环境的差异化补丁 (Patch)
+# -----------------------------------------------------------------
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # [关键] Kustomize 依靠这个名字去 base 里找"受害者"
+  # 必须和 base/deployment.yaml 里的名字完全一致
+  name: tcp-echo-demo
+
+  # 指定命名空间，通常在 kustomization.yaml 里也会统一指定，这里写上也无妨
+  namespace: inkspace-backend
+
+spec:
+  # [差异化配置] 副本数
+  # 开发环境为了省钱省资源，通常设为 1。
+  # 生产环境 (Production) 可能会设为 3 以实现高可用。
+  replicas: 1
+
+  template:
+    spec:
+      containers:
+        # [关键] 容器名字
+        # Kustomize 需要通过这个名字知道你要修改列表里的哪一个容器。
+        # 必须和 base/deployment.yaml 里的 container name 一致 (即 "proxy")。
+        - name: proxy
+
+          # [核心修改] 资源配额 (Resource Quotas)
+          # 这通常是开发环境和生产环境最大的区别之一。
+          resources:
+
+            # 1. Requests (请求值/下限)
+            # 含义：Pod 启动时的"最低消费"。
+            # 作用：K8s 调度器会寻找剩余资源满足这些要求的节点。如果节点资源不够，Pod 就会 Pending。
+            requests:
+              # 64 Mebibytes (约等于 67MB)。
+              # 注意：Mi 是二进制单位 (1024*1024)，M 是十进制单位 (1000*1000)。K8s 推荐用 Mi。
+              memory: "64Mi"
+
+              # 50 millicores (50 毫核)，即 0.05 个 CPU 核心。
+              # 1000m = 1 核。50m 是非常小的 CPU 需求，适合开发环境闲置。
+              cpu: "50m"
+
+            # 2. Limits (限制值/上限)
+            # 含义：Pod 运行时的"最高消费"。
+            # 作用：防止应用内存泄漏或 CPU 跑死循环把整个节点搞挂。
+            limits:
+              # 如果容器使用的内存超过 128Mi，它会被 OOMKilled (Out Of Memory Killed) 重启。
+              # 这里的限制比较紧，如果你的 TCP 应用处理大量并发，可能需要调大。
+              memory: "128Mi"
+
+              # 如果容器尝试使用超过 100m (0.1 核) 的 CPU，它会被操作系统限流 (Throttling)，变慢但不会死。
+              cpu: "100m"
+          env:
+            - name: PROXY_TARGET
+              # 这里填 hello-api 的 Service 地址
+              # 格式: <service-name>.<namespace>:端口
+              value: "hello-api.backend:80"

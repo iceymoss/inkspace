@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-web
+  labels:
+    app.kubernetes.io/name: blog-web
+    project: inkspace
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http-web
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: blog-web

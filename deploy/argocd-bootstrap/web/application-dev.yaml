@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-inkspace-dev-web
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/iceymoss/inkspace.git
+    # -------------------------------------------------
+    # 修改点：将 HEAD 改为具体的 Git 分支名 (如 main)
+    # 这样 ArgoCD 就会死死盯着 main 分支的最新提交
+    # -------------------------------------------------
+    targetRevision: master
+    path: deploy/apps/web/*/overlays/development
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: inkspace-web
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler-task
+  labels:
+    app.kubernetes.io/name: scheduler-task
+    app.kubernetes.io/instance: scheduler-task
+    project: inkspace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: scheduler-task
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: scheduler-task
+    spec:
+      # imagePullSecrets: # 如果是公开镜像不需要这个，保留结构供参考
+      #   - name: registry-secret
+      containers:
+        - name: scheduler-task-container
+          # ！！！ 关键：这是占位符，不是实际地址
+          image: inkspace-scheduler-task-image
+          resources:
+            # 适配 1G 内存节点的 Base 配置
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+            requests:
+              memory: "64Mi"
+              cpu: "20m"

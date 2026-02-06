@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-api
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: blog-api-container
+          resources:
+            # 开发环境进一步压缩资源
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+            requests:
+              memory: "16Mi"
+              cpu: "10m"

@@ -1,0 +1,20 @@
+# apps/backend/tcp-demo/base/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: tcp-echo-service
+  namespace: inkspace-backend
+spec:
+  # [服务类型]
+  # 这里省略了 type 字段，默认是 ClusterIP。
+  # 意味着这个 Service 只能在集群内部访问，外部访问必须通过 Traefik Ingress。
+
+  ports:
+    - port: 3333        # [集群内端口] Service 在 ClusterIP 上监听的端口 (Traefik 访问这个)
+      targetPort: 3333  # [容器端口] 流量转发给 Pod 里容器实际监听的端口
+      name: tcp         # 端口命名，好习惯，方便引用
+
+  # [标签选择器]
+  # 只有带有 app=tcp-echo 标签的 Pod 才会成为这个 Service 的后端。
+  selector:
+    app: tcp-echo

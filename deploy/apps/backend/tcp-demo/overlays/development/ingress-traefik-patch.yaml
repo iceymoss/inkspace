@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/tcp-demo/overlays/development/ingress-traefik-patch.yaml
+# 作用: 专门修补 IngressRouteTCP 的配置
+# -----------------------------------------------------------------
+
+# [类型声明]
+# 必须完全匹配 base 文件里的定义，否则 Kustomize 找不到要修补的对象。
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+
+metadata:
+  # [定位锚点]
+  # Kustomize 通过这里的 name 知道你要修改 base 里的哪个资源。
+  name: tcp-echo-route
+  namespace: inkspace-backend
+
+  # [Annotations 注解]
+  # 这里演示了如何给资源添加额外的元数据。
+  # 场景举例：有些监控工具或外部 DNS 插件依赖 annotations 来工作。
+  # 下面这一行其实是 Traefik 的一种元数据标记，明确指出该路由属于 mytcp 入口点。
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: mytcp
+
+spec:
+  # [EntryPoints 入口点]
+  # 这是 Traefik 路由的核心。
+  # "mytcp" 必须对应你在 traefik-app.yaml (Helm values) 中配置的
+  # --entrypoints.mytcp.address=:9999/tcp
+  #
+  # 为什么要在补丁里写这个？
+  # 1. 显式声明：再次确认开发环境走这个入口。
+  # 2. 环境隔离：假如生产环境的入口点叫 "prodtcp" (监听不同端口)，
+  #    你就可以在 overlays/production 里的补丁把这里改成 "prodtcp"。
+  entryPoints:
+    - mytcp

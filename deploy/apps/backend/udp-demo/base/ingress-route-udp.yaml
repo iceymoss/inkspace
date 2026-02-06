@@ -1,0 +1,29 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/base/ingress-route-udp.yaml
+# 作用: Traefik UDP 路由规则 (Layer 4)
+# -----------------------------------------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteUDP   # ⚠️ 注意 Kind：专门用于 UDP，不是 IngressRouteTCP
+metadata:
+  name: udp-echo-route
+  namespace: inkspace-backend
+spec:
+  # [入口点绑定]
+  # 必须对应 traefik-app.yaml (Helm values) 中定义的 entryPoint。
+  # 例如: --entrypoints.myudp.address=:9998/udp
+  entryPoints:
+    - myudp
+
+  routes:
+    # [UDP 路由逻辑]
+    # ⚠️ 区别于 TCP/HTTP：
+    # 1. HTTP 靠 Host Header 区分域名。
+    # 2. TCP (TLS) 靠 SNI (HostSNI) 区分域名。
+    # 3. UDP (非 DTLS) 是无连接的，没有握手，也没有 Header 来承载域名信息。
+    #
+    # 结论：Traefik 无法根据域名对 UDP 进行分流。
+    # 只要流量进入了 'myudp' 这个端口，就必须无条件转发给下面的 Service。
+    # 所以这里没有 match: ... 的字段。
+    - services:
+        - name: udp-echo-service
+          port: 4444

@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - path: patch-resources.yaml
+    target:
+      kind: Deployment
+      name: admin-api
+  - path: ingress-traefik-patch.yaml
+    target:
+      kind: Ingress
+      name: admin-api-ingress
+
+images:
+  - name: inkspace-admin-api-image # 对应 Base 中的占位符
+    newName: iceymoss/inkspace-admin-api    # 替换为真实的镜像
+    newTag: "1.0"            # 替换 Tag

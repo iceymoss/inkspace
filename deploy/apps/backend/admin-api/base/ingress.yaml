@@ -1,0 +1,24 @@
+# deploy/apps/backend/admin-api/base/admin-api-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: admin-api-ingress
+  labels:
+    app.kubernetes.io/name: admin-api
+    project: inkspace
+  annotations:
+    # 确保 Traefik 识别
+    kubernetes.io/ingress.class: traefik
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dev.admin.test.com
+      http:
+        paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-api
+                port:
+                  number: 80

@@ -1,0 +1,34 @@
+# apps/backend/tcp-demo/base/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tcp-echo-demo
+  namespace: inkspace-backend
+  labels:
+    app: tcp-echo
+spec:
+  # [副本数]
+  # 这是 Base 的默认值。
+  # 在 overlays/development/patch-resources.yaml 中会把它覆盖。
+  replicas: 10
+
+  selector:
+    matchLabels:
+      app: tcp-echo # 必须匹配 template 里的标签
+
+  template:
+    metadata:
+      labels:
+        app: tcp-echo # 必须匹配 Service 的 selector
+    spec:
+      containers:
+        - name: proxy
+          # [核心技巧：镜像占位符]
+          # 这里写的不是真实的镜像地址，而是一个逻辑名称。
+          # 真实的镜像地址 (newName) 和版本 (newTag) 会在 overlays/*/kustomization.yaml 中
+          # 通过 'images' 字段动态替换。
+          # 好处：Base 文件与具体镜像仓库解耦。
+          image: tcp-echo-server
+
+          ports:
+            - containerPort: 3333 # 容器应用实际监听的端口

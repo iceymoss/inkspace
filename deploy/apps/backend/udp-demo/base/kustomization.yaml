@@ -1,0 +1,11 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/base/kustomization.yaml
+# 作用: 聚合 Base 资源
+# -----------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - ingress-route-udp.yaml

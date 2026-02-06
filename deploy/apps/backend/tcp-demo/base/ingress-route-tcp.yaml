@@ -1,0 +1,23 @@
+# apps/backend/tcp-demo/base/ingress-route-tcp.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP # 注意：这是 Traefik 专用的 CRD，专门处理 TCP 流量
+metadata:
+  name: tcp-echo-route
+  namespace: inkspace-backend
+spec:
+  # [入口点绑定]
+  # 必须对应 Traefik 启动参数 (traefik-app.yaml) 中定义的 entryPoint。
+  # 比如: --entrypoints.mytcp.address=:9999/tcp
+  entryPoints:
+    - mytcp
+
+  routes:
+    # [路由匹配规则]
+    # HostSNI(`*`) 的含义：
+    # 1. 对于 HTTPS (TLS)，Traefik 可以读取 SNI 信息来区分域名 (如 HostSNI(`example.com`))。
+    # 2. 对于 纯 TCP (非 TLS)，数据流是黑盒，Traefik 无法看到域名信息。
+    # 3. 因此，必须使用通配符 `*`，表示"所有从 mytcp 端口进来的流量，不管发给谁，都无脑转发给后端"。
+    - match: HostSNI(`*`)
+      services:
+        - name: tcp-echo-service # 转发给哪个 Service
+          port: 3333             # Service 的端口

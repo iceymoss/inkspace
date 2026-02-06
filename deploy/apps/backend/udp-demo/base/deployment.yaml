@@ -1,0 +1,39 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/base/deployment.yaml
+# 作用: 定义应用的部署结构 (Pod 模板)
+# -----------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udp-echo-demo
+  namespace: inkspace-backend
+  labels:
+    app: udp-echo
+spec:
+  # [占位副本数]
+  # Base 层通常定义一个默认值 (如 10)，但在开发环境 (Overlay) 中
+  # 我们会通过 patch 将其修改为 1 以节省资源。
+  replicas: 10
+  
+  selector:
+    matchLabels:
+      app: udp-echo
+  template:
+    metadata:
+      labels:
+        app: udp-echo
+    spec:
+      containers:
+        - name: proxy
+          # [镜像占位符 - Image Placeholder]
+          # 这里不写具体的 registry.example.com/udp-server:v1
+          # 而是写一个逻辑名称。具体的镜像地址和 Tag 由 Kustomize 在 overlay 中替换。
+          # 优势：使 Base 层完全通用，不依赖特定的镜像仓库。
+          image: udp-echo-server
+          
+          ports:
+            - containerPort: 4444
+              # [协议声明 - Protocol]
+              # ⚠️ 关键点：对于 UDP 应用，必须显式声明 protocol: UDP。
+              # 如果不写，K8s 默认认为是 TCP，这会导致端口连接不通。
+              protocol: UDP

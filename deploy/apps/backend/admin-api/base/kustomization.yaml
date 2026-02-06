@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 自动将 backend 命名空间添加到所有资源
+# 注意：我这里改回了 backend 以匹配之前的操作
+namespace: inkspace-backend
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml

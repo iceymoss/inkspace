@@ -1,0 +1,40 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/overlays/development/kustomization.yaml
+# 作用: Development 环境的最终组装
+# -----------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# [统一标签] 给所有资源打上 environment: development
+labels:
+  - pairs:
+      environment: development
+      project: inkspace
+
+patches:
+  # 1. 应用资源限制补丁
+  - path: patch-resources.yaml
+    target:
+      kind: Deployment
+      name: udp-echo-demo
+  
+  # 2. 应用 UDP 路由补丁
+  - path: ingress-traefik-patch.yaml
+    target:
+      # [CRD 定位规则]
+      # 对于自定义资源 (如 Traefik CRD)，必须写全 Group/Version/Kind
+      # 否则 Kustomize 可能找不到目标对象。
+      group: traefik.io
+      version: v1alpha1
+      kind: IngressRouteUDP
+      name: udp-echo-route
+
+# [镜像替换策略 - Image Swapping]
+# 将 Base 中的逻辑占位符替换为真实的镜像地址。
+images:
+  - name: udp-echo-server      # 1. 找到 Base 里叫这个名字的 image 字段
+    newName: iceymoss/udp-echo # 2. 将其地址修改为真实的 Docker Hub 地址
+    newTag: "1.0"              # 3. 指定具体的 Tag

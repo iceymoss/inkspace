@@ -1,0 +1,16 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/overlays/development/ingress-traefik-patch.yaml
+# 作用: 针对 IngressRouteUDP 的补丁
+# -----------------------------------------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteUDP  # ⚠️ 必须匹配 Base 的 Kind
+metadata:
+  name: udp-echo-route
+  namespace: inkspace-backend
+  annotations:
+    # [元数据增强]
+    # 在开发环境显式标记该路由属于哪个入口点，便于 Traefik Dashboard 查看。
+    traefik.ingress.kubernetes.io/router.entrypoints: myudp
+spec:
+  entryPoints:
+    - myudp
