@@ -16,5 +16,5 @@ patches:
 
 images:
   - name: inkspace-admin-api-image # 对应 Base 中的占位符
-    newName: iceymoss/inkspace-admin-api    # 替换为真实的镜像
+    newName: iceymoss/go-web     # 替换为真实的镜像
     newTag: "1.0"            # 替换 Tag
