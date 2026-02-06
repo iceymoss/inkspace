@@ -5,7 +5,3 @@ metadata:
   labels:
     app.kubernetes.io/name: scheduler-task
     project: inkspace
-spec:
-  type: ClusterIP
-  selector:
-    app.kubernetes.io/name: scheduler-task
