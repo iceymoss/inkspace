@@ -14,7 +14,7 @@ spec:
   template:
     metadata:
       # 这个 name 是生成的 Application 的名字，保持原样即可
-      name: "dev-{{path[2]}}"
+      name: "dev-{{path[3]}}"
       labels:
         environment: development
         project: inkspace
