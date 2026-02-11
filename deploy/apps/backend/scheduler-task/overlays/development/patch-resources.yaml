@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler-task
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: scheduler-task-container
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+            requests:
+              memory: "16Mi"
+              cpu: "10m"

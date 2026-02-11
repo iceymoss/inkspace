@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet         # <--- 必须ApplicationSet
+metadata:
+  name: backend-inkspace-web-dev     # <--- 生成器的名字
+  namespace: argocd
+  # finalizers 在 ApplicationSet 中通常不需要，或者有不同的 finalizer，建议先去掉避免干扰
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/iceymoss/inkspace.git
+        revision: feat-k8s-deploy
+        directories:
+          - path: deploy/apps/web/*/overlays/development
+  template:
+    metadata:
+      # 这个 name 是生成的 Application 的名字，保持原样即可
+      name: "dev-{{path[3]}}"
+      labels:
+        environment: development
+        project: inkspace
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/iceymoss/inkspace.git
+        targetRevision: feat-k8s-deploy
+        path: "{{path}}"
+      destination:
+        namespace: inkspace-web
+        server: https://kubernetes.default.svc # 加上这个更规范
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

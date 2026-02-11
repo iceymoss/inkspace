@@ -1,0 +1,10 @@
+# # apps/backend/tcp-demo/base/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# [资源清单]
+# 列出当前目录下所有需要被包含进来的 YAML 文件。
+resources:
+  - deployment.yaml
+  - service.yaml
+  - ingress-route-tcp.yaml

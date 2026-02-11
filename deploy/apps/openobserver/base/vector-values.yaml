@@ -1,0 +1,96 @@
+# 安装 Vector 的配置文件
+role: Agent
+
+# 禁用 Service (保持不变)
+service:
+  enabled: false
+
+customConfig:
+  data_dir: /vector-data-dir
+  api:
+    enabled: true
+    address: 0.0.0.0:8686
+
+  sources:
+    kubernetes_logs:
+      type: kubernetes_logs
+
+    # 主机指标源 (采集 CPU, 内存, 磁盘, 负载等)
+    host_metrics:
+      type: host_metrics
+      scrape_interval_secs: 10 # 每 10 秒采一次
+
+  transforms:
+    # [核心修改] 白名单过滤逻辑
+    parse_and_whitelist:
+      type: remap
+      inputs: ["kubernetes_logs"]
+      source: |
+        # --- 1. 精准获取命名空间 ---
+        # 结合之前的调试，我们知道字段可能是扁平的，这里做双重保险
+        .current_ns = .kubernetes_pod_namespace || .kubernetes.pod_namespace || "unknown"
+
+        # --- 2. 【白名单配置】(Whitelist) ---
+        # 逻辑：如果不(!) 包含在允许列表中，就丢弃(abort)
+        # 请在下面列表中填入你真正想采集的业务命名空间，比如 "default", "prod-payment" 等
+        if !includes(["backend", "treafik", "web"], .current_ns) {
+            abort
+        }
+
+        # --- 3. secure json parsing ---
+        # try parsing message
+        parsed_data, err = parse_json(.message)
+
+        if err == null {
+            # Use merge to "fuse" the parsed fields into the current log
+            # This not only retains the original metadata such as k8s_ns, but also has business fields such as level and op
+            . = merge!(., parsed_data)
+        
+            # Optionally, if you don't want to keep the original message string to save space, you can cancel the comment below
+            # del(.message)
+        }
+
+    # 指标处理 (给指标打上 k8s 节点的标签)
+    # 这一步是为了让你在 OpenObserve 里能区分是哪个 Node 的 CPU
+    process_metrics:
+      type: remap
+      inputs: ["host_metrics"]
+      source: |
+        .tags.node_name = "${VECTOR_SELF_NODE_NAME}"        
+        
+
+  sinks:
+    openobserve:
+      type: http
+      # 注意：inputs 名字要和上面 transforms 的名字一致
+      inputs: ["parse_and_whitelist"]
+
+      # [再次提醒] 这里的 URI 必须是你网页上看到的真实 Org ID
+      # 之前的教训：iceymoss 可能是错的，网页上可能是 ice_moss_163_com
+      # 格式: .../api/<真实ORG_ID>/<流名称>/_json
+      uri: "http://openobserve.openobserve.svc.cluster.local:5080/api/iceymoss/default/_json"
+
+      encoding:
+        codec: json
+      auth:
+        strategy: basic
+        user: "ice_moss@163.com"
+        password: "" # [部署前请填入密码]
+      batch:
+        max_events: 1000
+        timeout_secs: 1
+
+    # 发送指标 (Metrics)
+    openobserve_metrics:
+      type: prometheus_remote_write
+      inputs: ["process_metrics"]
+      # 指标的专用地址 (注意路径里的 /prometheus/api/v1/write 是固定的)
+      # 这里假设你的 Org ID 是 'default'
+      endpoint: "http://openobserve.openobserve.svc.cluster.local:5080/api/iceymoss/prometheus/api/v1/write"
+      auth:
+        strategy: basic
+        user: "ice_moss@163.com"
+        password: "ic2?"
+      batch:
+        max_events: 1000
+        timeout_secs: 1

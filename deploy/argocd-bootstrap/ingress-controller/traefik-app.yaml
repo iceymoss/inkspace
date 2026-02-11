@@ -1,0 +1,89 @@
+# 安装traefik
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-ingress
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: traefik
+    repoURL: https://traefik.github.io/charts
+    targetRevision: 26.0.0
+    helm:
+      values: |
+        # 1. 核心：统一名字，解决 404 问题
+        fullnameOverride: "traefik"
+        
+        # 2. 高可用
+        deployment:
+          replicas: 3
+        
+        # 3. 日志开启
+        additionalArguments:
+          - "--accesslog=true"
+          - "--accesslog.format=json"
+          # 定义一个叫 'my-tcp-entrypoint' 的入口，监听 9999 端口
+          - "--entrypoints.mytcp.address=:9999/tcp"
+          # 定义一个叫 'my-udp-entrypoint' 的入口，监听 9998 端口
+          - "--entrypoints.myudp.address=:9998/udp"
+        
+        # 4. 资源限制
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            memory: "150Mi"
+        
+        # 5. 端口暴露 (Web, HTTPS, Dashboard和tcp)
+        service:
+          type: NodePort
+        ports:
+          web:
+            nodePort: 30080
+          websecure:
+            nodePort: 30443
+          # Traefik Service 暴露 9999 端口
+          mytcp:
+            port: 9999
+            expose: true
+            exposedPort: 9999
+            protocol: TCP
+            nodePort: 30999  # 固定对外暴露的 NodePort 端口
+          myudp:
+            port: 9998        # Traefik 内部监听端口
+            expose: true
+            exposedPort: 9998
+            protocol: UDP     # 必须声明 UDP
+            nodePort: 30998   # 对外访问端口
+          # 这里加上 dashboard 端口，方便直接访问面板
+          traefik:
+            port: 9000
+            expose: true
+            exposedPort: 9000
+            protocol: TCP
+            nodePort: 30900   # 访问 http://节点IP:30900/dashboard/
+        
+        # 6. 身份注册
+        ingressClass:
+          enabled: true
+          isDefaultClass: true
+        
+        # 7. CRD 支持
+        providers:
+          kubernetesCRD:
+            enabled: true
+            allowCrossNamespace: true
+          kubernetesIngress:
+            enabled: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - path: patch-resources.yaml
+    target:
+      kind: Deployment
+      name: blog-api
+  - path: ingress-traefik-patch.yaml
+    target:
+      kind: Ingress
+      name: blog-api-ingress
+
+# ！！！ 核心调整：镜像替换策略
+images:
+  - name: inkspace-blog-api-image # 对应 Base 中的占位符
+    newName: iceymoss/go-web     # 替换为真实的轻量级镜像
+    newTag: "1.0"            # 替换 Tag

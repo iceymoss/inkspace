@@ -1,0 +1,24 @@
+# -----------------------------------------------------------------
+# 文件名: apps/backend/udp-demo/base/service.yaml
+# 作用: 定义集群内部的服务发现与负载均衡
+# -----------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: udp-echo-service
+  namespace: inkspace-backend
+spec:
+  # 默认 type 为 ClusterIP，表示仅在集群内部可访问。
+  # 外部流量将由 Traefik 通过这个 Service 转发进来。
+
+  ports:
+    - port: 4444        # Service 暴露的端口 (Traefik 访问这个)
+      targetPort: 4444  # 容器实际监听的端口
+
+      # [协议声明]
+      # ⚠️ 绝对不能漏！必须与 Deployment 和 IngressRouteUDP 中的协议一致。
+      protocol: UDP
+
+      name: udp         # 端口命名，最佳实践
+  selector:
+    app: udp-echo

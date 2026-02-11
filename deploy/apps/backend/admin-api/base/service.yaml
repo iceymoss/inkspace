@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-api
+  labels:
+    app.kubernetes.io/name: admin-api
+    project: inkspace
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http-admin-api # 对应 Deployment 的端口名
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: admin-api

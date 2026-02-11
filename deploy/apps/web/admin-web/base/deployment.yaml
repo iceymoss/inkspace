@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-web
+  labels:
+    app.kubernetes.io/name: admin-web
+    app.kubernetes.io/instance: inkspace-admin-web
+    project: inkspace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: admin-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: admin-web
+    spec:
+      containers:
+        - name: admin-web-container
+          # 占位符镜像，在 overlays 中替换
+          image: inkspace-admin-web-image
+          ports:
+            - containerPort: 80
+              name: http-web
+          resources:
+            # Nginx 非常省资源，适配 1G 节点
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
+            requests:
+              memory: "10Mi"
+              cpu: "5m"

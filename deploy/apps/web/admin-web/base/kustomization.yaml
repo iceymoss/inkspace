@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 自动注入 web 命名空间
+namespace: inkspace-web
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - web-ingress.yaml

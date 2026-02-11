@@ -1,0 +1,24 @@
+# apps/backend/hello-api/base/hello-api-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-api-ingress
+  labels:
+    app.kubernetes.io/name: blog-api
+    project: inkspace
+  annotations:
+    # 确保 Traefik 识别
+    kubernetes.io/ingress.class: traefik
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dev.blog.test.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: blog-api
+                port:
+                  number: 80

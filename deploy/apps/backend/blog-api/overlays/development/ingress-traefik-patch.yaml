@@ -1,0 +1,20 @@
+# apps/backend/hello-api/overlays/development/ingress-traefik-patch.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-api-ingress
+  namespace: inkspace-backend
+  # annotations:  <-- 如果只剩这一行也没关系，或者整个删掉
+spec:
+  # ingressClassName: traefik  <-- 这一行一定要删掉！
+  rules:
+    - host: dev.blog.test.com
+      http:
+        paths:
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: blog-api
+                port:
+                  number: 80

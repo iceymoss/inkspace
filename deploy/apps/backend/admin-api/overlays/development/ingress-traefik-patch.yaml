@@ -1,0 +1,18 @@
+# deploy/apps/backend/admin-api/overlays/development/ingress-traefik-patch.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: admin-api-ingress
+  namespace: inkspace-backend
+spec:
+  rules:
+    - host: dev.api.test.com
+      http:
+        paths:
+          - path: /admin/
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-api
+                port:
+                  number: 80

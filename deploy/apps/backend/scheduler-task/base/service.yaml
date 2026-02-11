@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: scheduler-task
+  labels:
+    app.kubernetes.io/name: scheduler-task
+    project: inkspace
+spec:
+  type: ClusterIP
+  # 指定 clusterIP: None 表示 Headless Service
+  clusterIP: None
+  ports: []  # 没有端口，因为这个任务不监听任何端口
+  selector:
+    app.kubernetes.io/name: scheduler-task
