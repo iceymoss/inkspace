@@ -1,33 +1,35 @@
 # .gitlab-ci.yml
 #
 # 流水线触发规则：
-# 1. 分支推送触发器：用于开发和测试（例如 ci-deploy-config 分支）
-# 2. 标签推送触发器：用于生产环境部署
+# 1. 选中指定分支，标签推送触发器：当符合特定格式的标签被推送时触发（例如 pro-blog-api-v20240101123000）
+
 #
 # 流水线阶段描述：
 # 1. prepare     : 解析触发信息，确定部署环境和目标服务
 # 2. build       : 并行构建每个服务的Docker镜像，并推送到镜像仓库
-# 3. update-config: 更新 GitOps 配置仓库并触发 ArgoCD 同步
+# 3. update-config: 更新本项目deploy分支的deploy命令并触发 ArgoCD 同步
 
 # 全局变量定义
 variables:
   # 项目基本信息
-  PROJECT_NAME: "inkspace"
-  ECR_REGISTRY: "https://hub.docker.com/r"
-  KUBE_NAMESPACE: "inkspace"
-  RNAMESPACE: "iceymoss"
-  REGISTRY_USERNAME: "iceymoss"
-  REGISTRY_PASSWORD: "admin123"
-  GITOPS_CONFIG_REPO: "127.0.0.1/iceymoss/inkspace.git"
+  PROJECT_NAME: "inkspace" # 项目名称
+  ECR_REGISTRY: "https://hub.docker.com/r" # Docker 镜像仓库地址
+  KUBE_NAMESPACE: "inkspace" # 命名空间
+  RNAMESPACE: "iceymoss" # Docker 镜像仓库命名空间（用户名）
+  REGISTRY_USERNAME: "iceymoss" # Docker 镜像仓库用户名
+  REGISTRY_PASSWORD: "admin123" # Docker 镜像仓库密码
+  GITOPS_CONFIG_REPO: "127.0.0.1/iceymoss/inkspace.git" # GitOps 配置仓库地址
   # 服务列表定义
-  ALL_SERVICES: "blog-api admin-api task blog-frontend  admin-frontend"
+  ALL_SERVICES: "blog-api admin-api task blog-web  admin-web"
 
-  # default image tag policy
+  # 默认镜像标签策略
   IMAGE_TAG_PREFIX: "${CI_COMMIT_REF_NAME//\//-}"
 
-# stage definition
+# 定义流水线阶段
 stages:
   - prepare
+  - build
+  - update-config
 
 # 工作流规则：支持分支测试和标签生产阶段部署
 workflow:
@@ -57,54 +59,55 @@ parse_trigger:
       when: always  # 匹配时总是运行
   script:
     - |
-      # Tag format regular expression: environment-service name-version timestamp
+      # 标签格式正则表达式：环境-服务名称-版本时间戳
       TAG_PATTERN="^(pro|dev)-([a-z-]+)-v([0-9]{14})$"
 
-      # Use grep to verify the Tag format (a more compatible way)
+      # 用grep验证标签格式（更兼容的方式）
       if echo "$CI_COMMIT_TAG" | grep -qE "$TAG_PATTERN"; then
-        # extract various parts of the tag
-        DEPLOY_ENV=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\1/")  # Extraction environment (pro/dev/stag)
-        TARGET_SERVICE=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\2/")  # extract service name
-        VERSION_TIMESTAMP=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\3/")  # extraction time
+        # 提取标签的各个部分
+        DEPLOY_ENV=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\1/")  # 提取环境 (pro/dev/stag)
+        TARGET_SERVICE=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\2/")  # 提取服务名称
+        VERSION_TIMESTAMP=$(echo "$CI_COMMIT_TAG" | sed -E "s/$TAG_PATTERN/\\3/")  # 提取时间
 
-        # set environment variables
-        export TRIGGER_TYPE="tag"  # the trigger type is fixed to tag
-        export DEPLOY_ENV="$DEPLOY_ENV"  # Deployment environment (pro-production, dev-development, stag-staging)
-        export TARGET_SERVICE="$TARGET_SERVICE"  # target service name
-        export VERSION_TIMESTAMP="$VERSION_TIMESTAMP"  # version timestamp 14 digits
+        # 设置环境变量
+        export TRIGGER_TYPE="tag"  # 触发类型固定在标签上
+        export DEPLOY_ENV="$DEPLOY_ENV"  # 部署环境 (pro-production, dev-development, stag-staging)
+        export TARGET_SERVICE="$TARGET_SERVICE"  # 目标服务名称
+        export VERSION_TIMESTAMP="$VERSION_TIMESTAMP"  # 版本时间戳 14位数字
 
-        # format time display：YYYY-MM-DD HH:MM:SS
-        VERSION_DATE="${VERSION_TIMESTAMP:0:8}"  # Extract date part (YYYYMMDD)
-        VERSION_TIME="${VERSION_TIMESTAMP:8:6}"  # Extract time part (HHMMSS)
+        # 时间显示格式：YYYY-MM-DD HH:MM:SS
+        VERSION_DATE="${VERSION_TIMESTAMP:0:8}"  # 提取日期部分 (YYYYMMDD)
+        VERSION_TIME="${VERSION_TIMESTAMP:8:6}"  # 提取时间部分 (HHMMSS)
         export VERSION_READABLE="${VERSION_DATE:0:4}-${VERSION_DATE:4:2}-${VERSION_DATE:6:2} ${VERSION_TIME:0:2}:${VERSION_TIME:2:2}:${VERSION_TIME:4:2}"
 
       else
-        exit 1  # Exit code 1 indicates failure and stops the pipeline.
+        exit 1  # 出口代码1表示故障，导致管道停止。
       fi
 
-      # determine the scope of services to be addressed
+      # 确定将要处理的服务范围
       if [ "$TARGET_SERVICE" = "all" ]; then
-        # If the service name is all, all services are processed
-        export SERVICES_TO_PROCESS="em admin-api exchange-rate renderers wc-server"
+        # 如果服务名称为all，所有服务都会被处理
+        export SERVICES_TO_PROCESS="blog-api admin-api task blog-web  admin-web"
         echo "🎯 scope of processing all services"
       else
-        # Otherwise, only the specified single service will be processed
+        # 否则，只处理指定的单一服务
         export SERVICES_TO_PROCESS="$TARGET_SERVICE"
         echo "🎯 processing scope single service - $TARGET_SERVICE"
       fi
 
-      # set image label for docker image naming
+      # 为 Docker 镜像名称设置镜像标签
       export IMAGE_TAG="${DEPLOY_ENV}-${TARGET_SERVICE}-${VERSION_TIMESTAMP}"
       echo "🐳 mirror tag: $IMAGE_TAG"
 
-      # Write environment variables to the build.env file (for use by subsequent jobs)
+      # 将环境变量写入 build.env 文件(供后续工作使用)
       {
-        echo "TRIGGER_TYPE=$TRIGGER_TYPE"  # trigger type
-        echo "DEPLOY_ENV=$DEPLOY_ENV"  # deployment environment
-        echo "TARGET_SERVICE=$TARGET_SERVICE"  # target service
-        echo "SERVICES_TO_PROCESS=$SERVICES_TO_PROCESS"  # list of services to process
-        echo "IMAGE_TAG=$IMAGE_TAG"  # docker image tags
-        echo "VERSION_TIMESTAMP=$VERSION_TIMESTAMP"  # version timestamp
-        echo "VERSION_READABLE=$VERSION_READABLE"  # readable version time
+        echo "TRIGGER_TYPE=$TRIGGER_TYPE"  # 触发类型
+        echo "DEPLOY_ENV=$DEPLOY_ENV"  # 部署环境
+        echo "TARGET_SERVICE=$TARGET_SERVICE"  # 目标服务
+        echo "SERVICES_TO_PROCESS=$SERVICES_TO_PROCESS"  # 处理服务列表
+        echo "IMAGE_TAG=$IMAGE_TAG"  # docker image 标签
+        echo "VERSION_TIMESTAMP=$VERSION_TIMESTAMP"  # 版本时间戳
+        echo "VERSION_READABLE=$VERSION_READABLE"  # 可读版本时间
       } > build.env
       cat build.env
+
