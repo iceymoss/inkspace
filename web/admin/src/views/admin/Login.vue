@@ -39,7 +39,7 @@
               size="large"
               :loading="loading"
               @click="handleLogin"
-              style="width: 100%"
+              class="login-btn"
             >
               登录
             </el-button>
@@ -119,8 +119,8 @@ const goToHome = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  padding: var(--spacing-md);
 }
 
 .login-container {
@@ -129,29 +129,42 @@ const goToHome = () => {
 }
 
 .login-card {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transition: box-shadow var(--transition-base);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .login-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 28px;
-  color: #303133;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  font-weight: 700;
 }
 
 .login-header p {
   margin: 0;
-  color: #909399;
-  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.login-btn {
+  width: 100%;
 }
 
 .login-footer {
   text-align: center;
-  margin-top: 20px;
+  margin-top: var(--spacing-md);
+}
+
+.login-footer :deep(.el-link) {
+  cursor: pointer;
+  transition: color var(--transition-fast);
 }
 
 .login-tips {
@@ -159,15 +172,15 @@ const goToHome = () => {
 }
 
 :deep(.el-card__body) {
-  padding: 40px;
+  padding: var(--spacing-xl);
 }
 
 :deep(.el-form-item) {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 :deep(.el-alert) {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--color-bg-card);
 }
 </style>
 

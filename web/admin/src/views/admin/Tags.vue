@@ -13,14 +13,14 @@
             placeholder="名称 / 别名"
             clearable
             @keyup.enter="handleSearch"
-            style="width: 220px"
+            class="filter-input"
           />
         </el-form-item>
         <el-form-item label="标签类型">
           <el-select
             v-model="filters.scope"
             placeholder="全部类型"
-            style="width: 160px"
+            class="filter-select-scope"
             @change="handleFilterChange"
           >
             <el-option label="全部" value="all" />
@@ -33,7 +33,7 @@
             v-model="filters.hasArticles"
             placeholder="全部"
             clearable
-            style="width: 140px"
+            class="filter-select-articles"
             @change="handleFilterChange"
           >
             <el-option label="全部" :value="''" />
@@ -51,7 +51,7 @@
     <el-table
       :data="tags"
       v-loading="tableLoading"
-      style="width: 100%; margin-top: 10px;"
+      class="tags-table"
       @sort-change="handleSortChange"
     >
       <el-table-column prop="id" label="ID" width="80" sortable="custom" />
@@ -95,16 +95,16 @@
           <el-input v-model="form.slug" />
         </el-form-item>
         <el-form-item label="颜色">
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="color-picker-row">
             <el-color-picker v-model="form.color" />
             <el-input 
               v-model="form.color" 
               placeholder="#409eff" 
-              style="width: 200px;"
+              class="color-input"
               @change="handleColorChange"
             />
           </div>
-          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+          <div class="color-tip">
             点击颜色选择器选择颜色，或直接在输入框中输入颜色值（如：#409eff）
           </div>
         </el-form-item>
@@ -301,24 +301,86 @@ const handlePageChange = (page) => {
 
 <style scoped>
 .tags {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
+}
+
+.header h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .filter-bar {
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.filter-input {
+  width: 220px;
+}
+
+.filter-select-scope {
+  width: 160px;
+}
+
+.filter-select-articles {
+  width: 140px;
+}
+
+.tags-table {
+  width: 100%;
+  margin-top: var(--spacing-sm);
+}
+
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.color-input {
+  width: 200px;
+}
+
+.color-tip {
+  margin-top: var(--spacing-xs);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
 }
 
 .pagination {
-  margin-top: 16px;
+  margin-top: var(--spacing-md);
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-button) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-button:hover),
+:deep(.el-button:focus) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-tag) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-pagination) {
+  cursor: pointer;
+}
+
+:deep(.el-dialog) {
+  border-radius: var(--radius-lg);
 }
 </style>
 

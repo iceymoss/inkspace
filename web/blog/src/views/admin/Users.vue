@@ -292,7 +292,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #606266;
+  color: var(--theme-text-secondary);
 }
 
 .mt-20 {

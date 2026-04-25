@@ -132,7 +132,7 @@ onMounted(() => {
 
 <style scoped>
 .notification-badge {
-  margin-right: 15px;
+  margin-right: var(--spacing-md);
 }
 
 .notification-dropdown {
@@ -144,8 +144,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #ebeef5;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--theme-border-light);
   font-weight: 600;
 }
 
@@ -157,18 +157,18 @@ onMounted(() => {
 .notification-item {
   display: flex;
   gap: 12px;
-  padding: 15px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--theme-border-light);
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-slow);
 }
 
 .notification-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--theme-bg-hover);
 }
 
 .notification-item.unread {
-  background-color: #ecf5ff;
+  background-color: var(--theme-bg-secondary);
 }
 
 .notification-item:last-child {
@@ -181,9 +181,9 @@ onMounted(() => {
 }
 
 .notification-text {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 5px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  margin-bottom: var(--spacing-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -193,11 +193,11 @@ onMounted(() => {
 
 .from-user {
   font-weight: 600;
-  color: #409eff;
+  color: var(--theme-primary);
 }
 
 .notification-time {
-  font-size: 0.8rem;
-  color: #909399;
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
 }
 </style>

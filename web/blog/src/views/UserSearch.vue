@@ -159,61 +159,68 @@ onMounted(() => {
 
 <style scoped>
 .user-search-page {
-  padding: 20px 0 40px;
+  padding: var(--spacing-md) 0 var(--spacing-xl);
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
 .search-card {
   background: var(--theme-bg-card);
-  border-radius: 10px;
-  padding: 24px 24px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .search-card h1 {
-  margin: 0 0 12px;
-  font-size: 22px;
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-primary);
 }
 
 .search-bar {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .search-tip {
   margin: 0;
-  font-size: 13px;
-  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-tertiary);
 }
 
 .results-card {
   background: var(--theme-bg-card);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .results-card h2 {
-  margin: 0 0 16px;
-  font-size: 18px;
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--font-size-xl);
+  color: var(--theme-text-primary);
+}
+
+.user-list {
+  display: grid;
+  gap: var(--spacing-sm);
 }
 
 .user-card {
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-sm);
   cursor: pointer;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .user-card:hover {
   transform: translateY(-2px);
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
 }
 
 .user-card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: var(--spacing-sm);
 }
 
 .user-info {
@@ -224,43 +231,49 @@ onMounted(() => {
 .user-name-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .nickname {
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--font-size-base);
+  color: var(--theme-text-primary);
 }
 
 .exact-tag {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .username {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--theme-text-secondary);
 }
 
 .bio {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--theme-text-secondary);
-  margin: 0 0 8px;
+  margin: 0 0 var(--spacing-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-height: var(--line-height-base);
 }
 
 .user-stats {
   display: flex;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--theme-text-secondary);
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
 }
 
 .user-stats span {
   white-space: nowrap;
+}
+
+.section-title {
+  margin-top: var(--spacing-md);
 }
 </style>
 

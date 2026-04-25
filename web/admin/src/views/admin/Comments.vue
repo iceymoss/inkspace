@@ -11,7 +11,7 @@
             placeholder="内容 / 昵称 / 邮箱"
             clearable
             @keyup.enter="handleSearch"
-            style="width: 260px"
+            class="filter-input"
           />
         </el-form-item>
         <el-form-item label="状态">
@@ -19,7 +19,7 @@
             v-model="filters.status"
             placeholder="全部状态"
             clearable
-            style="width: 140px"
+            class="filter-select-status"
             @change="handleFilterChange"
           >
             <el-option label="全部" :value="''" />
@@ -35,11 +35,11 @@
       </el-form>
     </div>
 
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange" style="margin-top: 10px;">
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="comments-tabs">
       <el-tab-pane label="文章评论" name="articles">
         <el-table
           :data="comments"
-          style="width: 100%; margin-top: 20px;"
+          class="comments-table"
           v-loading="tableLoading"
           @sort-change="handleSortChange"
         >
@@ -96,7 +96,7 @@
       <el-tab-pane label="作品评论" name="works">
         <el-table
           :data="comments"
-          style="width: 100%; margin-top: 20px;"
+          class="comments-table"
           v-loading="tableLoading"
           @sort-change="handleSortChange"
         >
@@ -322,17 +322,67 @@ const handleSortChange = ({ prop, order }) => {
 
 <style scoped>
 .comments {
-  padding: 20px;
+  padding: var(--spacing-lg);
+}
+
+.comments h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .filter-bar {
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
+}
+
+.filter-input {
+  width: 260px;
+}
+
+.filter-select-status {
+  width: 140px;
+}
+
+.comments-tabs {
+  margin-top: var(--spacing-sm);
+}
+
+.comments-table {
+  width: 100%;
+  margin-top: var(--spacing-md);
 }
 
 .pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-md);
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-button) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-button:hover),
+:deep(.el-button:focus) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-tag) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-tabs__item) {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+:deep(.el-pagination) {
+  cursor: pointer;
+}
+
+:deep(.el-dialog) {
+  border-radius: var(--radius-lg);
 }
 </style>
 

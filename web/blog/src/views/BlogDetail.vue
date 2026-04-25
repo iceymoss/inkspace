@@ -1045,8 +1045,8 @@ onMounted(async () => {
 
 <style scoped>
 .blog-detail {
-  padding: 40px 0;
-  background-color: var(--theme-bg-secondary, #f5f7fa);
+  padding: var(--spacing-xl) 0;
+  background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
@@ -1055,59 +1055,67 @@ onMounted(async () => {
 }
 
 .article-card {
-  margin-bottom: 30px;
-  box-shadow: 0 2px 12px 0 var(--theme-shadow);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
   background-color: var(--theme-bg-card);
   border: 1px solid var(--theme-border-light);
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--transition-base);
 }
 
 .comments-card {
-  box-shadow: 0 2px 12px 0 var(--theme-shadow);
+  box-shadow: var(--shadow-md);
   background-color: var(--theme-bg-card);
   border: 1px solid var(--theme-border-light);
+  border-radius: var(--radius-md);
 }
 
 .article-header {
-  border-bottom: 1px solid var(--border-lighter);
-  padding-bottom: 20px;
-  margin-bottom: 30px;
+  border-bottom: 1px solid var(--theme-border-light);
+  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .article-title-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
-  margin-bottom: 15px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .article-title-row h1 {
   flex: 1;
   margin: 0;
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .edit-btn-header {
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .article-meta {
   display: flex;
-  gap: 15px;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
+  gap: var(--spacing-md);
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
 .article-meta span {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
 }
 
 .author-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .author-avatar {
@@ -1116,19 +1124,19 @@ onMounted(async () => {
 
 .clickable-author {
   cursor: pointer;
-  transition: all 0.3s;
-  padding: 4px 8px;
-  border-radius: 4px;
+  transition: all var(--transition-slow);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
 }
 
 .clickable-author:hover {
-  background-color: var(--theme-bg-secondary);
-  color: #409eff;
+  background-color: var(--theme-bg-hover);
+  color: var(--theme-primary);
 }
 
 .clickable-tag {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
 }
 
 .clickable-tag:hover {
@@ -1138,82 +1146,80 @@ onMounted(async () => {
 
 .clickable-avatar {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
 }
 
 .clickable-avatar:hover {
   transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 .article-tags {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
-/* 文章内容渲染样式 */
 .article-content {
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
   min-height: 200px;
 }
 
 #article-preview {
-  padding: 30px;
+  padding: var(--spacing-lg);
   max-width: 920px;
   margin: 0 auto;
   background-color: var(--theme-content-bg);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--theme-border-light);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 内联代码样式 */
 #article-preview :deep(code:not(pre code)) {
-  background-color: rgba(175, 184, 193, 0.2);
-  color: #24292e;
+  background-color: var(--theme-bg-hover);
+  color: var(--theme-text-primary);
   padding: 0.2em 0.4em;
-  border-radius: 3px;
-  font-size: 85%;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
 }
 
-/* 加载状态 */
 .article-loading {
-  padding: 40px 0;
+  padding: var(--spacing-xl) 0;
   text-align: center;
-  color: #999;
-  font-size: 14px;
+  color: var(--theme-text-tertiary);
+  font-size: var(--font-size-sm);
 }
-
-/* vditor-reset样式由全局CSS提供 */
 
 .article-actions {
   text-align: center;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-lighter);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--theme-border-light);
 }
 
 .comments-card h3 {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-lg);
+  color: var(--theme-text-primary);
+  font-weight: 600;
 }
 
 .comment-form {
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .comment-form .el-button {
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
 }
 
 .comment-list {
-  margin-top: 30px;
+  margin-top: var(--spacing-lg);
 }
 
 .comment-item {
   display: flex;
-  gap: 15px;
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border-lighter);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--theme-border-light);
 }
 
 .comment-content {
@@ -1224,63 +1230,63 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .comment-author-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .comment-author {
   font-weight: 600;
-  color: var(--text-primary);
-  font-size: 15px;
+  color: var(--theme-text-primary);
+  font-size: var(--font-size-base);
 }
 
 .comment-meta-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .comment-time {
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .comment-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 .reply-input {
-  margin-top: 15px;
-  padding: 15px;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
   background: var(--theme-bg-secondary);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .reply-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 .replies-list {
-  margin-top: 20px;
-  padding-left: 20px;
-  border-left: 2px solid #e4e7ed;
+  margin-top: var(--spacing-md);
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--color-border-lighter);
 }
 
 .reply-item {
   display: flex;
-  gap: 10px;
-  padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .reply-item:last-child {
@@ -1294,69 +1300,63 @@ onMounted(async () => {
 .reply-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .reply-author {
   font-weight: 600;
-  color: var(--text-primary);
-  font-size: 14px;
+  color: var(--theme-text-primary);
+  font-size: var(--font-size-sm);
 }
 
 .reply-to {
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
   font-weight: normal;
-  font-size: 12px;
-  margin-left: 5px;
+  font-size: var(--font-size-xs);
+  margin-left: var(--spacing-xs);
 }
 
 .author-tag {
-  /* 已在 comment-author-section 中通过 gap 控制间距 */
 }
 
 .reply-time {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.reply-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 8px;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-xs);
 }
 
 .load-more-container {
-  margin-top: 30px;
+  margin-top: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .load-more-btn {
   min-width: 200px;
+  cursor: pointer;
 }
 
 .load-more-replies {
-  margin-top: 10px;
-  padding: 10px 0;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
   text-align: center;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border-lighter);
 }
 
 .comment-count-info {
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
 }
 
 .no-more-comments {
-  margin-top: 30px;
+  margin-top: var(--spacing-lg);
   text-align: center;
-  color: var(--text-secondary);
-  font-size: 14px;
-  padding: 20px;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md);
   background-color: var(--theme-bg-secondary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 </style>
 

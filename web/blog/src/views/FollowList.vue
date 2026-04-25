@@ -220,13 +220,14 @@ onMounted(() => {
 
 <style scoped>
 .follow-list {
-  padding: 20px;
+  padding: var(--spacing-lg);
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
 .follow-list .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
 }
 
 .container {
@@ -241,30 +242,37 @@ onMounted(() => {
 }
 
 .header h2 {
-  margin: 0 0 15px 0;
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-primary);
+}
+
+.header .el-button {
+  cursor: pointer;
+  transition: color var(--transition-fast);
 }
 
 .user-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--spacing-md);
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--theme-border-light);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
 }
 
 .user-item:hover {
-  background-color: var(--theme-bg-secondary);
+  background-color: var(--theme-bg-hover);
   transform: translateX(5px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-info {
@@ -272,14 +280,16 @@ onMounted(() => {
 }
 
 .user-info h4 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
+  color: var(--theme-text-primary);
 }
 
 .user-info .bio {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-sm) 0;
   color: var(--theme-text-tertiary);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -287,8 +297,8 @@ onMounted(() => {
 
 .user-info .stats {
   display: flex;
-  gap: 15px;
-  font-size: 13px;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-sm);
   color: var(--theme-text-secondary);
 }
 
@@ -296,8 +306,13 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.user-actions .el-button {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
 .pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: center;
 }

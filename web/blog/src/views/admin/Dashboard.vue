@@ -107,7 +107,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .stats-info h3 {
@@ -118,7 +118,7 @@ onMounted(() => {
 
 .stats-info p {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
 }
 
 .mt-20 {

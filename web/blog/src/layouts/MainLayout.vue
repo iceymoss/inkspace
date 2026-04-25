@@ -175,12 +175,13 @@ onMounted(() => {
 
 .header {
   background: var(--theme-bg-card);
-  box-shadow: 0 2px 8px var(--theme-shadow);
+  box-shadow: var(--shadow-sm);
   border-bottom: 1px solid var(--theme-border);
   position: sticky;
   top: 0;
   z-index: 1000;
   color: var(--theme-text-primary);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .header-content {
@@ -192,26 +193,24 @@ onMounted(() => {
 
 .logo a {
   font-size: 28px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
+  font-weight: 700;
+  font-family: var(--font-serif);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-accent) 50%, var(--color-accent) 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-decoration: none;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   position: relative;
   display: inline-block;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  font-style: italic;
-  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+  transition: all var(--transition-base);
   animation: gradientShift 3s ease infinite;
+  cursor: pointer;
 }
 
 .logo a:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.15);
-  letter-spacing: 3px;
+  letter-spacing: 2px;
 }
 
 @keyframes gradientShift {
@@ -225,14 +224,35 @@ onMounted(() => {
 
 .nav {
   display: flex;
-  gap: 30px;
+  gap: var(--spacing-lg);
 }
 
 .nav a {
   color: var(--theme-text-secondary);
-  font-size: 16px;
-  transition: color 0.3s;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  transition: color var(--transition-base);
   text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  padding: var(--spacing-xs) 0;
+}
+
+.nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--theme-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base);
+}
+
+.nav a:hover::after,
+.nav a.router-link-active::after {
+  width: 100%;
 }
 
 .nav a:hover,
@@ -243,79 +263,84 @@ onMounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--spacing-md);
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-sm);
   cursor: pointer;
+  transition: opacity var(--transition-base);
+}
+
+.user-info:hover {
+  opacity: 0.8;
 }
 
 .username {
   color: var(--theme-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
 }
 
 .main-content {
   flex: 1;
-  padding: 12px 0 40px;
+  padding: var(--spacing-sm) 0 var(--spacing-xl);
 }
 
 .footer {
-  background: #2c3e50; /* 默认灰黑色背景 */
-  border-top: 1px solid #34495e;
+  background: var(--color-text-primary);
+  border-top: 1px solid var(--theme-border);
   color: rgba(255, 255, 255, 0.8);
-  padding: 30px 0;
+  padding: var(--spacing-lg) 0;
   text-align: center;
   margin-top: auto;
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
-/* 哀悼日主题 - 底部栏使用哀悼主题 */
+.footer p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  margin-bottom: var(--spacing-xs);
+}
+
+.footer a {
+  color: rgba(255, 255, 255, 0.8);
+  transition: color var(--transition-base);
+  cursor: pointer;
+}
+
+.footer a:hover {
+  color: #ffffff;
+}
+
 body.theme-mourning .footer {
-  background: var(--theme-bg-card) !important;
-  border-top: 1px solid var(--theme-border) !important;
-  color: var(--theme-text-primary) !important;
+  background: var(--theme-bg-card);
+  border-top: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
 }
 
 body.theme-mourning .footer p {
-  color: var(--theme-text-secondary) !important;
+  color: var(--theme-text-secondary);
 }
 
 body.theme-mourning .footer a {
-  color: var(--theme-text-primary) !important;
+  color: var(--theme-text-primary);
 }
 
 body.theme-mourning .footer a:hover {
-  color: var(--theme-primary) !important;
-}
-
-/* 其他主题保持灰黑色 */
-body:not(.theme-mourning) .footer {
-  background: #2c3e50 !important;
-  border-top: 1px solid #34495e !important;
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-
-body:not(.theme-mourning) .footer p {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-
-body:not(.theme-mourning) .footer a {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-body:not(.theme-mourning) .footer a:hover {
-  color: #ffffff !important;
+  color: var(--theme-primary);
 }
 
 @media (max-width: 768px) {
   .nav {
-    gap: 15px;
+    gap: var(--spacing-md);
   }
 
   .nav a {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
 
   .logo a {

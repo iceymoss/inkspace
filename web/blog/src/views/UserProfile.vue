@@ -153,7 +153,7 @@
           <!-- 筛选条件 -->
           <div class="user-works-filters">
             <el-segmented v-model="workFilterType" :options="workTypeOptions" @change="handleWorkFilterChange" />
-            <el-radio-group v-model="workSortBy" @change="handleWorkSortChange" size="default" style="margin-left: 15px;">
+              <el-radio-group v-model="workSortBy" @change="handleWorkSortChange" size="default" style="margin-left: var(--spacing-md);">
               <el-radio-button label="latest">最新</el-radio-button>
               <el-radio-button label="hot">最热</el-radio-button>
             </el-radio-group>
@@ -957,20 +957,19 @@ const handleFollowToggle = async (item) => {
 
 <style scoped>
 .user-profile {
-  padding: 40px 0;
+  padding: var(--spacing-xl) 0;
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
 .profile-card {
-  margin-bottom: 30px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
 }
-
 
 .profile-header {
   display: flex;
-  gap: 30px;
+  gap: var(--spacing-lg);
   align-items: center;
 }
 
@@ -979,18 +978,18 @@ const handleFollowToggle = async (item) => {
 }
 
 .profile-info h2 {
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .bio {
-  color: var(--text-secondary);
-  margin-bottom: 20px;
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-md);
 }
 
 .stats {
   display: flex;
-  gap: 40px;
-  margin-bottom: 20px;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
 }
 
 .stat-item {
@@ -999,7 +998,7 @@ const handleFollowToggle = async (item) => {
 
 .stat-item.clickable {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
 }
 
 .stat-item.clickable:hover {
@@ -1011,69 +1010,68 @@ const handleFollowToggle = async (item) => {
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: var(--font-size-2xl);
   font-weight: bold;
-  color: var(--primary-color);
+  color: var(--theme-primary);
 }
 
 .stat-label {
-  color: var(--text-secondary);
-  margin-top: 5px;
+  color: var(--theme-text-secondary);
+  margin-top: var(--spacing-xs);
 }
 
 .profile-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
   align-items: center;
 }
 
 .profile-tabs {
-  margin-top: 20px;
+  margin-top: var(--spacing-md);
 }
 
-/* 用户文章列表样式（独立样式，不与博客列表页共用） */
 .article-sort-header {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--theme-border);
 }
 
 .user-article-list {
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  gap: 8px !important;
+  gap: var(--spacing-sm);
 }
 
 .user-article-list :deep(.el-card) {
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
 }
 
 .user-article-item {
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
   cursor: pointer;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   height: 140px;
   overflow: hidden;
   position: relative;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
 }
 
 .user-article-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .user-article-item :deep(.el-card__body) {
   height: 100%;
-  padding: 14px;
+  padding: var(--spacing-sm);
   display: flex;
   flex-direction: column;
 }
 
 .user-article-content {
   display: flex;
-  gap: 14px;
+  gap: var(--spacing-sm);
   height: 100%;
   align-items: center;
 }
@@ -1082,7 +1080,7 @@ const handleFollowToggle = async (item) => {
   width: 140px;
   height: 112px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -1099,19 +1097,19 @@ const handleFollowToggle = async (item) => {
 .user-article-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
 }
 
 .user-article-header h2 {
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
   color: var(--theme-text-primary);
   word-break: break-word;
   max-height: 1.3em;
@@ -1121,14 +1119,14 @@ const handleFollowToggle = async (item) => {
 
 .user-article-summary {
   color: var(--theme-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5;
-  font-size: 13px;
+  line-height: var(--line-height-base);
+  font-size: var(--font-size-sm);
   word-break: break-word;
   max-height: 3em;
   flex: 1;
@@ -1137,9 +1135,9 @@ const handleFollowToggle = async (item) => {
 
 .user-article-meta {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-sm);
   color: var(--theme-text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -1147,20 +1145,19 @@ const handleFollowToggle = async (item) => {
 .user-article-meta span {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 .user-article-author {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
-/* 书签样式标签 */
 .user-article-bookmarks {
   display: flex;
   flex-direction: row;
-  gap: 4px;
+  gap: var(--spacing-xs);
   flex-wrap: wrap;
   margin-left: auto;
 }
@@ -1168,63 +1165,68 @@ const handleFollowToggle = async (item) => {
 .user-bookmark-tag {
   position: relative;
   padding: 3px 10px 3px 6px;
-  color: white;
-  font-size: 11px;
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all var(--transition-slow);
+  box-shadow: var(--shadow-sm);
   white-space: nowrap;
   clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 0 100%);
 }
 
 .user-bookmark-tag:hover {
   transform: translateX(-2px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   opacity: 0.9;
 }
 
-/* 用户收藏列表样式（独立样式，不与博客列表页共用） */
 .user-favorite-list {
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  gap: 8px !important;
+  gap: var(--spacing-sm);
 }
 
 .user-favorite-list :deep(.el-card) {
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
 }
 
 .user-favorite-item {
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
   cursor: pointer;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   height: 140px;
   overflow: hidden;
   position: relative;
+  transition: all var(--transition-slow);
+}
+
+.user-favorite-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .user-favorite-item :deep(.el-card__body) {
   height: 100%;
-  padding: 14px;
+  padding: var(--spacing-sm);
   display: flex;
   flex-direction: column;
 }
 
 .user-favorite-content {
   display: flex;
-  gap: 14px;
+  gap: var(--spacing-sm);
   height: 100%;
-  align-items: center; /* 垂直居中对齐 */
+  align-items: center;
 }
 
 .user-favorite-cover {
   width: 140px;
   height: 112px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -1233,7 +1235,7 @@ const handleFollowToggle = async (item) => {
   width: 140px;
   height: 112px;
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -1244,13 +1246,12 @@ const handleFollowToggle = async (item) => {
 
 .user-favorite-work-type-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
   z-index: 1;
 }
 
 .user-favorite-work-item {
-  /* 作品收藏项的特殊样式（如果需要） */
 }
 
 .user-favorite-info {
@@ -1258,56 +1259,56 @@ const handleFollowToggle = async (item) => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-width: 0; /* 允许flex收缩 */
+  min-width: 0;
   min-height: 0;
-  overflow: hidden; /* 防止内容溢出 */
+  overflow: hidden;
 }
 
 .user-favorite-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
 }
 
 .user-favorite-header h2 {
-  font-size: 1.2rem;
+  font-size: var(--font-size-lg);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
-  line-height: 1.3;
-  margin-bottom: 6px;
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-xs);
   color: var(--theme-text-primary);
   word-break: break-word;
-  max-height: 1.3em; /* 确保只显示1行 */
-  flex-shrink: 0; /* 防止标题被压缩 */
+  max-height: 1.3em;
+  flex-shrink: 0;
   font-weight: 500;
 }
 
 .user-favorite-summary {
   color: var(--theme-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5; /* 使用标准行高 */
-  font-size: 13px;
+  line-height: var(--line-height-base);
+  font-size: var(--font-size-sm);
   word-break: break-word;
-  max-height: 3em; /* 确保只显示2行 (1.5 * 2 = 3em) */
+  max-height: 3em;
   flex: 1;
-  min-height: 0; /* 允许flex收缩 */
+  min-height: 0;
 }
 
 .user-favorite-meta {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-sm);
   color: var(--theme-text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -1315,56 +1316,55 @@ const handleFollowToggle = async (item) => {
 .user-favorite-meta span {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 .user-favorite-author {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
-/* 书签样式标签 */
 .user-favorite-bookmarks {
   display: flex;
-  flex-direction: row; /* 横向排列 */
-  gap: 4px; /* 标签之间的间距 */
+  flex-direction: row;
+  gap: var(--spacing-xs);
   flex-wrap: wrap;
-  margin-left: auto; /* 自动推到右侧 */
+  margin-left: auto;
 }
 
 .user-favorite-bookmark-tag {
   position: relative;
   padding: 3px 10px 3px 6px;
-  color: white;
-  font-size: 11px;
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  white-space: nowrap; /* 防止文字换行 */
-  /* 书签折角效果 */
+  transition: all var(--transition-slow);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
   clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 0 100%);
 }
 
 .user-favorite-bookmark-tag:hover {
   transform: translateX(-2px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   opacity: 0.9;
 }
 
 .user-list {
   display: grid;
-  gap: 20px;
+  gap: var(--spacing-md);
 }
 
 .user-card {
-  transition: transform 0.3s;
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow);
 }
 
 .user-card:hover {
   transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .user-card-content {
@@ -1376,7 +1376,7 @@ const handleFollowToggle = async (item) => {
 
 .user-info {
   display: flex;
-  gap: 20px;
+  gap: var(--spacing-md);
   align-items: center;
   flex: 1;
   cursor: pointer;
@@ -1384,10 +1384,10 @@ const handleFollowToggle = async (item) => {
 
 .user-stats {
   display: flex;
-  gap: 15px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 5px;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
+  margin-top: var(--spacing-xs);
 }
 
 .user-actions {
@@ -1399,51 +1399,49 @@ const handleFollowToggle = async (item) => {
 }
 
 .user-details h4 {
-  margin-bottom: 5px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .user-details p {
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
   margin: 0;
 }
 
 .pagination {
-  margin-top: 30px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: center;
 }
 
-/* 作品列表样式（独立样式，不与作品列表页共用） */
 .user-works-filters {
   display: flex;
   align-items: center;
-  margin-bottom: 25px;
-  padding: 15px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--theme-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 瀑布流布局 */
 .user-works-masonry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
 }
 
 .user-works-masonry-item {
   cursor: pointer;
-  background: white;
-  border-radius: 6px;
+  background: var(--theme-bg-card);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-slow);
 }
 
 .user-works-masonry-item:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
 }
 
 .user-works-image-container {
@@ -1468,7 +1466,7 @@ const handleFollowToggle = async (item) => {
   bottom: 0;
   background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.3) 100%);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--transition-slow);
 }
 
 .user-works-masonry-item:hover .user-works-overlay {
@@ -1480,28 +1478,28 @@ const handleFollowToggle = async (item) => {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 15px;
+  padding: var(--spacing-md);
 }
 
 .user-works-type-badge {
   display: flex;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 .user-works-info {
-  padding: 15px;
+  padding: var(--spacing-md);
 }
 
 .user-works-title {
-  font-size: 1rem;
-  margin: 0 0 10px 0;
+  font-size: var(--font-size-base);
+  margin: 0 0 var(--spacing-sm) 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.4;
-  color: var(--text-primary);
+  line-height: var(--line-height-base);
+  color: var(--theme-text-primary);
   font-weight: 500;
 }
 
@@ -1509,15 +1507,15 @@ const handleFollowToggle = async (item) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .user-works-author {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
   flex: 1;
   min-width: 0;
 }
@@ -1530,16 +1528,16 @@ const handleFollowToggle = async (item) => {
 
 .user-works-stats {
   display: flex;
-  gap: 12px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
   flex-shrink: 0;
 }
 
 .user-works-stats span {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--spacing-xs);
 }
 
 @media (max-width: 768px) {
@@ -1560,11 +1558,11 @@ const handleFollowToggle = async (item) => {
     width: 100%;
     height: 200px;
   }
-  
+
   .user-article-bookmarks {
     margin-left: 0;
     width: 100%;
-    margin-top: 8px;
+    margin-top: var(--spacing-sm);
   }
 
   .user-favorite-content {
@@ -1580,33 +1578,33 @@ const handleFollowToggle = async (item) => {
     width: 100%;
     height: 200px;
   }
-  
+
   .user-favorite-bookmarks {
     margin-left: 0;
     width: 100%;
-    margin-top: 8px;
+    margin-top: var(--spacing-sm);
   }
 
   .user-works-masonry-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
+    gap: var(--spacing-md);
   }
-  
+
   .user-works-filters {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--spacing-sm);
   }
-  
-  .user-works-filters .el-radio-group {
+
+  .user-works-filters :deep(.el-radio-group) {
     width: 100% !important;
     margin-left: 0 !important;
   }
-  
+
   .user-works-meta {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 }
 </style>

@@ -3,14 +3,14 @@
     <h2>分类管理</h2>
     <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建分类</el-button>
 
-    <el-table :data="categories" style="width: 100%; margin-top: 20px;">
+    <el-table :data="categories" class="category-table">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column label="Logo" width="100">
         <template #default="{ row }">
           <el-image 
             v-if="row.logo" 
             :src="row.logo" 
-            style="width: 50px; height: 50px; border-radius: 4px"
+            class="category-logo"
             fit="cover"
           />
         </template>
@@ -190,9 +190,58 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.categories {
+  padding: var(--spacing-lg);
+}
+
+.categories h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-md);
+}
+
+.category-table {
+  width: 100%;
+  margin-top: var(--spacing-md);
+}
+
+.category-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-sm);
+}
+
 .pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-md);
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-button) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-button:hover),
+:deep(.el-button:focus) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-image) {
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+:deep(.el-image:hover) {
+  transform: scale(1.05);
+}
+
+:deep(.el-pagination) {
+  cursor: pointer;
+}
+
+:deep(.el-dialog) {
+  border-radius: var(--radius-lg);
 }
 </style>

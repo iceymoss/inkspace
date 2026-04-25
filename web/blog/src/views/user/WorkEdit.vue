@@ -149,9 +149,9 @@
                 >
                   <template #title>
                     <div class="photo-header">
-                      <el-image :src="photo.url" style="width: 60px; height: 60px; margin-right: 10px" fit="cover" />
+                      <el-image :src="photo.url" class="photo-thumb" fit="cover" />
                       <span>照片 {{ index + 1 }}</span>
-                      <el-tag v-if="index === 0" type="success" size="small" style="margin-left: 10px">封面</el-tag>
+                      <el-tag v-if="index === 0" type="success" size="small" class="cover-tag">封面</el-tag>
                       <div style="flex: 1"></div>
                       <el-button 
                         size="small" 
@@ -164,7 +164,7 @@
                     </div>
                   </template>
                   
-                  <el-form label-width="100px" style="padding: 10px">
+                  <el-form label-width="100px" class="photo-params-form">
                     <el-form-item label="照片描述">
                       <el-input 
                         v-model="photo.description" 
@@ -221,7 +221,7 @@
             title="摄影作品说明"
             type="info"
             :closable="false"
-            style="margin-bottom: 20px"
+            class="alert-spacing"
           >
             • 每个相册包含多张照片（普通用户最多10张，管理员最多50张）<br>
             • 每天最多发布3个摄影相册<br>
@@ -768,10 +768,14 @@ onUnmounted(() => {
 <style scoped>
 .work-edit {
   max-width: 1200px;
+  background: var(--theme-bg-secondary);
+  min-height: calc(100vh - 60px);
+  padding: var(--spacing-lg) 0;
 }
 
 .work-edit .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-md);
 }
 
 .card-header {
@@ -780,36 +784,45 @@ onUnmounted(() => {
   align-items: center;
 }
 
+.card-header span {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--theme-text-primary);
+}
+
 .form-tip {
-  font-size: 12px;
-  color: #909399;
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
   margin-top: 5px;
+  line-height: var(--line-height-base);
 }
 
 .cover-uploader {
   width: 200px;
   height: 150px;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
+  border: 1px dashed var(--theme-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: border-color var(--transition-base);
 }
 
 .cover-uploader:hover {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
 }
 
 .cover-image {
   width: 200px;
   height: 150px;
+  border-radius: var(--radius-sm);
 }
 
 .cover-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-tertiary);
 }
 
 .photos-params {
@@ -820,5 +833,49 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   width: 100%;
+}
+
+.photo-thumb {
+  width: 60px;
+  height: 60px;
+  margin-right: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+}
+
+.cover-tag {
+  margin-left: var(--spacing-sm);
+}
+
+.photo-params-form {
+  padding: var(--spacing-sm);
+}
+
+.alert-spacing {
+  margin-bottom: var(--spacing-lg);
+}
+
+:deep(.el-divider__text) {
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+:deep(.el-form-item__label) {
+  color: var(--theme-text-secondary);
+  font-weight: 600;
+}
+
+:deep(.el-radio) {
+  cursor: pointer;
+}
+
+:deep(.el-upload--picture-card) {
+  border-radius: var(--radius-sm);
+  border-color: var(--theme-border);
+  transition: border-color var(--transition-base);
+}
+
+:deep(.el-upload--picture-card:hover) {
+  border-color: var(--theme-primary);
 }
 </style>

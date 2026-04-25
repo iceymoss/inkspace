@@ -87,17 +87,27 @@ onMounted(() => {
 
 <style scoped>
 .dashboard h2 {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  font-weight: 700;
 }
 
 .stats-card {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.stats-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .stats-content {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--spacing-md);
 }
 
 .stats-icon {
@@ -106,23 +116,25 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  color: white;
+  border-radius: var(--radius-md);
+  color: var(--color-text-inverse);
 }
 
 .stats-info h3 {
-  margin: 0 0 5px 0;
-  font-size: 28px;
-  font-weight: bold;
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .stats-info p {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .mt-20 {
-  margin-top: 20px;
+  margin-top: var(--spacing-md);
 }
 </style>
 

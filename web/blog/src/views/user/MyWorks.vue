@@ -57,8 +57,8 @@
               <el-tag :type="getStatusType(row.status)" size="small">
                 {{ getStatusText(row.status) }}
               </el-tag>
-              <div v-if="row.audit_message" style="margin-top: 4px;">
-                <el-text type="info" size="small" style="font-size: 12px;">
+              <div v-if="row.audit_message" style="margin-top: var(--spacing-xs);">
+                <el-text type="info" size="small" style="font-size: var(--font-size-xs);">
                   {{ row.audit_message }}
                 </el-text>
               </div>
@@ -245,27 +245,32 @@ onMounted(() => {
 }
 
 .my-works .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--theme-text-primary);
 }
 
 .search-form {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .stats-text {
   display: flex;
-  gap: 10px;
-  font-size: 14px;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-base);
+  color: var(--theme-text-secondary);
 }
 
 .pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: center;
 }

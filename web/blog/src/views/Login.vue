@@ -49,7 +49,7 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" style="width: 100%" @click="handleSubmit" :loading="loading">
+          <el-button type="primary" class="submit-btn" @click="handleSubmit" :loading="loading">
             {{ isRegister ? '注册' : '登录' }}
           </el-button>
         </el-form-item>
@@ -167,38 +167,53 @@ onMounted(() => {
 .login-card {
   width: 100%;
   max-width: 400px;
-  margin: 20px;
+  margin: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  background: var(--theme-bg-card);
+  transition: box-shadow var(--transition-base);
 }
 
 .login-card h2 {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-xl);
   color: var(--theme-text-primary);
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  line-height: var(--line-height-tight);
+  font-family: var(--font-sans);
 }
 
 .form-footer {
   text-align: center;
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
+}
+
+.form-footer :deep(.el-link) {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.submit-btn {
+  width: 100%;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 </style>
 
 <style>
-/* 白天主题使用更灰的背景，突出登录卡片 */
 body.theme-day .login-page {
-  background: linear-gradient(135deg, #dde0e4 0%, #e8eaed 50%, #d9dce0 100%);
+  background: linear-gradient(135deg, var(--theme-bg-secondary) 0%, var(--theme-bg-hover) 50%, var(--theme-bg-secondary) 100%);
 }
 
-/* 黑夜主题使用渐变背景 */
 body.theme-night .login-page {
   background: var(--theme-hero-gradient);
 }
 
-/* 节假日主题下使用背景次色 */
 body.theme-holiday .login-page {
-  background: var(--theme-bg-secondary) !important;
+  background: var(--theme-bg-secondary);
 }
 
-/* 哀悼日主题使用渐变背景 */
 body.theme-mourning .login-page {
   background: var(--theme-hero-gradient);
 }

@@ -233,18 +233,24 @@ onMounted(() => {
 
 <style scoped>
 .article-edit {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.page-header h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .content-form-item {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .content-form-item :deep(.el-form-item__label) {
@@ -257,6 +263,32 @@ onMounted(() => {
 
 :deep(.el-form-item__label) {
   font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+:deep(.el-button) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-switch) {
+  cursor: pointer;
+}
+
+:deep(.el-radio) {
+  cursor: pointer;
+}
+
+:deep(.el-select) {
+  cursor: pointer;
+}
+
+:deep(.el-input__wrapper) {
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+:deep(.el-textarea__inner) {
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 </style>
 

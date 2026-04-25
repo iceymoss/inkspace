@@ -143,70 +143,65 @@ defineExpose({
 
 <style scoped>
 .vditor-container {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   width: 100%;
   min-width: 0;
 }
 
 :deep(.vditor) {
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1px solid var(--theme-border);
+  border-radius: var(--radius-md);
   width: 100%;
 }
 
 :deep(.vditor-toolbar) {
-  background-color: #fff;
-  border-bottom: 1px solid #e4e7ed;
-  padding: 8px 12px;
+  background-color: var(--theme-bg-primary);
+  border-bottom: 1px solid var(--theme-border);
+  padding: var(--spacing-sm) var(--spacing-md);
 }
 
 :deep(.vditor-sv) {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Menlo', 'Consolas', 'Source Code Pro', monospace;
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
 }
 
 :deep(.vditor-sv .vditor-sv__preview) {
-  padding: 20px 32px;
+  padding: var(--spacing-lg) var(--spacing-xl);
 }
 
-/* 全屏模式下的内边距 */
 :deep(.vditor.vditor--fullscreen) {
-  padding: 0 32px !important;
+  padding: 0 var(--spacing-xl) !important;
 }
 
 :deep(.vditor.vditor--fullscreen .vditor-toolbar) {
-  padding-left: 32px !important;
-  padding-right: 32px !important;
+  padding-left: var(--spacing-xl) !important;
+  padding-right: var(--spacing-xl) !important;
 }
 
 :deep(.vditor.vditor--fullscreen .vditor-content) {
-  padding-left: 32px !important;
-  padding-right: 32px !important;
+  padding-left: var(--spacing-xl) !important;
+  padding-right: var(--spacing-xl) !important;
 }
 
 :deep(.vditor.vditor--fullscreen .vditor-sv textarea) {
-  padding-left: 32px !important;
-  padding-right: 32px !important;
+  padding-left: var(--spacing-xl) !important;
+  padding-right: var(--spacing-xl) !important;
 }
 
 :deep(.vditor.vditor--fullscreen .vditor-sv__preview) {
-  padding-left: 40px !important;
-  padding-right: 40px !important;
+  padding-left: var(--spacing-xl) !important;
+  padding-right: var(--spacing-xl) !important;
 }
 
 :deep(.vditor.vditor--fullscreen .vditor-sv) {
   padding: 0 !important;
 }
 
-:deep(.vditor-sv .vditor-sv__preview) {
-  padding: 20px 32px;
-}
-
 :deep(.vditor-reset) {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.8;
-  color: #24292e;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-relaxed);
+  color: var(--theme-text-primary);
 }
 </style>

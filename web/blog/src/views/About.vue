@@ -139,18 +139,21 @@ onMounted(() => {
 
 <style scoped>
 .about {
-  padding: 40px 0;
+  padding: var(--spacing-xl) 0;
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
 .about .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
 }
 
 .about h1 {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-primary);
 }
 
 .about-content {
@@ -160,50 +163,59 @@ onMounted(() => {
 
 .profile {
   text-align: center;
-  margin-bottom: 40px;
-  padding-bottom: 40px;
-  border-bottom: 1px solid var(--border-lighter);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid var(--theme-border-light);
 }
 
 .profile h2 {
-  margin: 20px 0 10px;
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  font-size: var(--font-size-xl);
+  color: var(--theme-text-primary);
 }
 
 .bio {
-  color: var(--text-secondary);
-  font-size: 16px;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
 .intro h3 {
-  margin: 30px 0 15px;
-  color: var(--primary-color);
+  margin: var(--spacing-lg) 0 var(--spacing-md);
+  color: var(--theme-primary);
+  font-size: var(--font-size-lg);
 }
 
 .intro p {
-  line-height: 1.8;
-  margin-bottom: 20px;
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-lg);
+  color: var(--theme-text-primary);
 }
 
 .skills {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
 }
 
 .contact p {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  color: var(--theme-text-primary);
 }
 
 .contact a {
-  color: var(--primary-color);
+  color: var(--theme-primary);
   text-decoration: none;
+  transition: color var(--transition-fast);
+  cursor: pointer;
 }
 
 .contact a:hover {
+  color: var(--theme-primary-hover);
   text-decoration: underline;
 }
 </style>

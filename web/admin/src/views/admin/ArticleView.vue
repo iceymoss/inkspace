@@ -136,30 +136,30 @@ onMounted(() => {
 
 <style scoped>
 .article-view {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .article-header {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .article-title {
-  font-size: 28px;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
-  margin: 0 0 16px;
-  color: #1f2329;
+  margin: 0 0 var(--spacing-md);
+  color: var(--color-text-primary);
 }
 
 .article-meta {
@@ -167,8 +167,8 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
-  color: #8a919f;
-  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
   margin-bottom: 12px;
 }
 
@@ -180,53 +180,52 @@ onMounted(() => {
 .article-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .article-summary {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .article-summary h3 {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   margin-bottom: 12px;
-  color: #1f2329;
+  color: var(--color-text-primary);
 }
 
 .article-summary p {
-  font-size: 15px;
-  line-height: 1.8;
-  color: #515767;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
 }
 
 .article-cover {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .article-cover h3 {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   margin-bottom: 12px;
-  color: #1f2329;
+  color: var(--color-text-primary);
 }
 
 .article-content {
-  margin-top: 24px;
+  margin-top: var(--spacing-lg);
 }
 
 .article-content h3 {
-  font-size: 18px;
-  margin-bottom: 16px;
-  color: #1f2329;
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-primary);
 }
 
 .content-preview {
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 6px;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
   min-height: 200px;
 }
 
-/* Vditor 预览样式 */
 .content-preview :deep(.vditor-reset) {
   background: transparent;
 }

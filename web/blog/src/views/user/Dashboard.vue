@@ -41,7 +41,7 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" style="margin-top: 20px">
+    <el-row :gutter="20" style="margin-top: var(--spacing-lg)">
       <!-- 快捷入口 -->
       <el-col :span="24">
         <el-card>
@@ -79,7 +79,7 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" style="margin-top: 20px">
+    <el-row :gutter="20" style="margin-top: var(--spacing-lg)">
       <!-- 最近作品 -->
       <el-col :span="12">
         <el-card>
@@ -96,7 +96,7 @@
               class="recent-item"
               @click="$router.push(`/works/${work.id}`)"
             >
-              <el-image :src="work.cover" fit="cover" style="width: 60px; height: 60px; border-radius: 4px;" />
+              <el-image :src="work.cover" fit="cover" style="width: 60px; height: 60px; border-radius: var(--radius-sm);" />
               <div class="item-info">
                 <div class="item-title">{{ work.title }}</div>
                 <div class="item-meta">
@@ -130,7 +130,7 @@
                 v-if="article.cover"
                 :src="article.cover" 
                 fit="cover" 
-                style="width: 60px; height: 60px; border-radius: 4px;" 
+                style="width: 60px; height: 60px; border-radius: var(--radius-sm);" 
               />
               <div class="item-info">
                 <div class="item-title">{{ article.title }}</div>
@@ -223,12 +223,12 @@ onMounted(() => {
 }
 
 .user-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .user-info {
   display: flex;
-  gap: 30px;
+  gap: var(--spacing-lg);
   align-items: center;
 }
 
@@ -237,18 +237,22 @@ onMounted(() => {
 }
 
 .user-details h2 {
-  margin: 0 0 10px 0;
-  font-size: 1.8rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-2xl);
+  font-family: var(--font-sans);
+  color: var(--theme-text-primary);
 }
 
 .bio {
-  color: var(--text-secondary);
-  margin-bottom: 20px;
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
 .stats {
   display: flex;
-  gap: 40px;
+  gap: var(--spacing-xl);
 }
 
 .stat-item {
@@ -259,7 +263,7 @@ onMounted(() => {
 
 .stat-item.clickable {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
 }
 
 .stat-item.clickable:hover {
@@ -267,24 +271,24 @@ onMounted(() => {
 }
 
 .stat-item.clickable:hover .stat-value {
-  color: var(--theme-primary);
+  color: var(--theme-primary-hover);
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--theme-primary);
 }
 
 .stat-label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 5px;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
+  margin-top: var(--spacing-xs);
 }
 
 .quick-links {
   display: flex;
-  gap: 15px;
+  gap: var(--spacing-md);
   flex-wrap: wrap;
 }
 
@@ -292,11 +296,13 @@ onMounted(() => {
   flex: 1;
   min-width: 140px;
   height: 50px;
-  font-size: 15px;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .badge-inline {
-  margin-left: 5px;
+  margin-left: var(--spacing-xs);
 }
 
 .card-header {
@@ -308,21 +314,21 @@ onMounted(() => {
 .recent-items {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--spacing-md);
   min-height: 200px;
 }
 
 .recent-item {
   display: flex;
-  gap: 15px;
-  padding: 12px;
-  border-radius: 8px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-slow);
 }
 
 .recent-item:hover {
-  background-color: var(--theme-bg-secondary);
+  background-color: var(--theme-bg-hover);
 }
 
 .item-info {
@@ -332,23 +338,24 @@ onMounted(() => {
 
 .item-title {
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--theme-text-primary);
 }
 
 .item-meta {
   display: flex;
-  gap: 15px;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  gap: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
 }
 
 .item-meta span {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 @media (max-width: 768px) {

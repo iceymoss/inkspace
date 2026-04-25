@@ -219,7 +219,7 @@ onMounted(() => {
 
 <style scoped>
 .favorites {
-  padding: 40px 0;
+  padding: var(--spacing-xl) 0;
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
@@ -227,44 +227,51 @@ onMounted(() => {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--spacing-md);
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .page-header h1 {
-  margin-bottom: 10px;
-  font-size: 2rem;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-3xl);
+  color: var(--theme-text-primary);
 }
 
 .page-header p {
-  color: var(--el-text-color-secondary);
+  color: var(--theme-text-secondary);
 }
 
 .category-tabs {
   display: flex;
   justify-content: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.category-tabs :deep(.el-radio-button__inner) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .favorites-grid {
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .favorite-card {
   height: 100%;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow);
 }
 
 .favorite-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .card-content {
@@ -278,20 +285,20 @@ onMounted(() => {
   width: 100%;
   height: 200px;
   object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 15px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .cover-placeholder {
   width: 100%;
   height: 200px;
   background-color: var(--theme-bg-hover);
-  border-radius: 4px;
-  margin-bottom: 15px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--theme-text-tertiary);
   font-size: 48px;
 }
 
@@ -302,62 +309,66 @@ onMounted(() => {
 }
 
 .title {
-  margin: 0 0 10px 0;
-  font-size: 1.1rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--theme-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5;
+  line-height: var(--line-height-base);
   min-height: 3em;
 }
 
 .summary {
-  color: var(--el-text-color-secondary);
-  margin: 0 0 10px 0;
-  font-size: 0.9rem;
+  color: var(--theme-text-secondary);
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5;
+  line-height: var(--line-height-base);
   min-height: 3em;
   flex: 1;
 }
 
 .card-meta {
   display: flex;
-  gap: 15px;
-  color: var(--el-text-color-secondary);
-  font-size: 0.85rem;
-  padding: 15px 0;
-  border-top: 1px solid var(--el-border-color-lighter);
+  gap: var(--spacing-md);
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--theme-border-light);
   flex-wrap: wrap;
 }
 
 .card-meta span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .card-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 10px;
+  padding-top: var(--spacing-sm);
+}
+
+.card-actions .el-button {
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .pagination {
-  margin-top: 30px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: center;
 }
 
-/* 确保所有卡片高度一致 */
 :deep(.el-col) {
   display: flex;
 }

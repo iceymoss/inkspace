@@ -497,46 +497,46 @@ onUnmounted(() => {
 .article-edit {
   background: var(--theme-bg-secondary);
   min-height: calc(100vh - 60px);
-  padding: 20px 0;
+  padding: var(--spacing-lg) 0;
 }
 
 .edit-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--spacing-lg);
 }
 
 .article-edit .editor-card,
 .article-edit .preview-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .edit-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .edit-header h1 {
-  font-size: 24px;
+  font-size: var(--font-size-2xl);
   font-weight: 600;
-  color: #1f2329;
+  color: var(--theme-text-primary);
   margin: 0;
 }
 
 .article-form {
   background: var(--theme-bg-card);
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
   width: 100%;
 }
 
 .form-label {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: #495057;
+  color: var(--theme-text-secondary);
   margin-right: 12px;
   min-width: 50px;
   display: inline-block;
@@ -544,25 +544,26 @@ onUnmounted(() => {
 }
 
 .title-input {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .title-input :deep(.el-input__inner) {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 500;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  padding: 12px 16px;
+  border: 1px solid var(--theme-border);
+  border-radius: var(--radius-sm);
+  padding: 12px var(--spacing-md);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .title-input :deep(.el-input__inner:focus) {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
 }
 
 .form-row {
   display: flex;
-  gap: 24px;
+  gap: var(--spacing-lg);
   margin-bottom: 18px;
   flex-wrap: wrap;
   align-items: center;
@@ -591,32 +592,34 @@ onUnmounted(() => {
 }
 
 .form-label-block {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: #495057;
+  color: var(--theme-text-secondary);
   display: block;
-  margin-bottom: 8px;
-  line-height: 1.5;
+  margin-bottom: var(--spacing-sm);
+  line-height: var(--line-height-base);
 }
 
 .summary-input :deep(.el-textarea__inner) {
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--theme-border);
   font-family: inherit;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .summary-input :deep(.el-textarea__inner:focus) {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
 }
 
 .cover-input :deep(.el-input__inner) {
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--theme-border);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .cover-input :deep(.el-input__inner:focus) {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
 }
 
@@ -624,9 +627,9 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e4e7ed;
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--theme-border-light);
 }
 
 .action-left {
@@ -639,27 +642,28 @@ onUnmounted(() => {
 }
 
 :deep(.el-select) {
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 :deep(.el-select .el-input__inner) {
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--theme-border);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 :deep(.el-select .el-input__inner:focus) {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
 }
 
 :deep(.el-form-item__label) {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: #495057;
+  color: var(--theme-text-secondary);
 }
 
 .content-form-item {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 :deep(.content-form-item .el-form-item__content) {
@@ -674,7 +678,7 @@ onUnmounted(() => {
 
 :deep(.vditor) {
   width: 100% !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 </style>
 

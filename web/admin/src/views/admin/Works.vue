@@ -6,7 +6,7 @@
     </div>
 
     <!-- 筛选区域 -->
-    <div class="filter-bar" style="margin-top: 20px; margin-bottom: 20px;">
+    <div class="filter-bar">
       <el-form inline>
         <el-form-item label="关键字">
           <el-input
@@ -37,7 +37,7 @@
 
     <el-table
       :data="works"
-      style="width: 100%; margin-top: 20px;"
+      class="works-table"
       @sort-change="handleSortChange"
     >
       <el-table-column prop="id" label="ID" width="80" sortable="custom" />
@@ -52,7 +52,7 @@
           <el-tag :type="row.type === 'photography' ? 'warning' : 'primary'">
             {{ row.type === 'photography' ? '📷 摄影' : '💻 项目' }}
           </el-tag>
-          <div v-if="row.type === 'photography' && row.metadata?.photo_count" style="font-size: 12px; color: #909399; margin-top: 4px;">
+          <div v-if="row.type === 'photography' && row.metadata?.photo_count" class="cell-detail">
             {{ row.metadata.photo_count }} 张
           </div>
         </template>
@@ -63,7 +63,7 @@
           <el-tag :type="getStatusType(row.status)">
             {{ getStatusText(row.status) }}
           </el-tag>
-          <div v-if="row.audit_message" style="font-size: 12px; color: #909399; margin-top: 4px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="row.audit_message">
+          <div v-if="row.audit_message" class="audit-hint" :title="row.audit_message">
             {{ row.audit_message }}
           </div>
         </template>
@@ -727,30 +727,53 @@ loadWorks()
 
 <style scoped>
 .works {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .filter-bar {
-  padding: 15px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.works-table {
+  width: 100%;
+  margin-top: var(--spacing-lg);
 }
 
 .photos-list {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
 }
 
 .photo-header {
   display: flex;
   align-items: center;
   width: 100%;
+}
+
+.cell-detail {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
+}
+
+.audit-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

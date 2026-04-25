@@ -119,7 +119,7 @@ const goToHome = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-hover) 100%);
   padding: 20px;
 }
 
@@ -140,12 +140,12 @@ const goToHome = () => {
 .login-header h1 {
   margin: 0 0 10px 0;
   font-size: 28px;
-  color: #303133;
+  color: var(--theme-text-primary);
 }
 
 .login-header p {
   margin: 0;
-  color: #909399;
+  color: var(--theme-text-secondary);
   font-size: 14px;
 }
 
@@ -167,7 +167,7 @@ const goToHome = () => {
 }
 
 :deep(.el-alert) {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--theme-bg-primary);
 }
 </style>
 

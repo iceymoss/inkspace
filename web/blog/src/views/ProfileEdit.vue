@@ -92,7 +92,7 @@
     </el-card>
 
     <!-- 修改密码区域 -->
-    <el-card style="margin-top: 20px">
+    <el-card style="margin-top: var(--spacing-lg)">
       <template #header>
         <span>修改密码</span>
       </template>
@@ -345,13 +345,14 @@ onMounted(() => {
 .profile-edit {
   max-width: 800px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: var(--spacing-xl) var(--spacing-md);
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
 .profile-edit .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
 }
 
 .card-header {
@@ -360,25 +361,30 @@ onMounted(() => {
   align-items: center;
 }
 
+.card-header .el-button {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
 .form-tip {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--theme-text-tertiary);
-  margin-top: 5px;
+  margin-top: var(--spacing-xs);
 }
 
 .avatar-upload {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
 .avatar-uploader {
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
+  border: 1px dashed var(--theme-border-light);
+  border-radius: var(--radius-md);
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.3s;
+  transition: border-color var(--transition-slow);
 }
 
 .avatar-uploader:hover {
@@ -393,7 +399,7 @@ onMounted(() => {
 
 .avatar-uploader-icon {
   font-size: 28px;
-  color: #8c939d;
+  color: var(--theme-text-tertiary);
   width: 120px;
   height: 120px;
   text-align: center;
@@ -401,9 +407,9 @@ onMounted(() => {
 }
 
 .avatar-tips {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--theme-text-tertiary);
-  line-height: 1.8;
+  line-height: var(--line-height-relaxed);
 }
 
 .image-error {

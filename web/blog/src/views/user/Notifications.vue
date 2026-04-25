@@ -46,7 +46,7 @@
               <el-tag 
                 :type="getTypeTag(notification.type).type" 
                 size="small"
-                style="margin-left: 8px"
+                style="margin-left: var(--spacing-sm)"
               >
                 {{ getTypeTag(notification.type).label }}
               </el-tag>
@@ -257,15 +257,23 @@ onMounted(() => {
   max-width: 900px;
 }
 
+.notifications .el-card {
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--theme-text-primary);
 }
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .notifications-list {
@@ -274,11 +282,11 @@ onMounted(() => {
 
 .notification-item {
   display: flex;
-  gap: 15px;
-  padding: 20px;
-  border-bottom: 1px solid #ebeef5;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--theme-border-light);
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-slow);
 }
 
 .notification-item:hover {
@@ -300,32 +308,32 @@ onMounted(() => {
 .notification-header {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .from-user {
   font-weight: 600;
-  color: #303133;
-  margin-right: 5px;
+  color: var(--theme-text-primary);
+  margin-right: var(--spacing-xs);
 }
 
 .notification-action {
-  color: #606266;
+  color: var(--theme-text-secondary);
 }
 
 .notification-time {
-  font-size: 0.9rem;
-  color: #909399;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-tertiary);
 }
 
 .notification-actions {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 .pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: center;
 }

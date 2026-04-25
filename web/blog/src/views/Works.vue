@@ -6,7 +6,7 @@
         <h1 class="works-title">作品分享</h1>
         <div class="works-filters-controls">
           <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
-          <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" style="width: 150px; margin-left: 15px;">
+          <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" class="works-sort-select">
             <el-option label="默认排序" value="" />
             <el-option label="🔥 热度排序" value="hot" />
             <el-option label="⏰ 最新发布" value="time" />
@@ -165,7 +165,7 @@ onMounted(() => {
 
 <style scoped>
 .works {
-  padding: 10px 0 40px 0;
+  padding: var(--spacing-sm) 0 var(--spacing-xl) 0;
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
@@ -174,18 +174,20 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  margin-bottom: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  background: var(--theme-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   width: 100%;
 }
 
 .works-title {
   margin: 0;
-  font-size: 2rem;
+  font-size: var(--font-size-3xl);
   flex-shrink: 0;
+  color: var(--theme-text-primary);
+  font-weight: 700;
 }
 
 .works-filters-controls {
@@ -193,26 +195,34 @@ onMounted(() => {
   align-items: center;
 }
 
-/* 瀑布流布局 */
+.works-sort-select {
+  width: 150px;
+  margin-left: var(--spacing-md);
+}
+
+.search-icon {
+  cursor: pointer;
+}
+
 .masonry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
 }
 
 .masonry-item {
   cursor: pointer;
-  background: white;
-  border-radius: 6px;
+  background: var(--theme-bg-card);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-slow);
 }
 
 .masonry-item:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
 }
 
 .work-image-container {
@@ -237,7 +247,7 @@ onMounted(() => {
   bottom: 0;
   background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.3) 100%);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--transition-slow);
 }
 
 .masonry-item:hover .work-overlay {
@@ -249,31 +259,31 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 15px;
+  padding: var(--spacing-md);
 }
 
 .work-type-badge {
   display: flex;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 .work-info {
-  padding: 16px;
+  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .work-title {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5;
-  color: var(--text-primary);
+  line-height: var(--line-height-base);
+  color: var(--theme-text-primary);
   font-weight: 500;
   min-height: 3em;
 }
@@ -282,17 +292,17 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding-top: 4px;
-  border-top: 1px solid #f0f0f0;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid var(--theme-border-light);
 }
 
 .work-author {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
   flex: 1;
   min-width: 0;
 }
@@ -306,25 +316,25 @@ onMounted(() => {
 
 .work-stats {
   display: flex;
-  gap: 10px;
-  font-size: 0.8rem;
-  color: #909399;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
   flex-shrink: 0;
 }
 
 .work-stats span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
   white-space: nowrap;
 }
 
 .work-stats .el-icon {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .pagination {
-  margin-top: 40px;
+  margin-top: var(--spacing-xl);
   display: flex;
   justify-content: center;
 }
@@ -332,58 +342,59 @@ onMounted(() => {
 @media (max-width: 768px) {
   .masonry-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
+    gap: var(--spacing-md);
   }
-  
+
   .works-filters {
     flex-direction: column;
     align-items: stretch;
-    gap: 15px;
+    gap: var(--spacing-md);
   }
-  
+
   .works-title {
     text-align: center;
   }
-  
+
   .works-filters-controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--spacing-sm);
     width: 100%;
   }
-  
-  .works-filters-controls .el-select {
-    width: 100% !important;
-    margin-left: 0 !important;
-  }
-  
+
+  .works-filters-controls .el-select,
   .works-filters .el-select {
-    width: 100% !important;
-    margin-left: 0 !important;
+    width: 100%;
+    margin-left: 0;
   }
-  
+
+  .works-sort-select {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .work-info {
-    padding: 12px;
-    gap: 10px;
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
   }
-  
+
   .work-title {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
     min-height: 2.7em;
   }
-  
+
   .work-meta {
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: var(--spacing-sm);
     padding-top: 6px;
   }
-  
+
   .work-stats {
-    gap: 8px;
-    font-size: 0.75rem;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-xs);
   }
-  
+
   .work-stats span {
     gap: 2px;
   }

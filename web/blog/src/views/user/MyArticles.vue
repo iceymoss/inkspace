@@ -383,7 +383,7 @@ onMounted(() => {
 }
 
 .my-articles .el-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .header {
@@ -392,22 +392,29 @@ onMounted(() => {
   align-items: center;
 }
 
+.header span {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--theme-text-primary);
+}
+
 .status-tabs {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .search-form {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .stats-text {
   display: flex;
-  gap: 10px;
-  font-size: 12px;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-secondary);
 }
 
 .mt-20 {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
 }
 </style>
 

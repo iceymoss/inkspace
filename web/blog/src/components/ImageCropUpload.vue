@@ -260,10 +260,10 @@ const handleCropConfirm = async () => {
 
 .upload-area {
   cursor: pointer;
-  border: 2px dashed #dcdfe6;
-  border-radius: 6px;
+  border: 2px dashed var(--theme-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -271,12 +271,12 @@ const handleCropConfirm = async () => {
 }
 
 .upload-area:hover {
-  border-color: #409eff;
+  border-color: var(--theme-primary);
 }
 
 .preview-image {
   display: block;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   object-fit: contain;
 }
 
@@ -289,23 +289,23 @@ const handleCropConfirm = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #fafafa;
-  transition: all 0.3s;
+  background-color: var(--theme-bg-secondary);
+  transition: all var(--transition-slow);
 }
 
 .upload-placeholder:hover {
-  background-color: #f0f2f5;
+  background-color: var(--theme-bg-hover);
 }
 
 .upload-icon {
   font-size: 28px;
-  color: #c0c4cc;
-  margin-bottom: 8px;
+  color: var(--theme-text-tertiary);
+  margin-bottom: var(--spacing-sm);
 }
 
 .upload-text {
-  font-size: 13px;
-  color: #606266;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
 }
 
 .image-error {
@@ -314,22 +314,22 @@ const handleCropConfirm = async () => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background-color: #f5f7fa;
-  color: #c0c4cc;
+  background-color: var(--theme-bg-hover);
+  color: var(--theme-text-tertiary);
   font-size: 40px;
 }
 
 .upload-tip {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
-  line-height: 1.5;
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
+  margin-top: var(--spacing-sm);
+  line-height: var(--line-height-base);
 }
 
 .crop-container {
   width: 100%;
   height: 500px;
-  background-color: #000;
+  background-color: var(--theme-bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,13 +347,12 @@ const handleCropConfirm = async () => {
   align-items: center;
 }
 
-/* 全屏模式下的padding */
 :deep(.el-dialog__body) {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 :deep(.el-dialog.is-fullscreen .el-dialog__body) {
-  padding: 30px;
+  padding: var(--spacing-xl);
 }
 </style>
 

@@ -26,7 +26,7 @@
         <h3>{{ applyTitle || '申请友链' }}</h3>
         <p v-if="applyDescription">{{ applyDescription }}</p>
         <p v-if="applyEmail">📧 Email: {{ applyEmail }}</p>
-        <p v-else-if="applyDescription" style="color: var(--text-secondary);">📧 Email: 暂未配置</p>
+        <p v-else-if="applyDescription" style="color: var(--theme-text-secondary);">📧 Email: 暂未配置</p>
       </div>
     </div>
   </div>
@@ -75,32 +75,38 @@ onMounted(() => {
 
 <style scoped>
 .links-page {
-  padding: 40px 0;
+  padding: var(--spacing-xl) 0;
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
 }
 
 .links-page h1 {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-primary);
 }
 
 .subtitle {
   text-align: center;
-  color: var(--text-secondary);
-  margin-bottom: 40px;
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
 .link-card {
   cursor: pointer;
-  margin-bottom: 20px;
-  transition: transform 0.3s;
+  margin-bottom: var(--spacing-lg);
+  transition: transform var(--transition-slow), box-shadow var(--transition-base);
   height: 100%;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
 }
 
 .link-card:hover {
   transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
 }
 
 .link-content {
@@ -109,13 +115,15 @@ onMounted(() => {
 }
 
 .link-content h3 {
-  margin: 15px 0 10px;
-  font-size: 1.1rem;
+  margin: var(--spacing-md) 0 var(--spacing-sm);
+  font-size: var(--font-size-lg);
+  color: var(--theme-text-primary);
 }
 
 .link-description {
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -126,24 +134,26 @@ onMounted(() => {
 
 .link-icon {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  color: var(--primary-color);
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  color: var(--theme-primary);
 }
 
 .apply-section {
-  margin-top: 60px;
+  margin-top: calc(var(--spacing-xl) + var(--spacing-lg));
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--theme-text-secondary);
 }
 
 .apply-section h3 {
-  margin-bottom: 15px;
-  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+  color: var(--theme-text-primary);
+  font-size: var(--font-size-lg);
 }
 
 .apply-section p {
-  margin: 5px 0;
+  margin: var(--spacing-xs) 0;
+  line-height: var(--line-height-base);
 }
 </style>
 

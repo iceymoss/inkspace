@@ -200,8 +200,9 @@ const handleCommand = (command) => {
 
 .sidebar {
   background-color: var(--theme-bg-card);
-  box-shadow: 2px 0 8px var(--theme-shadow);
+  box-shadow: var(--shadow-md);
   border-right: 1px solid var(--theme-border);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .logo {
@@ -209,34 +210,33 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: var(--font-size-lg);
   font-weight: bold;
   border-bottom: 1px solid var(--theme-border);
   background-color: var(--theme-bg-card);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .logo a {
   font-size: 24px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
+  font-weight: 700;
+  font-family: var(--font-serif);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-accent) 50%, var(--color-accent) 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-decoration: none;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   position: relative;
   display: inline-block;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  font-style: italic;
-  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+  transition: all var(--transition-base);
   animation: gradientShift 3s ease infinite;
+  cursor: pointer;
 }
 
 .logo a:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.15);
-  letter-spacing: 3px;
+  letter-spacing: 2px;
 }
 
 @keyframes gradientShift {
@@ -251,13 +251,15 @@ const handleCommand = (command) => {
 .menu {
   border-right: none;
   background-color: var(--theme-bg-card);
+  transition: background-color var(--transition-slow);
 }
 
 .header {
   background-color: var(--theme-bg-card);
   border-bottom: 1px solid var(--theme-border);
-  padding: 0 20px;
+  padding: 0 var(--spacing-md);
   color: var(--theme-text-primary);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .header-content {
@@ -270,23 +272,28 @@ const handleCommand = (command) => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--spacing-md);
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-sm);
   cursor: pointer;
+  transition: opacity var(--transition-base);
+}
+
+.user-info:hover {
+  opacity: 0.8;
 }
 
 .main {
-  padding: 20px;
+  padding: var(--spacing-md);
 }
 
-/* 修复通知气泡位置 */
 :deep(.el-menu-item) {
   position: relative;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 :deep(.el-menu-item .notification-badge) {

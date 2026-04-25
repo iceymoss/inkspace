@@ -234,10 +234,10 @@ const handlePreviewScroll = () => {
 
 <style scoped>
 .markdown-editor {
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  border: 1px solid var(--theme-border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  background: #fff;
+  background: var(--theme-bg-primary);
 }
 
 .markdown-editor.fullscreen {
@@ -254,14 +254,14 @@ const handlePreviewScroll = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--theme-bg-primary);
+  border-bottom: 1px solid var(--theme-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .ml-10 {
-  margin-left: 10px;
+  margin-left: var(--spacing-sm);
 }
 
 .editor-content {
@@ -281,62 +281,62 @@ const handlePreviewScroll = () => {
 }
 
 .editor-pane {
-  background: #fafbfc;
+  background: var(--theme-bg-secondary);
 }
 
 .pane-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e4e7ed;
-  font-size: 13px;
-  color: #495057;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--theme-bg-secondary);
+  border-bottom: 1px solid var(--theme-border);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
   font-weight: 600;
   letter-spacing: 0.3px;
 }
 
 .word-count {
-  font-size: 12px;
-  color: #909399;
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
 }
 
 .editor-textarea {
   flex: 1;
-  padding: 20px;
+  padding: var(--spacing-lg) var(--spacing-xl);
   border: none;
   outline: none;
   resize: none;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Menlo', 'Consolas', 'Courier New', monospace;
-  font-size: 15px;
-  line-height: 1.8;
-  color: #24292e;
-  background: #fafbfc;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--theme-text-primary);
+  background: var(--theme-bg-secondary);
   overflow-y: auto;
+  transition: background-color var(--transition-base);
 }
 
 .editor-textarea:focus {
-  background: #fff;
+  background: var(--theme-bg-primary);
 }
 
 .preview-content {
   flex: 1;
-  padding: 24px 32px;
+  padding: var(--spacing-lg) var(--spacing-xl);
   overflow-y: auto;
-  background: #fff;
-  border-left: 1px solid #e4e7ed;
+  background: var(--theme-bg-primary);
+  border-left: 1px solid var(--theme-border);
 }
 
-/* Markdown样式 */
 .markdown-body {
-  font-size: 16px;
-  line-height: 1.8;
-  color: #24292e;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-relaxed);
+  color: var(--theme-text-primary);
 }
 
 .markdown-body .placeholder {
-  color: #909399;
+  color: var(--theme-text-tertiary);
   font-style: italic;
 }
 
@@ -344,21 +344,21 @@ const handlePreviewScroll = () => {
 .markdown-body h2,
 .markdown-body h3,
 .markdown-body h4 {
-  margin-top: 24px;
-  margin-bottom: 16px;
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
   font-weight: 600;
-  line-height: 1.25;
+  line-height: var(--line-height-tight);
 }
 
 .markdown-body h1 {
   font-size: 2em;
-  border-bottom: 1px solid #eaecef;
+  border-bottom: 1px solid var(--theme-border-light);
   padding-bottom: 0.3em;
 }
 
 .markdown-body h2 {
   font-size: 1.5em;
-  border-bottom: 1px solid #eaecef;
+  border-bottom: 1px solid var(--theme-border-light);
   padding-bottom: 0.3em;
 }
 
@@ -367,26 +367,26 @@ const handlePreviewScroll = () => {
 }
 
 .markdown-body p {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .markdown-body code {
   padding: 0.2em 0.4em;
   margin: 0;
   font-size: 85%;
-  background-color: rgba(27, 31, 35, 0.05);
-  border-radius: 3px;
+  background-color: var(--theme-bg-hover);
+  border-radius: var(--radius-sm);
   font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
 }
 
 .markdown-body pre {
-  padding: 16px;
+  padding: var(--spacing-md);
   overflow: auto;
   font-size: 85%;
   line-height: 1.45;
-  background-color: #f6f8fa;
-  border-radius: 6px;
-  margin-bottom: 16px;
+  background-color: var(--theme-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .markdown-body pre code {
@@ -401,26 +401,27 @@ const handlePreviewScroll = () => {
 
 .markdown-body blockquote {
   padding: 0 1em;
-  color: #6a737d;
-  border-left: 0.25em solid #dfe2e5;
-  margin-bottom: 16px;
+  color: var(--theme-text-tertiary);
+  border-left: 0.25em solid var(--theme-border-light);
+  margin-bottom: var(--spacing-md);
 }
 
 .markdown-body ul,
 .markdown-body ol {
   padding-left: 2em;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .markdown-body img {
   max-width: 100%;
-  border-radius: 4px;
-  margin: 16px 0;
+  border-radius: var(--radius-sm);
+  margin: var(--spacing-md) 0;
 }
 
 .markdown-body a {
-  color: #0366d6;
+  color: var(--theme-primary);
   text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
 .markdown-body a:hover {
@@ -430,18 +431,18 @@ const handlePreviewScroll = () => {
 .markdown-body table {
   border-collapse: collapse;
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .markdown-body table th,
 .markdown-body table td {
   padding: 6px 13px;
-  border: 1px solid #dfe2e5;
+  border: 1px solid var(--theme-border-light);
 }
 
 .markdown-body table th {
   font-weight: 600;
-  background-color: #f6f8fa;
+  background-color: var(--theme-bg-secondary);
 }
 </style>
 

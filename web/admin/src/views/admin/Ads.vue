@@ -97,7 +97,7 @@
             v-model="selectedPositionId"
             placeholder="筛选位置"
             clearable
-            style="width: 200px; margin-left: 10px"
+            style="width: 200px; margin-left: var(--spacing-sm)"
             @change="loadPlacements"
           >
             <el-option
@@ -167,7 +167,7 @@
         </el-form-item>
         <el-form-item label="最大投放数量">
           <el-input-number v-model="positionForm.max_count" :min="1" :max="100" />
-          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+          <div style="margin-top: var(--spacing-sm); color: var(--color-text-tertiary); font-size: var(--font-size-xs);">
             该位置最多可以同时投放多少个广告
           </div>
         </el-form-item>
@@ -201,7 +201,7 @@
           <el-input v-model="adForm.image" placeholder="图片URL" />
           <el-button
             type="primary"
-            style="margin-top: 10px"
+            style="margin-top: var(--spacing-sm)"
             @click="handleUploadImage('ad')"
           >
             上传图片
@@ -209,7 +209,7 @@
           <el-image
             v-if="adForm.image"
             :src="adForm.image"
-            style="width: 200px; height: 150px; margin-top: 10px"
+            style="width: 200px; height: 150px; margin-top: var(--spacing-sm)"
             fit="cover"
           />
         </el-form-item>
@@ -636,15 +636,15 @@ onMounted(() => {
 
 <style scoped>
 .ads-management {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .toolbar {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .el-pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
   justify-content: flex-end;
 }
 </style>

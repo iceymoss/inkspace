@@ -284,20 +284,20 @@ const handleCropConfirm = async () => {
 
 .upload-area {
   cursor: pointer;
-  border: 2px dashed #dcdfe6;
-  border-radius: 6px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all var(--transition-slow);
   display: inline-block;
 }
 
 .upload-area:hover {
-  border-color: #409eff;
+  border-color: var(--color-primary);
 }
 
 .preview-image {
   display: block;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .upload-placeholder {
@@ -305,23 +305,23 @@ const handleCropConfirm = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #fafafa;
-  transition: all 0.3s;
+  background-color: var(--color-bg-secondary);
+  transition: all var(--transition-slow);
 }
 
 .upload-placeholder:hover {
-  background-color: #f0f2f5;
+  background-color: var(--color-bg-hover);
 }
 
 .upload-icon {
   font-size: 40px;
-  color: #c0c4cc;
-  margin-bottom: 10px;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-sm);
 }
 
 .upload-text {
-  font-size: 14px;
-  color: #606266;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .image-error {
@@ -330,16 +330,16 @@ const handleCropConfirm = async () => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background-color: #f5f7fa;
-  color: #c0c4cc;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-tertiary);
   font-size: 40px;
 }
 
 .upload-tip {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
-  line-height: 1.5;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-sm);
+  line-height: var(--line-height-relaxed);
 }
 
 .crop-container {

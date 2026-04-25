@@ -261,21 +261,54 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.articles {
+  min-height: 100%;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.page-header h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .filter-bar {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .pagination {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-button) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-tag) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-pagination .el-pager li),
+:deep(.el-pagination button) {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-table th .cell) {
+  color: var(--color-text-secondary);
+}
+
+:deep(.el-table td .cell) {
+  color: var(--color-text-primary);
 }
 </style>
 

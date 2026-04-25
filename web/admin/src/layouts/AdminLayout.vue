@@ -8,9 +8,9 @@
         <el-menu
           :default-active="activeMenu"
           router
-          background-color="#304156"
-          text-color="#bfcbd9"
-          active-text-color="#409eff"
+          background-color="var(--color-sidebar-bg)"
+          text-color="var(--color-sidebar-text)"
+          active-text-color="var(--color-sidebar-text-active)"
         >
           <el-menu-item index="/">
             <el-icon><House /></el-icon>
@@ -185,20 +185,24 @@ onMounted(() => {
 }
 
 .sidebar {
-  background-color: #304156;
+  background-color: var(--color-sidebar-bg);
   height: 100vh;
+  transition: background-color var(--transition-slow);
 }
 
 .logo {
-  padding: 20px;
+  padding: var(--spacing-lg);
   text-align: center;
-  color: white;
-  border-bottom: 1px solid #1f2d3d;
+  color: var(--color-sidebar-text-active);
+  border-bottom: 1px solid var(--color-sidebar-border);
 }
 
 .logo h3 {
   margin: 0;
-  color: white;
+  color: var(--color-sidebar-text-active);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 
 .el-menu {
@@ -206,8 +210,10 @@ onMounted(() => {
 }
 
 .header {
-  background: white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--color-border-lighter);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .header-content {
@@ -220,19 +226,25 @@ onMounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-sm);
   cursor: pointer;
+  transition: opacity var(--transition-base);
+}
+
+.user-info:hover {
+  opacity: 0.8;
 }
 
 .main-content {
-  background: #f0f2f5;
-  padding: 20px;
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-md);
+  transition: background-color var(--transition-slow);
 }
 </style>
 
