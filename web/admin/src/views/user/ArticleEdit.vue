@@ -91,7 +91,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 import api from '@/utils/api'
 
 const route = useRoute()
@@ -132,7 +132,7 @@ const fetchCategories = async () => {
     const response = await api.get('/categories')
     categories.value = response.data || []
   } catch (error) {
-    ElMessage.error('获取分类列表失败')
+    toast.error('获取分类列表失败')
   }
 }
 
@@ -142,7 +142,7 @@ const fetchTags = async () => {
     const response = await api.get('/tags')
     tags.value = response.data || []
   } catch (error) {
-    ElMessage.error('获取标签列表失败')
+    toast.error('获取标签列表失败')
   }
 }
 
@@ -164,7 +164,7 @@ const fetchArticle = async () => {
       status: article.status || 'draft'
     })
   } catch (error) {
-    ElMessage.error('获取文章详情失败')
+    toast.error('获取文章详情失败')
     router.back()
   }
 }
@@ -180,15 +180,15 @@ const handleSubmit = async () => {
     try {
       if (isEdit.value) {
         await api.put(`/articles/${route.params.id}`, form)
-        ElMessage.success('保存成功')
+        toast.success('保存成功')
       } else {
         await api.post('/articles', form)
-        ElMessage.success('发布成功')
+        toast.success('发布成功')
       }
       
       router.push('/dashboard/articles')
     } catch (error) {
-      ElMessage.error(error.message || '操作失败')
+      toast.error(error.message || '操作失败')
     } finally {
       loading.value = false
     }

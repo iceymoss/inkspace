@@ -1,7 +1,7 @@
 <template>
   <div class="main-layout">
     <header class="header">
-      <div class="container">
+      <div class="container-blog">
         <div class="header-content">
           <div class="logo">
             <router-link to="/">InkSpace</router-link>
@@ -16,37 +16,41 @@
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
               <NotificationDropdown />
-              <el-dropdown @command="handleCommand">
-                <span class="user-info">
-                  <el-avatar :size="32" :src="userStore.user?.avatar" />
-                  <span class="username">{{ userStore.user?.nickname || userStore.user?.username }}</span>
-                </span>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="profile">
-                      <el-icon><User /></el-icon> 个人主页
-                    </el-dropdown-item>
-                    <el-dropdown-item command="dashboard">
-                      <el-icon><Odometer /></el-icon> 用户中心
-                    </el-dropdown-item>
-                    <el-dropdown-item command="edit">
-                      <el-icon><Edit /></el-icon> 编辑资料
-                    </el-dropdown-item>
-                    <el-dropdown-item command="favorites">
-                      <el-icon><Collection /></el-icon> 我的收藏
-                    </el-dropdown-item>
-                    <el-dropdown-item command="searchUser">
-                      <el-icon><User /></el-icon> 搜索用户
-                    </el-dropdown-item>
-                    <el-dropdown-item command="logout" divided>
-                      <el-icon><SwitchButton /></el-icon> 退出登录
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <span class="user-info cursor-pointer">
+                    <Avatar :size="32">
+                      <AvatarImage :src="userStore.user?.avatar" :alt="userStore.user?.nickname" />
+                      <AvatarFallback>{{ (userStore.user?.nickname || userStore.user?.username || '?')[0] }}</AvatarFallback>
+                    </Avatar>
+                    <span class="username">{{ userStore.user?.nickname || userStore.user?.username }}</span>
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" :side-offset="8">
+                  <DropdownMenuItem class="cursor-pointer" @click="handleCommand('profile')">
+                    <User class="mr-2 h-4 w-4" /> 个人主页
+                  </DropdownMenuItem>
+                  <DropdownMenuItem class="cursor-pointer" @click="handleCommand('dashboard')">
+                    <Gauge class="mr-2 h-4 w-4" /> 用户中心
+                  </DropdownMenuItem>
+                  <DropdownMenuItem class="cursor-pointer" @click="handleCommand('edit')">
+                    <Pencil class="mr-2 h-4 w-4" /> 编辑资料
+                  </DropdownMenuItem>
+                  <DropdownMenuItem class="cursor-pointer" @click="handleCommand('favorites')">
+                    <Bookmark class="mr-2 h-4 w-4" /> 我的收藏
+                  </DropdownMenuItem>
+                  <DropdownMenuItem class="cursor-pointer" @click="handleCommand('searchUser')">
+                    <Search class="mr-2 h-4 w-4" /> 搜索用户
+                  </DropdownMenuItem>
+                  <Separator class="my-1" />
+                  <DropdownMenuItem class="cursor-pointer" @click="handleCommand('logout')">
+                    <LogOut class="mr-2 h-4 w-4" /> 退出登录
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </template>
             <template v-else>
-              <el-button type="primary" @click="$router.push('/login')">登录</el-button>
+              <Button @click="$router.push('/login')">登录</Button>
             </template>
           </div>
         </div>
@@ -57,8 +61,10 @@
       <RouterView />
     </main>
 
+    <Toaster richColors theme="system" />
+
     <footer class="footer">
-      <div class="container">
+      <div class="container-blog">
         <p>{{ siteSettings.site_copyright || '© 2024 InkSpace. All rights reserved.' }}</p>
         <p>{{ siteSettings.site_description || 'Powered by Go + Gin + Vue' }}</p>
         <p v-if="siteSettings.site_icp">
@@ -75,7 +81,12 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
-import { User, Edit, Collection, SwitchButton, Odometer } from '@element-plus/icons-vue'
+import { User, Pencil, Bookmark, LogOut, Gauge, Search } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { Separator } from '@/components/ui/separator'
+import { Toaster } from 'vue-sonner'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
 import api from '@/utils/api'
 
@@ -168,45 +179,35 @@ onMounted(() => {
 
 <style scoped>
 .main-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  @apply min-h-screen flex flex-col;
 }
 
 .header {
   background: var(--theme-bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--card-inset-shadow);
   border-bottom: 1px solid var(--theme-border);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  @apply sticky top-0 z-[1000];
   color: var(--theme-text-primary);
-  transition: background-color var(--transition-slow), border-color var(--transition-slow);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow), box-shadow var(--transition-slow);
 }
 
 .header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply flex items-center justify-between;
   height: 64px;
 }
 
 .logo a {
+  @apply font-serif font-bold cursor-pointer inline-block relative;
   font-size: 28px;
-  font-weight: 700;
-  font-family: var(--font-serif);
+  letter-spacing: 1px;
   background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-accent) 50%, var(--color-accent) 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-decoration: none;
-  letter-spacing: 1px;
-  position: relative;
-  display: inline-block;
   transition: all var(--transition-base);
   animation: gradientShift 3s ease infinite;
-  cursor: pointer;
 }
 
 .logo a:hover {
@@ -223,28 +224,23 @@ onMounted(() => {
 }
 
 .nav {
-  display: flex;
+  @apply flex;
   gap: var(--spacing-lg);
 }
 
 .nav a {
   color: var(--theme-text-secondary);
+  @apply font-medium cursor-pointer relative;
   font-size: var(--font-size-base);
-  font-weight: 500;
   transition: color var(--transition-base);
   text-decoration: none;
-  cursor: pointer;
-  position: relative;
   padding: var(--spacing-xs) 0;
 }
 
 .nav a::after {
   content: '';
-  position: absolute;
+  @apply absolute left-0 w-0 h-[2px];
   bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
   background: var(--theme-primary);
   border-radius: var(--radius-full);
   transition: width var(--transition-base);
@@ -252,7 +248,7 @@ onMounted(() => {
 
 .nav a:hover::after,
 .nav a.router-link-active::after {
-  width: 100%;
+  @apply w-full;
 }
 
 .nav a:hover,
@@ -261,31 +257,28 @@ onMounted(() => {
 }
 
 .header-actions {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--spacing-md);
 }
 
 .user-info {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--spacing-sm);
-  cursor: pointer;
   transition: opacity var(--transition-base);
 }
 
 .user-info:hover {
-  opacity: 0.8;
+  @apply opacity-80;
 }
 
 .username {
   color: var(--theme-text-primary);
+  @apply font-medium;
   font-size: var(--font-size-sm);
-  font-weight: 500;
 }
 
 .main-content {
-  flex: 1;
+  @apply flex-1;
   padding: var(--spacing-sm) 0 var(--spacing-xl);
 }
 
@@ -293,27 +286,25 @@ onMounted(() => {
   background: var(--color-text-primary);
   border-top: 1px solid var(--theme-border);
   color: rgba(255, 255, 255, 0.8);
-  padding: var(--spacing-lg) 0;
-  text-align: center;
-  margin-top: auto;
+  @apply py-lg text-center mt-auto;
   transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .footer p {
   color: rgba(255, 255, 255, 0.7);
+  @apply leading-base;
   font-size: var(--font-size-sm);
-  line-height: var(--line-height-base);
   margin-bottom: var(--spacing-xs);
 }
 
 .footer a {
   color: rgba(255, 255, 255, 0.8);
+  @apply cursor-pointer;
   transition: color var(--transition-base);
-  cursor: pointer;
 }
 
 .footer a:hover {
-  color: #ffffff;
+  @apply text-white;
 }
 
 body.theme-mourning .footer {
@@ -348,4 +339,3 @@ body.theme-mourning .footer a:hover {
   }
 }
 </style>
-

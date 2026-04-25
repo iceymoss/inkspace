@@ -51,7 +51,7 @@
             <!-- 登录用户查看自己的主页：显示编辑资料按钮 -->
             <div class="profile-actions" v-if="isCurrentUser && userStore.isLoggedIn">
               <el-button @click="$router.push('/profile/edit')">
-                <el-icon><Edit /></el-icon> 编辑资料
+                <el-icon><Pencil /></el-icon> 编辑资料
               </el-button>
             </div>
             
@@ -115,7 +115,7 @@
                       <el-avatar :size="20" :src="article.author?.avatar" />
                       <span>{{ article.author?.nickname || article.author?.username }}</span>
                     </span>
-                    <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
+                    <span><el-icon><Eye /></el-icon> {{ article.view_count }}</span>
                     <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
                     <!-- 书签样式的标签 -->
                     <div class="user-article-bookmarks" v-if="article.tags && article.tags.length > 0">
@@ -194,7 +194,7 @@
                     <span>{{ work.author?.nickname || work.author?.username }}</span>
                   </div>
                   <div class="user-works-stats">
-                    <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
+                    <span><el-icon><Eye /></el-icon> {{ work.view_count }}</span>
                     <span v-if="work.like_count > 0">
                       <el-icon><Star /></el-icon> {{ work.like_count }}
                     </span>
@@ -244,7 +244,7 @@
                         <el-avatar :size="20" :src="favorite.article.author?.avatar" />
                         <span>{{ favorite.article.author?.nickname || favorite.article.author?.username }}</span>
                       </span>
-                      <span><el-icon><View /></el-icon> {{ favorite.article.view_count }}</span>
+                      <span><el-icon><Eye /></el-icon> {{ favorite.article.view_count }}</span>
                       <span><el-icon><Clock /></el-icon> {{ formatDate(favorite.created_at) }}</span>
                       <!-- 书签样式的标签 -->
                       <div class="user-favorite-bookmarks" v-if="favorite.article.tags && favorite.article.tags.length > 0">
@@ -298,7 +298,7 @@
                         <el-avatar :size="20" :src="favorite.work.author?.avatar" />
                         <span>{{ favorite.work.author?.nickname || favorite.work.author?.username }}</span>
                       </span>
-                      <span><el-icon><View /></el-icon> {{ favorite.work.view_count || 0 }}</span>
+                      <span><el-icon><Eye /></el-icon> {{ favorite.work.view_count || 0 }}</span>
                       <span v-if="favorite.work.like_count > 0">
                         <el-icon><Star /></el-icon> {{ favorite.work.like_count }}
                       </span>
@@ -424,8 +424,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Plus, Check, Star, View, Clock } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus, Check, Star, Eye, Clock, Pencil } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
@@ -500,7 +500,7 @@ const loadUser = async () => {
       user.value = response.data
     }
   } catch (error) {
-    ElMessage.error('用户加载失败')
+    toast.error('用户加载失败')
   }
 }
 
@@ -620,20 +620,20 @@ const handleWorkSortChange = () => {
 // 关注用户
 const handleFollow = async () => {
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     return
   }
 
   // 不能关注自己
   if (userId.value === userStore.user?.id) {
-    ElMessage.warning('不能关注自己')
+    toast.warning('不能关注自己')
     return
   }
 
   followLoading.value = true
   try {
     await api.post(`/users/${userId.value}/follow`)
-    ElMessage.success('关注成功')
+    toast.success('关注成功')
     // 更新关注统计
     await loadFollowStats()
     // 重新加载用户信息（更新粉丝数）
@@ -663,14 +663,14 @@ const handleFollow = async () => {
 // 取消关注
 const handleUnfollow = async () => {
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     return
   }
 
   followLoading.value = true
   try {
     await api.delete(`/users/${userId.value}/follow`)
-    ElMessage.success('取消关注成功')
+    toast.success('取消关注成功')
     // 更新关注统计
     await loadFollowStats()
     // 重新加载用户信息（更新粉丝数）
@@ -837,7 +837,7 @@ const onTabChange = (tabName) => {
     // 如果切换到隐私标签页，强制切换回文章标签页
     if (['favorites', 'following', 'followers'].includes(tabName)) {
       activeTab.value = 'articles'
-      ElMessage.warning('无权查看他人的隐私数据')
+      toast.warning('无权查看他人的隐私数据')
       return
     }
   }
@@ -887,19 +887,19 @@ const getTagColor = (tagName) => {
 // 在关注/粉丝列表中关注/取消关注
 const handleFollowToggle = async (item) => {
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     return
   }
   
   const targetUserId = item.user?.id
   if (!targetUserId) {
-    ElMessage.error('用户ID无效')
+    toast.error('用户ID无效')
     return
   }
   
   // 不能关注自己
   if (targetUserId === userStore.user?.id) {
-    ElMessage.warning('不能关注自己')
+    toast.warning('不能关注自己')
     return
   }
   
@@ -908,7 +908,7 @@ const handleFollowToggle = async (item) => {
     if (item.is_following) {
       // 取消关注
       await api.delete(`/users/${targetUserId}/follow`)
-      ElMessage.success('已取消关注')
+      toast.success('已取消关注')
       item.is_following = false
       // 更新关注统计
       await loadFollowStats()
@@ -924,7 +924,7 @@ const handleFollowToggle = async (item) => {
     } else {
       // 关注
       await api.post(`/users/${targetUserId}/follow`)
-      ElMessage.success('关注成功')
+      toast.success('关注成功')
       item.is_following = true
       // 更新关注统计
       await loadFollowStats()

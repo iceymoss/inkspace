@@ -1,76 +1,92 @@
 <template>
   <div class="works">
     <div class="container">
-      <!-- 筛选栏 -->
       <div class="works-filters">
         <h1 class="works-title">作品分享</h1>
         <div class="works-filters-controls">
-          <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
-          <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" class="works-sort-select">
-            <el-option label="默认排序" value="" />
-            <el-option label="🔥 热度排序" value="hot" />
-            <el-option label="⏰ 最新发布" value="time" />
-            <el-option label="👁️ 最多浏览" value="view" />
-            <el-option label="❤️ 最多点赞" value="like" />
-          </el-select>
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索作品（标题/描述）"
-            clearable
-            class="works-search-input"
-            @keyup.enter="handleSearch"
-          >
-            <template #suffix>
-              <el-icon class="search-icon" @click.stop="handleSearch"><Search /></el-icon>
-            </template>
-          </el-input>
+          <div class="flex rounded-lg bg-muted p-1">
+            <button
+              v-for="opt in typeOptions"
+              :key="opt.value"
+              @click="filterType = opt.value; handleFilterChange()"
+              :class="filterType === opt.value ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+
+          <Select v-model="sortBy" @update:model-value="handleFilterChange" class="works-sort-select">
+            <SelectTrigger class="w-[150px]">
+              <SelectValue placeholder="排序方式" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">默认排序</SelectItem>
+              <SelectItem value="hot">🔥 热度排序</SelectItem>
+              <SelectItem value="time">⏰ 最新发布</SelectItem>
+              <SelectItem value="view">👁️ 最多浏览</SelectItem>
+              <SelectItem value="like">❤️ 最多点赞</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div class="relative">
+            <Input
+              v-model="searchKeyword"
+              placeholder="搜索作品（标题/描述）"
+              @keyup.enter="handleSearch"
+              class="pr-9"
+            />
+            <Button variant="ghost" size="sm" class="absolute right-0.5 top-0.5 h-9 w-9 p-0" @click="handleSearch">
+              <Search class="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
-      
-      <!-- 瀑布流布局 -->
-      <div class="masonry-grid">
-        <div 
-          v-for="work in works" 
-          :key="work.id" 
-          class="masonry-item"
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-lg">
+        <div
+          v-for="work in works"
+          :key="work.id"
+          class="card-skeuomorphic cursor-pointer overflow-hidden"
           @click="handleWorkClick(work.id)"
         >
           <div class="work-image-container">
-            <el-image 
-              :src="work.cover" 
+            <img
+              :src="work.cover"
               :alt="work.title"
-              fit="cover"
               class="work-image"
-              lazy
+              loading="lazy"
             />
             <div class="work-overlay">
               <div class="overlay-content">
                 <div class="work-type-badge">
-                  <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
+                  <Badge :variant="work.type === 'photography' ? 'secondary' : 'default'" class="text-xs">
                     {{ work.type === 'photography' ? '📷' : '💻' }}
-                  </el-tag>
+                  </Badge>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <div class="work-info">
             <h3 class="work-title">{{ work.title }}</h3>
             <div class="work-meta">
               <div class="work-author">
-                <el-avatar :size="20" :src="work.author?.avatar" />
+                <Avatar class="w-5 h-5">
+                  <AvatarImage :src="work.author?.avatar" />
+                </Avatar>
                 <span>{{ work.author?.nickname || work.author?.username }}</span>
               </div>
               <div class="work-stats">
-                <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
+                <span><Eye class="w-4 h-4" /> {{ work.view_count }}</span>
                 <span v-if="work.like_count">
-                  <el-icon><Star /></el-icon> {{ work.like_count }}
+                  <Star class="w-4 h-4" /> {{ work.like_count }}
                 </span>
                 <span v-if="work.comment_count">
-                  <el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}
+                  <MessageCircle class="w-4 h-4" /> {{ work.comment_count }}
                 </span>
                 <span v-if="work.favorite_count">
-                  <el-icon><Collection /></el-icon> {{ work.favorite_count }}
+                  <Bookmark class="w-4 h-4" /> {{ work.favorite_count }}
                 </span>
               </div>
             </div>
@@ -78,25 +94,27 @@
         </div>
       </div>
 
-      <div class="pagination" v-if="total > 0">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          layout="prev, pager, next"
-          @current-change="loadWorks"
-        />
+      <div class="flex items-center justify-center gap-2 mt-xl" v-if="totalPages > 1">
+        <Button variant="outline" size="sm" :disabled="currentPage <= 1" @click="currentPage--; loadWorks()">上一页</Button>
+        <span class="text-sm text-muted-foreground">{{ currentPage }} / {{ totalPages }}</span>
+        <Button variant="outline" size="sm" :disabled="currentPage >= totalPages" @click="currentPage++; loadWorks()">下一页</Button>
       </div>
 
-      <el-empty v-if="works.length === 0" description="暂无作品" />
+      <EmptyState v-if="works.length === 0" title="暂无作品" description="还没有发布任何作品" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { View, Star, ChatDotRound, Collection, Search } from '@element-plus/icons-vue'
+import { Search, Eye, Star, MessageCircle, Bookmark } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { EmptyState } from '@/components/ui/empty-state'
 import api from '@/utils/api'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
 
@@ -106,7 +124,7 @@ const currentPage = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
 const filterType = ref('all')
-const sortBy = ref('time') // 默认最新发布
+const sortBy = ref('time')
 const searchKeyword = ref('')
 
 const typeOptions = [
@@ -115,6 +133,8 @@ const typeOptions = [
   { label: '📷 摄影', value: 'photography' }
 ]
 
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
 const loadWorks = async () => {
   try {
     const params = {
@@ -122,11 +142,11 @@ const loadWorks = async () => {
       page_size: pageSize.value,
       status: 1
     }
-    
+
     if (filterType.value !== 'all') {
       params.type = filterType.value
     }
-    
+
     if (sortBy.value) {
       params.sort = sortBy.value
     }
@@ -134,7 +154,7 @@ const loadWorks = async () => {
     if (searchKeyword.value) {
       params.keyword = searchKeyword.value
     }
-    
+
     const response = await api.get('/works', { params })
     works.value = response.data.list || []
     total.value = response.data.total || 0
@@ -153,7 +173,6 @@ const handleSearch = () => {
   loadWorks()
 }
 
-// 处理作品点击，预加载数据后跳转
 const handleWorkClick = (workId) => {
   navigateToWorkDetail(workId, router)
 }
@@ -193,36 +212,7 @@ onMounted(() => {
 .works-filters-controls {
   display: flex;
   align-items: center;
-}
-
-.works-sort-select {
-  width: 150px;
-  margin-left: var(--spacing-md);
-}
-
-.search-icon {
-  cursor: pointer;
-}
-
-.masonry-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
-}
-
-.masonry-item {
-  cursor: pointer;
-  background: var(--theme-bg-card);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-slow);
-}
-
-.masonry-item:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
 }
 
 .work-image-container {
@@ -250,7 +240,7 @@ onMounted(() => {
   transition: opacity var(--transition-slow);
 }
 
-.masonry-item:hover .work-overlay {
+.card-skeuomorphic:hover .work-overlay {
   opacity: 1;
 }
 
@@ -329,22 +319,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.work-stats .el-icon {
-  font-size: var(--font-size-sm);
-}
-
-.pagination {
-  margin-top: var(--spacing-xl);
-  display: flex;
-  justify-content: center;
-}
-
 @media (max-width: 768px) {
-  .masonry-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--spacing-md);
-  }
-
   .works-filters {
     flex-direction: column;
     align-items: stretch;
@@ -362,15 +337,8 @@ onMounted(() => {
     width: 100%;
   }
 
-  .works-filters-controls .el-select,
-  .works-filters .el-select {
+  .works-filters-controls > * {
     width: 100%;
-    margin-left: 0;
-  }
-
-  .works-sort-select {
-    width: 100%;
-    margin-left: 0;
   }
 
   .work-info {
@@ -400,4 +368,3 @@ onMounted(() => {
   }
 }
 </style>
-

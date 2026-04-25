@@ -5,7 +5,7 @@
         <h1>我的通知</h1>
         <div class="actions">
           <el-button @click="markAllAsRead" v-if="unreadCount > 0">
-            <el-icon><Check /></el-icon> 全部已读
+            <Check class="w-4 h-4" /> 全部已读
           </el-button>
         </div>
       </div>
@@ -61,14 +61,29 @@
         />
       </div>
     </div>
+
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Check } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Check } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -85,6 +100,42 @@ const pageSize = ref(20)
 const total = ref(0)
 const unreadCount = ref(0)
 const activeTab = ref('all')
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const formatTime = (time) => dayjs(time).fromNow()
 
@@ -116,7 +167,7 @@ const loadNotifications = async () => {
     notifications.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -132,11 +183,11 @@ const loadUnreadCount = async () => {
 const markAllAsRead = async () => {
   try {
     await api.put('/notifications/read-all')
-    ElMessage.success('已全部标记为已读')
+    toast.success('已全部标记为已读')
     loadNotifications()
     loadUnreadCount()
   } catch (error) {
-    ElMessage.error('操作失败')
+    toast.error('操作失败')
   }
 }
 
@@ -158,14 +209,14 @@ const handleClick = async (notification) => {
 
 const handleDelete = async (notification) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条通知吗？', '提示', { type: 'warning' })
+    await confirmDialog('确定要删除这条通知吗？')
     await api.delete(`/notifications/${notification.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadNotifications()
     loadUnreadCount()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

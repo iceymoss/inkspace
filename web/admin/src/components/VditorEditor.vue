@@ -25,17 +25,13 @@ const vditorRef = ref(null)
 let vditor = null
 
 onMounted(async () => {
-  // 等待 DOM 准备好
   await nextTick()
   
-  // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
   const codeThemeValue = await loadCodeTheme()
-  // 确保 highlight.js 主题 CSS 完全加载完成
   await loadHighlightTheme(codeThemeValue)
   
   const mdTheme = await getMarkdownTheme()
   
-  // 加载 Vditor 内容主题 CSS（如果需要）
   const loadVditorContentTheme = (theme) => {
     return new Promise((resolve) => {
       const themeId = `vditor-content-theme-${theme}`
@@ -49,20 +45,17 @@ onMounted(async () => {
       link.rel = 'stylesheet'
       link.href = `https://unpkg.com/vditor@3.10.4/dist/css/content-theme/${theme}.css`
       link.onload = () => resolve()
-      link.onerror = () => resolve() // 即使失败也继续
+      link.onerror = () => resolve()
       document.head.appendChild(link)
     })
   }
   
-  // 加载 Vditor 内容主题
   await loadVditorContentTheme(mdTheme || 'light')
-  // 额外等待一小段时间，确保 CSS 样式已应用
   await new Promise(resolve => setTimeout(resolve, 100))
   
-  // 使用加载的配置初始化 Vditor
   vditor = new Vditor(vditorRef.value, {
     height: props.height,
-    mode: 'sv', // 分屏预览模式
+    mode: 'sv',
     placeholder: '请输入文章内容，支持 Markdown 语法...',
     theme: 'classic',
     icon: 'material',
@@ -80,7 +73,7 @@ onMounted(async () => {
     preview: {
       delay: 500,
       hljs: {
-        style: codeThemeValue || 'github', // 使用配置的代码主题
+        style: codeThemeValue || 'github',
         lineNumber: true,
       },
       markdown: {
@@ -92,7 +85,7 @@ onMounted(async () => {
     },
     upload: {
       url: '/api/upload/image',
-      max: 5 * 1024 * 1024, // 5MB
+      max: 5 * 1024 * 1024,
       accept: 'image/*',
       fieldName: 'file',
       headers: {
@@ -141,7 +134,6 @@ onBeforeUnmount(() => {
 watch(() => props.modelValue, (newVal) => {
   if (vditor) {
     const currentValue = vditor.getValue()
-    // 只有当值真正改变时才更新，避免循环更新
     if (newVal !== currentValue) {
       vditor.setValue(newVal || '')
     }
@@ -157,21 +149,21 @@ defineExpose({
 
 <style scoped>
 .vditor-container {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   width: 100%;
   min-width: 0;
 }
 
 :deep(.vditor) {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
   width: 100%;
 }
 
 :deep(.vditor-toolbar) {
-  background-color: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.25rem 0.5rem;
 }
 
 :deep(.vditor-sv) {
@@ -184,7 +176,6 @@ defineExpose({
   padding: var(--spacing-lg) var(--spacing-xl);
 }
 
-/* 全屏模式下的内边距 */
 :deep(.vditor.vditor--fullscreen) {
   padding: 0 var(--spacing-xl) !important;
 }
@@ -221,7 +212,6 @@ defineExpose({
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
-  color: var(--color-text-primary);
+  color: hsl(var(--foreground));
 }
 </style>
-

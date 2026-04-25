@@ -398,7 +398,7 @@
 
       <el-tab-pane label="所有配置" name="all">
         <el-button type="primary" @click="showEditDialog()" style="margin-bottom: 20px;">
-          <el-icon><Plus /></el-icon> 新建配置
+          <Plus class="h-4 w-4" /> 新建配置
         </el-button>
 
         <el-table :data="allSettings" style="width: 100%;">
@@ -455,14 +455,29 @@
         <el-button type="primary" @click="submitEdit" :loading="editLoading">保存</el-button>
       </template>
     </el-dialog>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import adminApi from '@/utils/adminApi'
 
 const activeGroup = ref('site')
@@ -550,6 +565,34 @@ const editRules = {
   key: [{ required: true, message: '请输入配置键', trigger: 'blur' }]
 }
 
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
+
 const loadAllSettings = async () => {
   try {
     const response = await adminApi.get('/admin/settings')
@@ -615,7 +658,7 @@ const loadAllSettings = async () => {
       }
     })
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -623,10 +666,10 @@ const saveSiteSettings = async () => {
   saving.value = true
   try {
     await adminApi.put('/admin/settings/batch', siteSettings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -642,10 +685,10 @@ const saveFeatureSettings = async () => {
     })
     
     await adminApi.put('/admin/settings/batch', settings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -660,10 +703,10 @@ const saveThemeSettings = async () => {
     })
     
     await adminApi.put('/admin/settings/batch', settings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -678,10 +721,10 @@ const saveMarkdownSettings = async () => {
     })
     
     await adminApi.put('/admin/settings/batch', settings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -712,11 +755,11 @@ const submitEdit = async () => {
     editLoading.value = true
     try {
       await adminApi.put('/admin/settings', editForm)
-      ElMessage.success('保存成功')
+      toast.success('保存成功')
       editDialogVisible.value = false
       loadAllSettings()
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       editLoading.value = false
     }
@@ -725,13 +768,13 @@ const submitEdit = async () => {
 
 const handleDelete = async (setting) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个配置吗？', '提示', { type: 'warning' })
+    await confirmDialog('确定要删除这个配置吗？', '提示')
     await adminApi.delete(`/admin/settings/${setting.key}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadAllSettings()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }
@@ -797,10 +840,10 @@ const saveCarouselSettings = async () => {
       home_carousel: JSON.stringify(carouselSettings.items)
     }
     await adminApi.put('/admin/settings/batch', settings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -835,10 +878,10 @@ const saveAboutSettings = async () => {
       about_page: JSON.stringify(aboutSettings)
     }
     await adminApi.put('/admin/settings/batch', settings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }

@@ -2,142 +2,180 @@
   <div class="articles">
     <div class="page-header">
       <h2>文章管理</h2>
-      <el-button type="primary" @click="$router.push('/articles/create')">
-        <el-icon><Plus /></el-icon> 新建文章
-      </el-button>
+      <Button @click="$router.push('/articles/create')">
+        <Plus class="h-4 w-4 mr-1" /> 新建文章
+      </Button>
     </div>
 
-    <el-card>
-      <!-- 筛选区域 -->
-      <div class="filter-bar">
-        <el-form inline>
-          <el-form-item label="关键字">
-            <el-input
-              v-model="filters.keyword"
-              placeholder="标题 / 内容"
-              clearable
-              @keyup.enter="handleSearch"
-              style="width: 220px"
-            />
-          </el-form-item>
-
-          <el-form-item label="分类">
-            <el-select
-              v-model="filters.categoryId"
-              placeholder="全部分类"
-              clearable
-              filterable
-              style="width: 180px"
-              @change="handleFilterChange"
-            >
-              <el-option
-                v-for="cat in categories"
-                :key="cat.id"
-                :label="cat.name"
-                :value="cat.id"
+    <Card>
+      <CardContent class="pt-6">
+        <div class="filter-bar">
+          <form class="flex flex-wrap items-end gap-4">
+            <div class="space-y-1">
+              <label class="text-sm font-medium">关键字</label>
+              <Input
+                v-model="filters.keyword"
+                placeholder="标题 / 内容"
+                class="w-[220px]"
+                @keyup.enter="handleSearch"
               />
-            </el-select>
-          </el-form-item>
+            </div>
 
-          <el-form-item label="状态">
-            <el-select
-              v-model="filters.status"
-              placeholder="全部状态"
-              clearable
-              style="width: 140px"
-              @change="handleFilterChange"
-            >
-              <el-option :value="1" label="已发布" />
-              <el-option :value="0" label="草稿" />
-              <el-option :value="2" label="私有" />
-            </el-select>
-          </el-form-item>
+            <div class="space-y-1">
+              <label class="text-sm font-medium">分类</label>
+              <Select v-model="filters.categoryId" @update:model-value="handleFilterChange">
+                <SelectTrigger class="w-[180px]">
+                  <SelectValue placeholder="全部分类" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="cat in categories" :key="cat.id" :value="String(cat.id)">
+                    {{ cat.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <el-form-item label="排序">
-            <el-select
-              v-model="filters.sortBy"
-              placeholder="默认排序"
-              clearable
-              style="width: 160px"
-              @change="handleSortChange"
-            >
-              <el-option label="默认（置顶 + 最新）" value="" />
-              <el-option label="最新发布" value="time" />
-              <el-option label="最热排序" value="hot" />
-              <el-option label="最多浏览" value="view_count" />
-              <el-option label="最多点赞" value="like_count" />
-              <el-option label="最多评论" value="comment_count" />
-            </el-select>
-          </el-form-item>
+            <div class="space-y-1">
+              <label class="text-sm font-medium">状态</label>
+              <Select :model-value="filters.status !== null && filters.status !== undefined && filters.status !== '' ? String(filters.status) : undefined" @update:model-value="filters.status = $event ? Number($event) : null; handleFilterChange()">
+                <SelectTrigger class="w-[140px]">
+                  <SelectValue placeholder="全部状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">已发布</SelectItem>
+                  <SelectItem value="0">草稿</SelectItem>
+                  <SelectItem value="2">私有</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">查询</el-button>
-            <el-button @click="resetFilters">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </div>
+            <div class="space-y-1">
+              <label class="text-sm font-medium">排序</label>
+              <Select v-model="filters.sortBy" @update:model-value="handleSortChange">
+                <SelectTrigger class="w-[160px]">
+                  <SelectValue placeholder="默认排序" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">默认（置顶 + 最新）</SelectItem>
+                  <SelectItem value="time">最新发布</SelectItem>
+                  <SelectItem value="hot">最热排序</SelectItem>
+                  <SelectItem value="view_count">最多浏览</SelectItem>
+                  <SelectItem value="like_count">最多点赞</SelectItem>
+                  <SelectItem value="comment_count">最多评论</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <el-table :data="articles" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="title" label="标题" min-width="200" />
-        <el-table-column label="分类" width="120">
-          <template #default="{ row }">
-            <el-tag v-if="row.category">{{ row.category.name }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'">
-              {{ row.status === 1 ? '已发布' : '草稿' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="推荐" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.is_recommend ? 'warning' : ''">
-              {{ row.is_recommend ? '★ 推荐' : '-' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="view_count" label="浏览" width="100" />
-        <el-table-column label="创建时间" width="180">
-          <template #default="{ row }">
-            {{ formatDate(row.created_at) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="350" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/articles/${row.id}`)">查看</el-button>
-            <el-button size="small" type="primary" @click="$router.push(`/articles/${row.id}/edit`)">编辑</el-button>
-            <el-button 
-              size="small" 
-              :type="row.is_recommend ? 'warning' : 'default'"
-              @click="handleToggleRecommend(row)"
-            >
-              {{ row.is_recommend ? '取消推荐' : '推荐' }}
-            </el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+            <div class="flex gap-2">
+              <Button @click="handleSearch">查询</Button>
+              <Button variant="outline" @click="resetFilters">重置</Button>
+            </div>
+          </form>
+        </div>
 
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          layout="total, prev, pager, next"
-          @current-change="loadArticles"
-        />
-      </div>
-    </el-card>
+        <div class="relative">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead class="w-[80px]">ID</TableHead>
+                <TableHead class="min-w-[200px]">标题</TableHead>
+                <TableHead class="w-[120px]">分类</TableHead>
+                <TableHead class="w-[100px]">状态</TableHead>
+                <TableHead class="w-[90px] text-center">推荐</TableHead>
+                <TableHead class="w-[100px]">浏览</TableHead>
+                <TableHead class="w-[180px]">创建时间</TableHead>
+                <TableHead class="w-[350px]">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="row in articles" :key="row.id">
+                <TableCell>{{ row.id }}</TableCell>
+                <TableCell>{{ row.title }}</TableCell>
+                <TableCell>
+                  <Badge v-if="row.category" variant="secondary">{{ row.category.name }}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge :variant="row.status === 1 ? 'secondary' : 'outline'">
+                    {{ row.status === 1 ? '已发布' : '草稿' }}
+                  </Badge>
+                </TableCell>
+                <TableCell class="text-center">
+                  <Badge :variant="row.is_recommend ? 'accent' : 'outline'">
+                    {{ row.is_recommend ? '★ 推荐' : '-' }}
+                  </Badge>
+                </TableCell>
+                <TableCell>{{ row.view_count }}</TableCell>
+                <TableCell>{{ formatDate(row.created_at) }}</TableCell>
+                <TableCell>
+                  <div class="flex gap-2">
+                    <Button size="sm" variant="outline" @click="$router.push(`/articles/${row.id}`)">查看</Button>
+                    <Button size="sm" @click="$router.push(`/articles/${row.id}/edit`)">编辑</Button>
+                    <Button
+                      size="sm"
+                      :variant="row.is_recommend ? 'outline' : 'secondary'"
+                      @click="handleToggleRecommend(row)"
+                    >
+                      {{ row.is_recommend ? '取消推荐' : '推荐' }}
+                    </Button>
+                    <Button size="sm" variant="destructive" @click="handleDelete(row)">删除</Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+
+        <div class="pagination">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-muted-foreground">共 {{ total }} 条</span>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious :disabled="currentPage <= 1" @click="currentPage > 1 && (currentPage--; loadArticles())" />
+                </PaginationItem>
+                <PaginationItem v-for="(page, idx) in visiblePages" :key="idx">
+                  <PaginationLink v-if="page !== '...'" :is-active="page === currentPage" @click="currentPage = page; loadArticles()">
+                    {{ page }}
+                  </PaginationLink>
+                  <span v-else class="inline-flex items-center justify-center h-9 w-9 text-sm">...</span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext :disabled="currentPage >= totalPages" @click="currentPage < totalPages && (currentPage++; loadArticles())" />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from '@/components/ui/pagination'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 
@@ -147,6 +185,27 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+const visiblePages = computed(() => {
+  const pages = []
+  const t = totalPages.value
+  if (t === 0) return pages
+  const c = currentPage.value
+  if (t <= 7) {
+    for (let i = 1; i <= t; i++) pages.push(i)
+    return pages
+  }
+  pages.push(1)
+  if (c > 3) pages.push('...')
+  const start = Math.max(2, c - 1)
+  const end = Math.min(t - 1, c + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (c < t - 2) pages.push('...')
+  pages.push(t)
+  return pages
+})
+
 const filters = ref({
   keyword: '',
   categoryId: null,
@@ -154,6 +213,34 @@ const filters = ref({
   sortBy: '',
   sortOrder: 'desc'
 })
+
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
@@ -184,7 +271,7 @@ const loadArticles = async () => {
     articles.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -195,7 +282,6 @@ const loadCategories = async () => {
     })
     categories.value = res.data?.list || []
   } catch (error) {
-    // 分类加载失败不影响文章列表，静默失败即可
     console.error('加载分类失败', error)
   }
 }
@@ -232,24 +318,22 @@ const handleToggleRecommend = async (row) => {
     await adminApi.put(`/admin/articles/${row.id}/recommend`, {
       is_recommend: !row.is_recommend
     })
-    ElMessage.success(row.is_recommend ? '已取消推荐' : '设置推荐成功')
+    toast.success(row.is_recommend ? '已取消推荐' : '设置推荐成功')
     loadArticles()
   } catch (error) {
-    ElMessage.error('操作失败')
+    toast.error('操作失败')
   }
 }
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除这篇文章吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这篇文章吗？', '提示')
     await adminApi.delete(`/admin/articles/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadArticles()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }
@@ -287,28 +371,4 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
 }
-
-:deep(.el-button) {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-:deep(.el-tag) {
-  transition: all var(--transition-fast);
-}
-
-:deep(.el-pagination .el-pager li),
-:deep(.el-pagination button) {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-:deep(.el-table th .cell) {
-  color: var(--color-text-secondary);
-}
-
-:deep(.el-table td .cell) {
-  color: var(--color-text-primary);
-}
 </style>
-

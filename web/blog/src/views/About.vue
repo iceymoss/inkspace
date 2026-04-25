@@ -1,62 +1,72 @@
 <template>
   <div class="about">
     <div class="container">
-      <el-card>
-        <h1>{{ aboutData.title || '关于我' }}</h1>
-        
-        <div class="about-content">
-          <div class="profile" v-if="aboutData.avatar || aboutData.name || aboutData.bio">
-            <el-avatar :size="120" :src="aboutData.avatar" v-if="aboutData.avatar" />
-            <h2 v-if="aboutData.name">{{ aboutData.name }}</h2>
-            <p class="bio" v-if="aboutData.bio">{{ aboutData.bio }}</p>
+      <Card class="card-skeuomorphic-static">
+        <CardHeader class="text-center">
+          <CardTitle>{{ aboutData.title || '关于我' }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="about-content">
+            <div class="profile" v-if="aboutData.avatar || aboutData.name || aboutData.bio">
+              <Avatar class="h-[120px] w-[120px]" v-if="aboutData.avatar">
+                <AvatarImage :src="aboutData.avatar" />
+                <AvatarFallback>{{ aboutData.name?.charAt(0) || '?' }}</AvatarFallback>
+              </Avatar>
+              <h2 v-if="aboutData.name">{{ aboutData.name }}</h2>
+              <p class="bio" v-if="aboutData.bio">{{ aboutData.bio }}</p>
+            </div>
+
+            <div class="intro">
+              <h3 v-if="aboutData.introduction">简介</h3>
+              <p v-if="aboutData.introduction" v-html="formatContent(aboutData.introduction)"></p>
+
+              <h3 v-if="aboutData.skills && aboutData.skills.length > 0">技能</h3>
+              <div class="skills" v-if="aboutData.skills && aboutData.skills.length > 0">
+                <Badge v-for="skill in aboutData.skills" :key="skill">{{ skill }}</Badge>
+              </div>
+
+              <h3 v-if="hasContact">联系方式</h3>
+              <div class="contact" v-if="hasContact">
+                <p v-if="aboutData.email">
+                  <Mail class="h-4 w-4 shrink-0" />
+                  <a :href="`mailto:${aboutData.email}`">{{ aboutData.email }}</a>
+                </p>
+                <p v-if="aboutData.github">
+                  <Link class="h-4 w-4 shrink-0" />
+                  <a :href="formatGithubUrl(aboutData.github)" target="_blank" rel="noopener noreferrer">{{ aboutData.github }}</a>
+                </p>
+                <p v-if="aboutData.wechat">
+                  <MessageSquare class="h-4 w-4 shrink-0" />
+                  微信: {{ aboutData.wechat }}
+                </p>
+                <p v-if="aboutData.qq">
+                  <MessageSquare class="h-4 w-4 shrink-0" />
+                  QQ: {{ aboutData.qq }}
+                </p>
+                <p v-if="aboutData.weibo">
+                  <Link class="h-4 w-4 shrink-0" />
+                  <a :href="formatWeiboUrl(aboutData.weibo)" target="_blank" rel="noopener noreferrer">{{ aboutData.weibo }}</a>
+                </p>
+              </div>
+
+              <div v-if="!aboutData.avatar && !aboutData.name && !aboutData.bio && !aboutData.introduction && (!aboutData.skills || aboutData.skills.length === 0) && !hasContact" class="empty-tip">
+                <EmptyState title="暂无内容" description="暂无内容，请在管理后台配置关于页面信息" />
+              </div>
+            </div>
           </div>
-
-          <div class="intro">
-            <h3 v-if="aboutData.introduction">简介</h3>
-            <p v-if="aboutData.introduction" v-html="formatContent(aboutData.introduction)"></p>
-
-            <h3 v-if="aboutData.skills && aboutData.skills.length > 0">技能</h3>
-            <div class="skills" v-if="aboutData.skills && aboutData.skills.length > 0">
-              <el-tag v-for="skill in aboutData.skills" :key="skill" type="primary">{{ skill }}</el-tag>
-            </div>
-
-            <h3 v-if="hasContact">联系方式</h3>
-            <div class="contact" v-if="hasContact">
-              <p v-if="aboutData.email">
-                <el-icon><Message /></el-icon> 
-                <a :href="`mailto:${aboutData.email}`">{{ aboutData.email }}</a>
-              </p>
-              <p v-if="aboutData.github">
-                <el-icon><Link /></el-icon> 
-                <a :href="formatGithubUrl(aboutData.github)" target="_blank" rel="noopener noreferrer">{{ aboutData.github }}</a>
-              </p>
-              <p v-if="aboutData.wechat">
-                <el-icon><ChatLineRound /></el-icon> 
-                微信: {{ aboutData.wechat }}
-              </p>
-              <p v-if="aboutData.qq">
-                <el-icon><ChatLineRound /></el-icon> 
-                QQ: {{ aboutData.qq }}
-              </p>
-              <p v-if="aboutData.weibo">
-                <el-icon><Link /></el-icon> 
-                <a :href="formatWeiboUrl(aboutData.weibo)" target="_blank" rel="noopener noreferrer">{{ aboutData.weibo }}</a>
-              </p>
-            </div>
-            
-            <div v-if="!aboutData.avatar && !aboutData.name && !aboutData.bio && !aboutData.introduction && (!aboutData.skills || aboutData.skills.length === 0) && !hasContact" class="empty-tip">
-              <el-empty description="暂无内容，请在管理后台配置关于页面信息" />
-            </div>
-          </div>
-        </div>
-      </el-card>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Message, Link, ChatLineRound } from '@element-plus/icons-vue'
+import { Mail, Link, MessageSquare } from 'lucide-vue-next'
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import api from '@/utils/api'
 
 const aboutData = ref({
@@ -74,13 +84,12 @@ const aboutData = ref({
 })
 
 const hasContact = computed(() => {
-  return aboutData.value.email || aboutData.value.github || 
+  return aboutData.value.email || aboutData.value.github ||
          aboutData.value.wechat || aboutData.value.qq || aboutData.value.weibo
 })
 
 const formatContent = (content) => {
   if (!content) return ''
-  // 将换行符转换为<br>
   return content.replace(/\n/g, '<br>')
 }
 
@@ -103,10 +112,9 @@ const formatWeiboUrl = (weibo) => {
 const loadAboutData = async () => {
   try {
     const response = await api.get('/settings/public')
-    // API返回格式: { code: 0, data: { about_page: "...", ... } }
     const settings = response.data || {}
     const aboutJson = settings.about_page
-    
+
     if (aboutJson) {
       try {
         const data = JSON.parse(aboutJson)
@@ -142,18 +150,6 @@ onMounted(() => {
   padding: var(--spacing-xl) 0;
   background-color: var(--theme-bg-secondary);
   min-height: 100vh;
-}
-
-.about .el-card {
-  box-shadow: var(--shadow-md);
-  border-radius: var(--radius-lg);
-}
-
-.about h1 {
-  text-align: center;
-  margin-bottom: var(--spacing-xl);
-  font-size: var(--font-size-2xl);
-  color: var(--theme-text-primary);
 }
 
 .about-content {
@@ -219,4 +215,3 @@ onMounted(() => {
   text-decoration: underline;
 }
 </style>
-

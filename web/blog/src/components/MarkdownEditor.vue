@@ -1,40 +1,37 @@
 <template>
   <div class="markdown-editor" :class="{ fullscreen: isFullscreen }">
-    <!-- 工具栏 -->
     <div class="editor-toolbar">
-      <el-button-group>
-        <el-button size="small" @click="insertBold">
-          <el-icon><BoldIcon /></el-icon> 粗体
-        </el-button>
-        <el-button size="small" @click="insertItalic">
-          <el-icon><ItalicIcon /></el-icon> 斜体
-        </el-button>
-        <el-button size="small" @click="insertHeading">
-          <el-icon><Heading /></el-icon> 标题
-        </el-button>
-        <el-button size="small" @click="insertCode">
-          <el-icon><CodeIcon /></el-icon> 代码
-        </el-button>
-        <el-button size="small" @click="insertLink">
-          <el-icon><Link /></el-icon> 链接
-        </el-button>
-        <el-button size="small" @click="insertImage">
-          <el-icon><Picture /></el-icon> 图片
-        </el-button>
-      </el-button-group>
-      
-      <el-button-group class="ml-10">
-        <el-button size="small" @click="toggleFullscreen">
-          <el-icon v-if="!isFullscreen"><FullScreen /></el-icon>
-          <el-icon v-else><Close /></el-icon>
+      <div class="flex items-center gap-1">
+        <Button variant="ghost" size="sm" @click="insertBold">
+          <BoldIcon class="mr-1" /> 粗体
+        </Button>
+        <Button variant="ghost" size="sm" @click="insertItalic">
+          <ItalicIcon class="mr-1" /> 斜体
+        </Button>
+        <Button variant="ghost" size="sm" @click="insertHeading">
+          <Heading class="mr-1" /> 标题
+        </Button>
+        <Button variant="ghost" size="sm" @click="insertCode">
+          <CodeIcon class="mr-1" /> 代码
+        </Button>
+        <Button variant="ghost" size="sm" @click="insertLink">
+          <LinkIcon class="h-4 w-4 mr-1" /> 链接
+        </Button>
+        <Button variant="ghost" size="sm" @click="insertImage">
+          <ImageIcon class="h-4 w-4 mr-1" /> 图片
+        </Button>
+      </div>
+
+      <div class="ml-2">
+        <Button variant="ghost" size="sm" @click="toggleFullscreen">
+          <Maximize v-if="!isFullscreen" class="h-4 w-4 mr-1" />
+          <X v-else class="h-4 w-4 mr-1" />
           {{ isFullscreen ? '退出' : '全屏' }}
-        </el-button>
-      </el-button-group>
+        </Button>
+      </div>
     </div>
 
-    <!-- 编辑区域 -->
     <div class="editor-content">
-      <!-- 左侧编辑器 -->
       <div class="editor-pane">
         <div class="pane-header">
           <span>Markdown 编辑</span>
@@ -50,14 +47,13 @@
         />
       </div>
 
-      <!-- 右侧预览 -->
       <div class="preview-pane">
         <div class="pane-header">
           <span>预览效果</span>
         </div>
-        <div 
+        <div
           ref="previewRef"
-          class="preview-content markdown-body" 
+          class="preview-content markdown-body"
           v-html="renderedHtml"
           @scroll="handlePreviewScroll"
         />
@@ -68,17 +64,17 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { 
-  FullScreen, 
-  Close, 
-  Picture,
-  Link
-} from '@element-plus/icons-vue'
+import {
+  Maximize,
+  X,
+  Image as ImageIcon,
+  Link as LinkIcon
+} from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 
-// 自定义图标组件
 const BoldIcon = { template: '<b>B</b>' }
 const ItalicIcon = { template: '<i>I</i>' }
 const Heading = { template: '<span>H</span>' }
@@ -100,7 +96,6 @@ const isFullscreen = ref(false)
 let isEditorScrolling = false
 let isPreviewScrolling = false
 
-// Markdown渲染器
 const md = new MarkdownIt({
   html: true,
   linkify: true,
@@ -115,12 +110,10 @@ const md = new MarkdownIt({
   }
 })
 
-// 字数统计
 const wordCount = computed(() => {
   return content.value.replace(/\s/g, '').length
 })
 
-// 渲染HTML
 const renderedHtml = computed(() => {
   if (!content.value) {
     return '<p class="placeholder">预览区域将显示渲染后的内容...</p>'
@@ -128,7 +121,6 @@ const renderedHtml = computed(() => {
   return md.render(content.value)
 })
 
-// 监听内容变化
 watch(content, (newVal) => {
   emit('update:modelValue', newVal)
 })
@@ -143,7 +135,6 @@ const handleInput = () => {
   emit('update:modelValue', content.value)
 }
 
-// 获取选中文本
 const getSelection = () => {
   const textarea = textareaRef.value
   const start = textarea.selectionStart
@@ -152,15 +143,14 @@ const getSelection = () => {
   return { start, end, selectedText }
 }
 
-// 插入文本
 const insertText = (before, after = '', placeholder = '') => {
   const textarea = textareaRef.value
   const { start, end, selectedText } = getSelection()
   const text = selectedText || placeholder
   const newText = before + text + after
-  
+
   content.value = content.value.substring(0, start) + newText + content.value.substring(end)
-  
+
   nextTick(() => {
     textarea.focus()
     if (!selectedText && placeholder) {
@@ -171,7 +161,6 @@ const insertText = (before, after = '', placeholder = '') => {
   })
 }
 
-// 工具栏操作
 const insertBold = () => insertText('**', '**', '粗体文字')
 const insertItalic = () => insertText('*', '*', '斜体文字')
 const insertHeading = () => insertText('\n## ', '', '标题')
@@ -179,7 +168,6 @@ const insertCode = () => insertText('`', '`', '代码')
 const insertLink = () => insertText('[', '](https://example.com)', '链接文字')
 const insertImage = () => insertText('![', '](https://example.com/image.jpg)', '图片描述')
 
-// 全屏切换
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
   if (isFullscreen.value) {
@@ -189,43 +177,41 @@ const toggleFullscreen = () => {
   }
 }
 
-// 编辑器滚动联动
 const handleEditorScroll = () => {
   if (isPreviewScrolling) {
     isPreviewScrolling = false
     return
   }
-  
+
   isEditorScrolling = true
   const editor = textareaRef.value
   const preview = previewRef.value
-  
+
   if (editor && preview) {
     const scrollRatio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight)
     preview.scrollTop = scrollRatio * (preview.scrollHeight - preview.clientHeight)
   }
-  
+
   setTimeout(() => {
     isEditorScrolling = false
   }, 100)
 }
 
-// 预览区滚动联动
 const handlePreviewScroll = () => {
   if (isEditorScrolling) {
     isEditorScrolling = false
     return
   }
-  
+
   isPreviewScrolling = true
   const editor = textareaRef.value
   const preview = previewRef.value
-  
+
   if (editor && preview) {
     const scrollRatio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight)
     editor.scrollTop = scrollRatio * (editor.scrollHeight - editor.clientHeight)
   }
-  
+
   setTimeout(() => {
     isPreviewScrolling = false
   }, 100)
@@ -258,10 +244,6 @@ const handlePreviewScroll = () => {
   background: var(--theme-bg-primary);
   border-bottom: 1px solid var(--theme-border);
   box-shadow: var(--shadow-sm);
-}
-
-.ml-10 {
-  margin-left: var(--spacing-sm);
 }
 
 .editor-content {
@@ -445,4 +427,3 @@ const handlePreviewScroll = () => {
   background-color: var(--theme-bg-secondary);
 }
 </style>
-

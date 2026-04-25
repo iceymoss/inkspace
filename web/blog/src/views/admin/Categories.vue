@@ -38,8 +38,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
 import adminApi from '@/utils/adminApi'
 
 const categories = ref([])
@@ -65,7 +65,7 @@ const loadCategories = async () => {
     const response = await adminApi.get('/categories')
     categories.value = response.data || []
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -88,15 +88,15 @@ const handleSubmit = async () => {
     try {
       if (isEdit.value) {
         await adminApi.put(`/admin/categories/${editingId.value}`, form)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await adminApi.post('/admin/categories', form)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       dialogVisible.value = false
       loadCategories()
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       loading.value = false
     }
@@ -105,14 +105,14 @@ const handleSubmit = async () => {
 
 const handleDelete = async (category) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个分类吗？', '提示', { type: 'warning' })
+    if (!confirm('确定要删除这个分类吗？')) return
     await adminApi.delete(`/admin/categories/${category.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadCategories()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    toast.error('删除失败')
+  }
+}
   }
 }
 

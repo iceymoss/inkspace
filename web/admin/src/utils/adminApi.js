@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 
 const adminApi = axios.create({
   baseURL: '/api',  // 通过vite proxy转发到8083
@@ -27,7 +27,7 @@ adminApi.interceptors.response.use(
     if (data.code === 0 || response.status === 200) {
       return data
     } else {
-      ElMessage.error(data.message || '请求失败')
+      toast.error(data.message || '请求失败')
       return Promise.reject(new Error(data.message || '请求失败'))
     }
   },
@@ -36,24 +36,24 @@ adminApi.interceptors.response.use(
       const status = error.response.status
       switch (status) {
         case 401:
-          ElMessage.error('未登录或登录已过期')
+          toast.error('未登录或登录已过期')
           localStorage.removeItem('admin_token')
           window.location.href = '/admin/login'
           break
         case 403:
-          ElMessage.error('没有权限')
+          toast.error('没有权限')
           break
         case 404:
-          ElMessage.error('请求的资源不存在')
+          toast.error('请求的资源不存在')
           break
         case 500:
-          ElMessage.error('服务器错误')
+          toast.error('服务器错误')
           break
         default:
-          ElMessage.error(error.response.data?.message || '请求失败')
+          toast.error(error.response.data?.message || '请求失败')
       }
     } else {
-      ElMessage.error('网络错误')
+      toast.error('网络错误')
     }
     return Promise.reject(error)
   }

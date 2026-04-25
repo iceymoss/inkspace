@@ -58,8 +58,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
 import adminApi from '@/utils/adminApi'
 
 const works = ref([])
@@ -90,7 +90,7 @@ const loadWorks = async () => {
     })
     works.value = response.data.list || []
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -120,15 +120,15 @@ const handleSubmit = async () => {
     try {
       if (isEdit.value) {
         await adminApi.put(`/admin/works/${editingId.value}`, form)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await adminApi.post('/admin/works', form)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       dialogVisible.value = false
       loadWorks()
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       loading.value = false
     }
@@ -137,14 +137,14 @@ const handleSubmit = async () => {
 
 const handleDelete = async (work) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个作品吗？', '提示', { type: 'warning' })
+    if (!confirm('确定要删除这个作品吗？')) return
     await adminApi.delete(`/admin/works/${work.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadWorks()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    toast.error('删除失败')
+  }
+}
   }
 }
 

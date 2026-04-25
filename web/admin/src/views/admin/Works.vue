@@ -2,7 +2,7 @@
   <div class="works">
     <div class="header">
       <h2>作品管理</h2>
-      <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建作品</el-button>
+      <el-button type="primary" @click="showDialog()"><Plus class="h-4 w-4" /> 新建作品</el-button>
     </div>
 
     <!-- 筛选区域 -->
@@ -201,7 +201,7 @@
 
           <el-form-item label="添加照片">
             <el-button @click="addPhoto" :disabled="photos.length >= 50">
-              <el-icon><Plus /></el-icon> 添加照片
+              <Plus class="h-4 w-4" /> 添加照片
             </el-button>
             <el-text size="small" type="info" style="margin-left: 10px;">
               最多 50 张照片
@@ -330,13 +330,47 @@
         <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="promptDialogVisible">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{{ promptDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ promptDialogConfig.message }}</p>
+        <el-input
+          v-model="promptDialogConfig.inputValue"
+          type="textarea"
+          :rows="4"
+          :placeholder="promptDialogConfig.placeholder"
+        />
+        <DialogFooter>
+          <Button variant="outline" @click="handlePromptCancel">取消</Button>
+          <Button @click="handlePromptOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
@@ -351,6 +385,80 @@ const statusFilter = ref(null) // 状态筛选：null=全部, 0=草稿, 1=已发
 const sortField = ref(null)
 const sortOrder = ref(null) // 'ascending' | 'descending' | null
 const keyword = ref('')
+
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
+
+const promptDialogVisible = ref(false)
+const promptDialogConfig = reactive({
+  title: '',
+  message: '',
+  placeholder: '',
+  inputValue: '',
+  required: false,
+  requiredMessage: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const promptDialog = (message, title, options = {}) => {
+  return new Promise((resolve, reject) => {
+    promptDialogConfig.title = title
+    promptDialogConfig.message = message
+    promptDialogConfig.placeholder = options.inputPlaceholder || ''
+    promptDialogConfig.inputValue = ''
+    promptDialogConfig.required = !!options.inputValidator
+    promptDialogConfig.requiredMessage = ''
+    if (options.inputValidator) {
+      const testResult = options.inputValidator('')
+      if (typeof testResult === 'string') {
+        promptDialogConfig.requiredMessage = testResult
+      }
+    }
+    promptDialogConfig.onConfirm = () => resolve({ value: promptDialogConfig.inputValue })
+    promptDialogConfig.onCancel = () => reject('cancel')
+    promptDialogVisible.value = true
+  })
+}
+
+const handlePromptOk = () => {
+  if (promptDialogConfig.required && !promptDialogConfig.inputValue.trim()) {
+    toast.error(promptDialogConfig.requiredMessage || '此项为必填')
+    return
+  }
+  promptDialogVisible.value = false
+  promptDialogConfig.onConfirm?.()
+}
+
+const handlePromptCancel = () => {
+  promptDialogVisible.value = false
+  promptDialogConfig.onCancel?.()
+}
 
 const form = reactive({
   id: null,
@@ -402,7 +510,7 @@ const loadWorks = async () => {
     const response = await adminApi.get('/admin/works', { params })
     works.value = response.data.list || []
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -507,7 +615,7 @@ const handleTypeChange = () => {
 
 const addPhoto = () => {
   if (photos.value.length >= 50) {
-    ElMessage.warning('照片数量已达上限（50张）')
+    toast.warning('照片数量已达上限（50张）')
     return
   }
   
@@ -559,14 +667,14 @@ const handleSubmit = async () => {
       } else if (form.type === 'photography') {
         // 摄影类型
         if (photos.value.length === 0) {
-          ElMessage.warning('请至少添加1张照片')
+          toast.warning('请至少添加1张照片')
           return
         }
         
         // 验证所有照片都有URL
         const hasEmptyUrl = photos.value.some(p => !p.url)
         if (hasEmptyUrl) {
-          ElMessage.warning('请填写所有照片的URL')
+          toast.warning('请填写所有照片的URL')
           return
         }
         
@@ -580,16 +688,16 @@ const handleSubmit = async () => {
 
       if (isEdit.value) {
         await adminApi.put(`/admin/works/${form.id}`, submitData)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await adminApi.post('/admin/works', submitData)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       
       dialogVisible.value = false
       loadWorks()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      toast.error(error.response?.data?.message || '操作失败')
     }
   })
 }
@@ -599,27 +707,23 @@ const handleToggleRecommend = async (work) => {
     await adminApi.put(`/admin/works/${work.id}/recommend`, {
       is_recommend: !work.is_recommend
     })
-    ElMessage.success('设置成功')
+    toast.success('设置成功')
     loadWorks()
   } catch (error) {
-    ElMessage.error('操作失败')
+    toast.error('操作失败')
   }
 }
 
 const handleDelete = async (work) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个作品吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这个作品吗？', '提示')
     
     await adminApi.delete(`/admin/works/${work.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadWorks()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }
@@ -659,16 +763,11 @@ const getStatusType = (status) => {
 // 审核通过
 const handleApprove = async (work) => {
   try {
-    const { value: auditMessage } = await ElMessageBox.prompt(
+    const { value: auditMessage } = await promptDialog(
       '请输入审核消息（可选，用于记录审核通过的原因）',
       '审核通过',
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputType: 'textarea',
         inputPlaceholder: '请输入审核消息，例如：内容符合规范，审核通过...',
-        closeOnClickModal: false, // 禁止点击外部区域关闭弹窗
-        closeOnPressEscape: true  // 允许按 ESC 键关闭
       }
     )
     
@@ -676,29 +775,22 @@ const handleApprove = async (work) => {
       status: 1,
       audit_message: auditMessage || ''
     })
-    ElMessage.success('审核通过')
+    toast.success('审核通过')
     loadWorks()
   } catch (error) {
-    // 用户取消操作（点击取消按钮、按 ESC 键等）时不显示错误
     if (error !== 'cancel' && error !== 'close') {
-      ElMessage.error('操作失败')
+      toast.error('操作失败')
     }
   }
 }
 
-// 审核拒绝
 const handleReject = async (work) => {
   try {
-    const { value: auditMessage } = await ElMessageBox.prompt(
+    const { value: auditMessage } = await promptDialog(
       '请输入拒绝原因（必填，用于告知作者审核不通过的原因）',
       '审核拒绝',
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputType: 'textarea',
         inputPlaceholder: '请输入拒绝原因，例如：内容不符合规范、包含违规信息等...',
-        closeOnClickModal: false, // 禁止点击外部区域关闭弹窗
-        closeOnPressEscape: true, // 允许按 ESC 键关闭
         inputValidator: (value) => {
           if (!value || value.trim() === '') {
             return '拒绝原因不能为空'
@@ -712,12 +804,11 @@ const handleReject = async (work) => {
       status: 3,
       audit_message: auditMessage || ''
     })
-    ElMessage.success('已拒绝')
+    toast.success('已拒绝')
     loadWorks()
   } catch (error) {
-    // 用户取消操作（点击取消按钮、按 ESC 键等）时不显示错误
     if (error !== 'cancel' && error !== 'close') {
-      ElMessage.error('操作失败')
+      toast.error('操作失败')
     }
   }
 }

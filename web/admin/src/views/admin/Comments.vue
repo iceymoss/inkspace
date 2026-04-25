@@ -160,12 +160,27 @@
         @current-change="loadComments"
       />
     </div>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from 'vue-sonner'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 
@@ -183,6 +198,34 @@ const filters = reactive({
 
 const sortField = ref('')
 const sortOrder = ref('') // ascending / descending
+
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD HH:mm')
 
@@ -239,7 +282,7 @@ const loadComments = async () => {
     comments.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   } finally {
     tableLoading.value = false
   }
@@ -254,35 +297,35 @@ const handleTabChange = (tabName) => {
 const approve = async (comment) => {
   try {
     await adminApi.put(`/admin/comments/${comment.id}/status`, { status: 1 })
-    ElMessage.success('审核通过')
+    toast.success('审核通过')
     loadComments()
   } catch (error) {
-    ElMessage.error('操作失败')
+    toast.error('操作失败')
   }
 }
 
 const reject = async (comment) => {
   try {
-    await ElMessageBox.confirm('确定要拒绝这条评论吗？', '提示', { type: 'warning' })
+    await confirmDialog('确定要拒绝这条评论吗？', '提示')
     await adminApi.put(`/admin/comments/${comment.id}/status`, { status: -1 })
-    ElMessage.success('已拒绝')
+    toast.success('已拒绝')
     loadComments()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('操作失败')
+      toast.error('操作失败')
     }
   }
 }
 
 const handleDelete = async (comment) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' })
+    await confirmDialog('确定要删除这条评论吗？', '提示')
     await adminApi.delete(`/admin/comments/${comment.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadComments()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

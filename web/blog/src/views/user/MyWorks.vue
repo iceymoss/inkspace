@@ -104,14 +104,29 @@
         </el-button>
       </el-empty>
     </el-card>
+
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
@@ -124,6 +139,42 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const quotaUsed = ref(0)
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const searchForm = reactive({
   type: '',
@@ -158,7 +209,7 @@ const loadWorks = async () => {
     works.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   } finally {
     loading.value = false
   }
@@ -187,16 +238,14 @@ const handleEdit = (row) => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个作品吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这个作品吗？')
     await api.delete(`/works/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadWorks()
     loadQuota()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

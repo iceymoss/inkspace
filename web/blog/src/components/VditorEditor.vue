@@ -25,32 +25,26 @@ const vditorRef = ref(null)
 let vditor = null
 
 onMounted(async () => {
-  // 等待 DOM 准备好
   await nextTick()
-  
-  // 检查 ref 是否存在
+
   if (!vditorRef.value) {
     console.error('VditorEditor: vditorRef.value is null')
     return
   }
-  
-  // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
+
   const codeThemeValue = await loadCodeTheme()
   await loadHighlightTheme(codeThemeValue)
   const mdTheme = await getMarkdownTheme()
-  
-  // 使用加载的配置初始化 Vditor
-  // 已手动设置window.VditorI18n，Vditor不会尝试动态加载i18n文件
+
   try {
     vditor = new Vditor(vditorRef.value, {
     height: props.height,
-    mode: 'sv', // 分屏预览模式
+    mode: 'sv',
     placeholder: '请输入文章内容，支持 Markdown 语法...',
     theme: 'classic',
     icon: 'material',
     typewriterMode: false,
-    lang: 'zh_CN', // 设置语言为中文（已通过window.VditorI18n设置）
-    // 不设置 cdn，使用 Vditor 默认的 CDN（unpkg.com）
+    lang: 'zh_CN',
     toolbarConfig: {
       pin: true,
     },
@@ -64,7 +58,7 @@ onMounted(async () => {
     preview: {
       delay: 500,
       hljs: {
-        style: codeThemeValue || 'github', // 使用配置的代码主题
+        style: codeThemeValue || 'github',
         lineNumber: true,
       },
       markdown: {
@@ -76,10 +70,9 @@ onMounted(async () => {
     },
     upload: {
       url: '/api/upload/markdown-image',
-      max: 5 * 1024 * 1024, // 5MB
+      max: 5 * 1024 * 1024,
       accept: 'image/*',
       fieldName: 'file',
-      // 不需要Authorization header，这是公开API
       format(files, responseText) {
         const response = JSON.parse(responseText)
         if (response.code === 0) {
@@ -89,7 +82,6 @@ onMounted(async () => {
             data: {
               errFiles: [],
               succMap: {
-                // 直接使用相对路径（博客系统）
                 [files[0].name]: response.data.url
               }
             }
@@ -127,7 +119,6 @@ onBeforeUnmount(() => {
 watch(() => props.modelValue, (newVal) => {
   if (vditor) {
     const currentValue = vditor.getValue()
-    // 只有当值真正改变时才更新，避免循环更新
     if (newVal !== currentValue) {
       vditor.setValue(newVal || '')
     }

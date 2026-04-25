@@ -72,7 +72,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 import adminApi from '@/utils/adminApi'
 
 const route = useRoute()
@@ -137,7 +137,7 @@ const loadArticle = async () => {
       is_recommend: article.is_recommend
     })
   } catch (error) {
-    ElMessage.error('加载文章失败')
+    toast.error('加载文章失败')
   }
 }
 
@@ -149,14 +149,14 @@ const handleSubmit = async () => {
     try {
       if (isEdit.value) {
         await adminApi.put(`/articles/${route.params.id}`, form)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await adminApi.post('/articles', form)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       router.push('/admin/articles')
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       loading.value = false
     }

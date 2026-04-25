@@ -5,7 +5,7 @@
       <el-tab-pane label="广告位置" name="positions">
         <div class="toolbar">
           <el-button type="primary" @click="handleCreatePosition">
-            <el-icon><Plus /></el-icon>
+            <Plus class="h-4 w-4" />
             新增位置
           </el-button>
         </div>
@@ -42,7 +42,7 @@
       <el-tab-pane label="广告信息" name="advertisements">
         <div class="toolbar">
           <el-button type="primary" @click="handleCreateAdvertisement">
-            <el-icon><Plus /></el-icon>
+            <Plus class="h-4 w-4" />
             新增广告
           </el-button>
         </div>
@@ -90,7 +90,7 @@
       <el-tab-pane label="广告投放" name="placements">
         <div class="toolbar">
           <el-button type="primary" @click="handleCreatePlacement">
-            <el-icon><Plus /></el-icon>
+            <Plus class="h-4 w-4" />
             新增投放
           </el-button>
           <el-select
@@ -303,24 +303,67 @@
         :before-upload="beforeUpload"
         drag
       >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <Upload class="h-4 w-4" />
         <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
         <template #tip>
           <div class="el-upload__tip">只能上传jpg/png文件，且不超过2MB</div>
         </template>
       </el-upload>
     </el-dialog>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, UploadFilled } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted } from 'vue'
+import { toast } from 'vue-sonner'
+import { Plus, Upload } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import adminApi from '@/utils/adminApi'
 
 const activeTab = ref('positions')
 const loading = ref(false)
+
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
 
 // 广告位置
 const positions = ref([])
@@ -386,7 +429,7 @@ const loadPositions = async () => {
     positions.value = res.data.list || []
     positionTotal.value = res.data.total || 0
   } catch (error) {
-    ElMessage.error('加载位置列表失败')
+    toast.error('加载位置列表失败')
   } finally {
     loading.value = false
   }
@@ -401,7 +444,7 @@ const loadAdvertisements = async () => {
     advertisements.value = res.data.list || []
     adTotal.value = res.data.total || 0
   } catch (error) {
-    ElMessage.error('加载广告信息列表失败')
+    toast.error('加载广告信息列表失败')
   } finally {
     loading.value = false
   }
@@ -418,7 +461,7 @@ const loadPlacements = async () => {
     placements.value = res.data.list || []
     placementTotal.value = res.data.total || 0
   } catch (error) {
-    ElMessage.error('加载投放列表失败')
+    toast.error('加载投放列表失败')
   } finally {
     loading.value = false
   }
@@ -447,29 +490,27 @@ const handleSavePosition = async () => {
   try {
     if (positionForm.value.id) {
       await adminApi.put(`/admin/ad-positions/${positionForm.value.id}`, positionForm.value)
-      ElMessage.success('更新成功')
+      toast.success('更新成功')
     } else {
       await adminApi.post('/admin/ad-positions', positionForm.value)
-      ElMessage.success('创建成功')
+      toast.success('创建成功')
     }
     positionDialogVisible.value = false
     loadPositions()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    toast.error(error.response?.data?.message || '操作失败')
   }
 }
 
 const handleDeletePosition = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个位置吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这个位置吗？', '提示')
     await adminApi.delete(`/admin/ad-positions/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadPositions()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }
@@ -496,29 +537,27 @@ const handleSaveAdvertisement = async () => {
   try {
     if (adForm.value.id) {
       await adminApi.put(`/admin/advertisements/${adForm.value.id}`, adForm.value)
-      ElMessage.success('更新成功')
+      toast.success('更新成功')
     } else {
       await adminApi.post('/admin/advertisements', adForm.value)
-      ElMessage.success('创建成功')
+      toast.success('创建成功')
     }
     adDialogVisible.value = false
     loadAdvertisements()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    toast.error(error.response?.data?.message || '操作失败')
   }
 }
 
 const handleDeleteAdvertisement = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个广告吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这个广告吗？', '提示')
     await adminApi.delete(`/admin/advertisements/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadAdvertisements()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }
@@ -555,29 +594,27 @@ const handleSavePlacement = async () => {
     }
     if (placementForm.value.id) {
       await adminApi.put(`/admin/ad-placements/${placementForm.value.id}`, data)
-      ElMessage.success('更新成功')
+      toast.success('更新成功')
     } else {
       await adminApi.post('/admin/ad-placements', data)
-      ElMessage.success('创建成功')
+      toast.success('创建成功')
     }
     placementDialogVisible.value = false
     loadPlacements()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    toast.error(error.response?.data?.message || '操作失败')
   }
 }
 
 const handleDeletePlacement = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个投放吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这个投放吗？', '提示')
     await adminApi.delete(`/admin/ad-placements/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadPlacements()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }
@@ -595,11 +632,11 @@ const beforeUpload = (file) => {
   const isImage = file.type.startsWith('image/')
   const isLt2M = file.size / 1024 / 1024 < 2
   if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
+    toast.error('只能上传图片文件!')
     return false
   }
   if (!isLt2M) {
-    ElMessage.error('图片大小不能超过2MB!')
+    toast.error('图片大小不能超过2MB!')
     return false
   }
   return true
@@ -610,10 +647,10 @@ const handleUploadSuccess = (response) => {
     if (uploadType.value === 'ad') {
       adForm.value.image = response.data.url
     }
-    ElMessage.success('上传成功')
+    toast.success('上传成功')
     uploadDialogVisible.value = false
   } else {
-    ElMessage.error('上传失败')
+    toast.error('上传失败')
   }
 }
 

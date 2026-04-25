@@ -52,8 +52,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 
@@ -75,22 +75,18 @@ const loadArticles = async () => {
     articles.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除这篇文章吗？', '提示', {
-      type: 'warning'
-    })
+    if (!confirm('确定要删除这篇文章吗？')) return
     await adminApi.delete(`/articles/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadArticles()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    toast.error('删除失败')
   }
 }
 

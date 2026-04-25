@@ -8,19 +8,24 @@
 
       <!-- 分类标签 -->
       <div class="category-tabs">
-        <el-radio-group v-model="activeCategory" @change="handleCategoryChange">
-          <el-radio-button label="all">全部</el-radio-button>
-          <el-radio-button label="article">文章</el-radio-button>
-          <el-radio-button label="work">作品</el-radio-button>
-        </el-radio-group>
+        <div class="tab-group">
+          <button
+            v-for="tab in categoryTabs"
+            :key="tab.value"
+            :class="['tab-btn', { active: activeCategory === tab.value }]"
+            @click="activeCategory = tab.value; handleCategoryChange()"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
       </div>
 
       <!-- 收藏列表 -->
-      <el-row :gutter="20" class="favorites-grid">
-        <el-col :xs="24" :sm="12" :md="8" v-for="favorite in filteredFavorites" :key="favorite.id">
-          <el-card class="favorite-card" shadow="hover">
+      <div class="favorites-grid">
+        <div class="favorite-card-wrapper" v-for="favorite in filteredFavorites" :key="favorite.id">
+          <Card class="favorite-card">
             <!-- 文章收藏 -->
-            <template v-if="favorite.type === 'article' && favorite.article">
+            <CardContent v-if="favorite.type === 'article' && favorite.article">
               <div class="card-content" @click="goToArticle(favorite.article.id)">
                 <img 
                   v-if="favorite.article.cover" 
@@ -28,7 +33,7 @@
                   class="cover-image" 
                 />
                 <div v-else class="cover-placeholder">
-                  <el-icon><Document /></el-icon>
+                  <FileText :size="48" />
                 </div>
                 <div class="content-info">
                   <h3 class="title">{{ favorite.article.title }}</h3>
@@ -36,24 +41,23 @@
                 </div>
               </div>
               <div class="card-meta">
-                <span><el-icon><User /></el-icon> {{ favorite.article.author?.nickname || '未知' }}</span>
-                <span><el-icon><View /></el-icon> {{ favorite.article.view_count || 0 }}</span>
-                <span><el-icon><Clock /></el-icon> {{ formatDate(favorite.created_at) }}</span>
+                <span><UserIcon :size="14" /> {{ favorite.article.author?.nickname || '未知' }}</span>
+                <span><Eye :size="14" /> {{ favorite.article.view_count || 0 }}</span>
+                <span><Clock :size="14" /> {{ formatDate(favorite.created_at) }}</span>
               </div>
               <div class="card-actions">
-                <el-button 
-                  type="danger" 
-                  size="small" 
-                  :icon="Delete"
+                <Button 
+                  variant="destructive" 
+                  size="sm"
                   @click.stop="handleRemoveArticleFavorite(favorite)"
                 >
-                  取消收藏
-                </el-button>
+                  <Trash2 :size="14" class="icon-left" /> 取消收藏
+                </Button>
               </div>
-            </template>
+            </CardContent>
 
             <!-- 作品收藏 -->
-            <template v-else-if="favorite.type === 'work' && favorite.work">
+            <CardContent v-else-if="favorite.type === 'work' && favorite.work">
               <div class="card-content" @click="goToWork(favorite.work.id)">
                 <img 
                   v-if="favorite.work.cover" 
@@ -61,38 +65,38 @@
                   class="cover-image" 
                 />
                 <div v-else class="cover-placeholder">
-                  <el-icon><Picture /></el-icon>
+                  <ImageIcon :size="48" />
                 </div>
                 <div class="content-info">
                   <h3 class="title">{{ favorite.work.title }}</h3>
                   <p class="summary">{{ favorite.work.description || '暂无描述' }}</p>
-                  <el-tag v-if="favorite.work.type === 'project'" type="primary" size="small">开源项目</el-tag>
-                  <el-tag v-else type="warning" size="small">摄影作品</el-tag>
+                  <Badge v-if="favorite.work.type === 'project'" variant="default">开源项目</Badge>
+                  <Badge v-else variant="secondary">摄影作品</Badge>
                 </div>
               </div>
               <div class="card-meta">
-                <span><el-icon><User /></el-icon> {{ favorite.work.author?.nickname || '未知' }}</span>
-                <span><el-icon><View /></el-icon> {{ favorite.work.view_count || 0 }}</span>
-                <span><el-icon><Clock /></el-icon> {{ formatDate(favorite.created_at) }}</span>
+                <span><UserIcon :size="14" /> {{ favorite.work.author?.nickname || '未知' }}</span>
+                <span><Eye :size="14" /> {{ favorite.work.view_count || 0 }}</span>
+                <span><Clock :size="14" /> {{ formatDate(favorite.created_at) }}</span>
               </div>
               <div class="card-actions">
-                <el-button 
-                  type="danger" 
-                  size="small" 
-                  :icon="Delete"
+                <Button 
+                  variant="destructive" 
+                  size="sm"
                   @click.stop="handleRemoveWorkFavorite(favorite)"
                 >
-                  取消收藏
-                </el-button>
+                  <Trash2 :size="14" class="icon-left" /> 取消收藏
+                </Button>
               </div>
-            </template>
-          </el-card>
-        </el-col>
-      </el-row>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      <el-empty v-if="filteredFavorites.length === 0" :description="getEmptyDescription()">
-        <el-button type="primary" @click="goToBrowse">{{ activeCategory === 'article' ? '去浏览文章' : activeCategory === 'work' ? '去浏览作品' : '去逛逛' }}</el-button>
-      </el-empty>
+      <div v-if="filteredFavorites.length === 0" class="empty-state">
+        <p class="empty-description">{{ getEmptyDescription() }}</p>
+        <Button variant="default" @click="goToBrowse">{{ activeCategory === 'article' ? '去浏览文章' : activeCategory === 'work' ? '去浏览作品' : '去逛逛' }}</Button>
+      </div>
 
       <div class="pagination" v-if="total > 0">
         <el-pagination
@@ -104,16 +108,34 @@
         />
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, User, View, Clock, Document, Picture } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Trash2, User as UserIcon, Eye, Clock, FileText, Image as ImageIcon } from 'lucide-vue-next'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 
 const router = useRouter()
 
@@ -122,6 +144,48 @@ const activeCategory = ref('all')
 const currentPage = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
+
+const categoryTabs = [
+  { label: '全部', value: 'all' },
+  { label: '文章', value: 'article' },
+  { label: '作品', value: 'work' }
+]
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -168,38 +232,34 @@ const loadFavorites = async () => {
     favorites.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
 const handleRemoveArticleFavorite = async (favorite) => {
   try {
-    await ElMessageBox.confirm('确定要取消收藏这篇文章吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要取消收藏这篇文章吗？')
     
     await api.delete(`/articles/${favorite.article_id}/favorite`)
-    ElMessage.success('取消收藏成功')
+    toast.success('取消收藏成功')
     loadFavorites()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('操作失败')
+      toast.error('操作失败')
     }
   }
 }
 
 const handleRemoveWorkFavorite = async (favorite) => {
   try {
-    await ElMessageBox.confirm('确定要取消收藏这个作品吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要取消收藏这个作品吗？')
     
     await api.delete(`/works/${favorite.work_id}/favorite`)
-    ElMessage.success('取消收藏成功')
+    toast.success('取消收藏成功')
     loadFavorites()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('操作失败')
+      toast.error('操作失败')
     }
   }
 }
@@ -251,16 +311,61 @@ onMounted(() => {
   margin-bottom: var(--spacing-lg);
 }
 
-.category-tabs :deep(.el-radio-button__inner) {
+.tab-group {
+  display: inline-flex;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--theme-border);
+}
+
+.tab-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--theme-bg-card);
+  border: none;
   cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
   transition: all var(--transition-fast);
 }
 
+.tab-btn:not(:last-child) {
+  border-right: 1px solid var(--theme-border);
+}
+
+.tab-btn.active {
+  background: var(--theme-primary);
+  color: var(--color-text-inverse);
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--theme-bg-hover);
+}
+
 .favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
   margin-bottom: var(--spacing-lg);
 }
 
+@media (max-width: 768px) {
+  .favorites-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+  .favorites-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.favorite-card-wrapper {
+  display: flex;
+}
+
 .favorite-card {
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -358,22 +463,23 @@ onMounted(() => {
   padding-top: var(--spacing-sm);
 }
 
-.card-actions .el-button {
-  cursor: pointer;
-  transition: all var(--transition-fast);
+.icon-left {
+  margin-right: 4px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl) 0;
+}
+
+.empty-description {
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-md);
 }
 
 .pagination {
   margin-top: var(--spacing-lg);
   display: flex;
   justify-content: center;
-}
-
-:deep(.el-col) {
-  display: flex;
-}
-
-:deep(.favorite-card) {
-  width: 100%;
 }
 </style>

@@ -1,95 +1,101 @@
 <template>
   <div class="user-search-page">
     <div class="container">
-      <div class="search-card">
-        <h1>搜索用户</h1>
-        <div class="search-bar">
-          <el-input
-            v-model="keyword"
-            placeholder="请输入用户昵称或账号"
-            clearable
-            size="large"
-            @keyup.enter="handleSearch"
-          >
-            <template #append>
-              <el-button :icon="Search" :loading="loading" @click="handleSearch">
+      <Card class="search-card card-skeuomorphic-static">
+        <CardHeader>
+          <CardTitle>搜索用户</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="search-bar">
+            <div class="flex gap-2">
+              <Input
+                v-model="keyword"
+                placeholder="请输入用户昵称或账号"
+                class="h-11"
+                @keyup.enter="handleSearch"
+              />
+              <Button :disabled="loading" @click="handleSearch" class="shrink-0">
+                <Search class="h-4 w-4 mr-2" />
                 搜索
-              </el-button>
-            </template>
-          </el-input>
-        </div>
-        <p class="search-tip">按昵称或账号搜索，将优先显示最佳匹配的用户</p>
-      </div>
+              </Button>
+            </div>
+          </div>
+          <p class="search-tip">按昵称或账号搜索，将优先显示最佳匹配的用户</p>
+        </CardContent>
+      </Card>
 
       <div v-if="topResults.length || userResults.length" class="results-card">
         <template v-if="topResults.length">
           <h2>最佳匹配</h2>
           <div class="user-list">
-            <el-card
+            <Card
               v-for="user in topResults"
               :key="user.id"
-              class="user-card"
-              shadow="hover"
+              class="user-card card-skeuomorphic cursor-pointer"
               @click="goToUser(user.id)"
             >
-              <div class="user-card-header">
-                <el-avatar :size="40" :src="user.avatar" />
-                <div class="user-info">
-                  <div class="user-name-line">
-                    <span class="nickname">{{ user.nickname || user.username }}</span>
-                    <el-tag
-                      size="small"
-                      type="success"
-                      class="exact-tag"
-                    >
-                      最佳匹配
-                    </el-tag>
-                  </div>
-                  <div class="username">@{{ user.username }}</div>
-                  <p v-if="user.bio" class="bio">{{ user.bio }}</p>
-                  <div class="user-stats">
-                    <span>文章 {{ user.article_count }}</span>
-                    <span>作品 {{ user.work_count }}</span>
-                    <span>粉丝 {{ user.follower_count }}</span>
+              <CardContent>
+                <div class="user-card-header">
+                  <Avatar class="h-10 w-10">
+                    <AvatarImage :src="user.avatar" />
+                    <AvatarFallback>{{ (user.nickname || user.username)?.charAt(0) }}</AvatarFallback>
+                  </Avatar>
+                  <div class="user-info">
+                    <div class="user-name-line">
+                      <span class="nickname">{{ user.nickname || user.username }}</span>
+                      <Badge variant="accent" class="exact-tag">最佳匹配</Badge>
+                    </div>
+                    <div class="username">@{{ user.username }}</div>
+                    <p v-if="user.bio" class="bio">{{ user.bio }}</p>
+                    <div class="user-stats">
+                      <span>文章 {{ user.article_count }}</span>
+                      <span>作品 {{ user.work_count }}</span>
+                      <span>粉丝 {{ user.follower_count }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </el-card>
+              </CardContent>
+            </Card>
           </div>
         </template>
 
         <template v-if="userResults.length">
           <h2 class="section-title">相关用户</h2>
           <div class="user-list">
-            <el-card
+            <Card
               v-for="user in userResults"
               :key="user.id"
-              class="user-card"
-              shadow="hover"
+              class="user-card card-skeuomorphic cursor-pointer"
               @click="goToUser(user.id)"
             >
-              <div class="user-card-header">
-                <el-avatar :size="40" :src="user.avatar" />
-                <div class="user-info">
-                  <div class="user-name-line">
-                    <span class="nickname">{{ user.nickname || user.username }}</span>
-                  </div>
-                  <div class="username">@{{ user.username }}</div>
-                  <p v-if="user.bio" class="bio">{{ user.bio }}</p>
-                  <div class="user-stats">
-                    <span>文章 {{ user.article_count }}</span>
-                    <span>作品 {{ user.work_count }}</span>
-                    <span>粉丝 {{ user.follower_count }}</span>
+              <CardContent>
+                <div class="user-card-header">
+                  <Avatar class="h-10 w-10">
+                    <AvatarImage :src="user.avatar" />
+                    <AvatarFallback>{{ (user.nickname || user.username)?.charAt(0) }}</AvatarFallback>
+                  </Avatar>
+                  <div class="user-info">
+                    <div class="user-name-line">
+                      <span class="nickname">{{ user.nickname || user.username }}</span>
+                    </div>
+                    <div class="username">@{{ user.username }}</div>
+                    <p v-if="user.bio" class="bio">{{ user.bio }}</p>
+                    <div class="user-stats">
+                      <span>文章 {{ user.article_count }}</span>
+                      <span>作品 {{ user.work_count }}</span>
+                      <span>粉丝 {{ user.follower_count }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </el-card>
+              </CardContent>
+            </Card>
           </div>
         </template>
       </div>
 
-      <el-empty
+      <EmptyState
         v-else-if="!loading && hasSearched"
+        title="暂无数据"
         description="未找到匹配的用户"
       />
     </div>
@@ -99,8 +105,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Search } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import api from '@/utils/api'
 
 const route = useRoute()
@@ -115,7 +127,7 @@ const hasSearched = ref(false)
 const handleSearch = async () => {
   const kw = keyword.value.trim()
   if (!kw) {
-    ElMessage.warning('请输入要搜索的昵称或账号')
+    toast.warning('请输入要搜索的昵称或账号')
     return
   }
 
@@ -138,7 +150,7 @@ const handleSearch = async () => {
     }
   } catch (error) {
     console.error('User search failed:', error)
-    ElMessage.error('搜索用户失败')
+    toast.error('搜索用户失败')
   } finally {
     loading.value = false
   }
@@ -165,17 +177,7 @@ onMounted(() => {
 }
 
 .search-card {
-  background: var(--theme-bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
-  box-shadow: var(--shadow-sm);
   margin-bottom: var(--spacing-md);
-}
-
-.search-card h1 {
-  margin: 0 0 var(--spacing-sm);
-  font-size: var(--font-size-2xl);
-  color: var(--theme-text-primary);
 }
 
 .search-bar {
@@ -208,7 +210,6 @@ onMounted(() => {
 
 .user-card {
   margin-bottom: var(--spacing-sm);
-  cursor: pointer;
   transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
@@ -276,5 +277,3 @@ onMounted(() => {
   margin-top: var(--spacing-md);
 }
 </style>
-
-

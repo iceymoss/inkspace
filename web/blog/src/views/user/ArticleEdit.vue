@@ -113,13 +113,28 @@
         </div>
       </el-form>
     </div>
+
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from 'vue-sonner'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import VditorEditor from '@/components/VditorEditor.vue'
@@ -132,9 +147,45 @@ const formRef = ref(null)
 const loading = ref(false)
 const categories = ref([])
 const tags = ref([])
-const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
-const originalData = ref(null) // 保存原始数据用于对比
-const isSaved = ref(false) // 标记是否已保存成功，用于跳过路由守卫提示
+const hasUnsavedChanges = ref(false)
+const originalData = ref(null)
+const isSaved = ref(false)
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -167,7 +218,7 @@ const fetchCategories = async () => {
     const response = await api.get('/categories')
     categories.value = response.data || []
   } catch (error) {
-    ElMessage.error('获取分类列表失败')
+    toast.error('获取分类列表失败')
   }
 }
 
@@ -177,7 +228,7 @@ const fetchTags = async () => {
     const response = await api.get('/tags')
     tags.value = response.data || []
   } catch (error) {
-    ElMessage.error('获取标签列表失败')
+    toast.error('获取标签列表失败')
   }
 }
 
@@ -206,9 +257,9 @@ const handleTagChange = async (values) => {
           form.tag_ids[index] = newTag.id
         }
         
-        ElMessage.success(`标签"${tagName}"创建成功`)
+        toast.success(`标签"${tagName}"创建成功`)
       } catch (error) {
-        ElMessage.error(`创建标签"${tagName}"失败`)
+        toast.error(`创建标签"${tagName}"失败`)
         // 移除失败的标签
         const index = form.tag_ids.indexOf(tagName)
         if (index > -1) {
@@ -258,7 +309,7 @@ const fetchArticle = async () => {
   if (!isEdit.value) {
     // 创建模式下，检查是否登录
     if (!userStore.isLoggedIn) {
-      ElMessage.warning('请先登录')
+      toast.warning('请先登录')
       router.push('/login')
       return
     }
@@ -269,7 +320,7 @@ const fetchArticle = async () => {
   
   // 编辑模式下，先检查是否登录
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     router.push('/login')
     return
   }
@@ -306,15 +357,15 @@ const fetchArticle = async () => {
     // 处理各种错误情况
     const status = error.response?.status
     if (status === 403) {
-      ElMessage.error('无权限编辑此文章')
+      toast.error('无权限编辑此文章')
     } else if (status === 404) {
-      ElMessage.error('文章不存在')
+      toast.error('文章不存在')
     } else if (status === 401) {
-      ElMessage.error('请先登录')
+      toast.error('请先登录')
       router.push('/login')
       return
     } else {
-      ElMessage.error('获取文章详情失败')
+      toast.error('获取文章详情失败')
     }
     
     // 标记为已保存，避免路由守卫拦截
@@ -356,21 +407,21 @@ const handleSubmit = async () => {
       if (isEdit.value) {
         await api.put(`/articles/${articleId}`, submitData)
         if (form.status === 0) {
-          ElMessage.success('草稿保存成功')
+          toast.success('草稿保存成功')
         } else if (form.status === 2) {
-          ElMessage.success('私有文章保存成功')
+          toast.success('私有文章保存成功')
         } else {
-          ElMessage.success('文章更新成功')
+          toast.success('文章更新成功')
         }
       } else {
         const response = await api.post('/articles', submitData)
         articleId = response.data.id
         if (form.status === 0) {
-          ElMessage.success('草稿保存成功')
+          toast.success('草稿保存成功')
         } else if (form.status === 2) {
-          ElMessage.success('私有文章保存成功')
+          toast.success('私有文章保存成功')
         } else {
-          ElMessage.success('文章发布成功')
+          toast.success('文章发布成功')
         }
       }
       
@@ -387,7 +438,7 @@ const handleSubmit = async () => {
       }
     } catch (error) {
       console.error('Submit error:', error)
-      ElMessage.error(error.message || '操作失败')
+      toast.error(error.message || '操作失败')
     } finally {
       loading.value = false
     }
@@ -398,14 +449,8 @@ const handleSubmit = async () => {
 const handleCancel = async () => {
   if (checkUnsavedChanges()) {
     try {
-      await ElMessageBox.confirm(
-        '您有未保存的更改，确定要离开吗？',
-        '提示',
-        {
-          confirmButtonText: '确定离开',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
+      await confirmDialog(
+        '您有未保存的更改，确定要离开吗？'
       )
       router.back()
     } catch {
@@ -437,14 +482,8 @@ onBeforeRouteLeave((to, from, next) => {
   }
   
   if (checkUnsavedChanges()) {
-    ElMessageBox.confirm(
-      '您有未保存的更改，确定要离开吗？',
-      '提示',
-      {
-        confirmButtonText: '确定离开',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+    confirmDialog(
+      '您有未保存的更改，确定要离开吗？'
     ).then(() => {
       next()
     }).catch(() => {

@@ -17,17 +17,17 @@
           <span>&lt;/&gt;</span> 代码
         </el-button>
         <el-button size="small" @click="insertLink">
-          <el-icon><Link /></el-icon> 链接
+          <Link class="h-4 w-4" /> 链接
         </el-button>
         <el-button size="small" @click="insertImage">
-          <el-icon><Picture /></el-icon> 图片
+          <ImageIcon class="h-4 w-4" /> 图片
         </el-button>
       </el-button-group>
       
       <el-button-group class="ml-10">
         <el-button size="small" @click="toggleFullscreen">
-          <el-icon v-if="!isFullscreen"><FullScreen /></el-icon>
-          <el-icon v-else><Close /></el-icon>
+          <Maximize v-if="!isFullscreen" class="h-4 w-4" />
+          <X v-else class="h-4 w-4" />
           {{ isFullscreen ? '退出' : '全屏' }}
         </el-button>
       </el-button-group>
@@ -69,7 +69,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { FullScreen, Close, Picture, Link } from '@element-plus/icons-vue'
+import { Maximize, X, ImageIcon, Link } from 'lucide-vue-next'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'

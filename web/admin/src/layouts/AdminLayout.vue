@@ -1,112 +1,108 @@
 <template>
   <div class="admin-layout">
-    <el-container>
-      <el-aside width="200px" class="sidebar">
-        <div class="logo">
-          <h3>后台管理</h3>
-        </div>
-        <el-menu
-          :default-active="activeMenu"
-          router
-          background-color="var(--color-sidebar-bg)"
-          text-color="var(--color-sidebar-text)"
-          active-text-color="var(--color-sidebar-text-active)"
+    <aside class="sidebar">
+      <div class="logo">
+        <h3>后台管理</h3>
+      </div>
+      <nav class="menu">
+        <router-link
+          v-for="item in menuItems"
+          :key="item.path"
+          :to="item.path"
+          class="menu-item"
+          :class="{ active: activeMenu === item.path }"
         >
-          <el-menu-item index="/">
-            <el-icon><House /></el-icon>
-            <span>控制台</span>
-          </el-menu-item>
-          <el-menu-item index="/articles">
-            <el-icon><Document /></el-icon>
-            <span>文章管理</span>
-          </el-menu-item>
-          <el-menu-item index="/works">
-            <el-icon><Picture /></el-icon>
-            <span>作品管理</span>
-          </el-menu-item>
-          <el-menu-item index="/categories">
-            <el-icon><Folder /></el-icon>
-            <span>分类管理</span>
-          </el-menu-item>
-          <el-menu-item index="/tags">
-            <el-icon><CollectionTag /></el-icon>
-            <span>标签管理</span>
-          </el-menu-item>
-          <el-menu-item index="/comments">
-            <el-icon><ChatDotRound /></el-icon>
-            <span>评论管理</span>
-          </el-menu-item>
-          <el-menu-item index="/links">
-            <el-icon><Link /></el-icon>
-            <span>友链管理</span>
-          </el-menu-item>
-          <el-menu-item index="/settings">
-            <el-icon><Setting /></el-icon>
-            <span>系统配置</span>
-          </el-menu-item>
-          <el-menu-item index="/users">
-            <el-icon><User /></el-icon>
-            <span>用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/ads">
-            <el-icon><Promotion /></el-icon>
-            <span>广告管理</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
+          <component :is="item.icon" class="menu-icon" />
+          <span>{{ item.label }}</span>
+        </router-link>
+      </nav>
+    </aside>
 
-      <el-container>
-        <el-header class="header">
-          <div class="header-content">
-            <el-breadcrumb separator="/">
-              <el-breadcrumb-item :to="{ path: '/' }">管理后台</el-breadcrumb-item>
-              <el-breadcrumb-item>{{ breadcrumbTitle }}</el-breadcrumb-item>
-            </el-breadcrumb>
-            <div class="header-actions">
-              <el-dropdown @command="handleCommand">
-                <span class="user-info">
-                  <el-avatar :size="32" :src="adminStore.admin?.avatar" />
+    <div class="main-wrapper">
+      <header class="header">
+        <div class="header-content">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink as-child>
+                  <router-link to="/">管理后台</router-link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink>{{ breadcrumbTitle }}</BreadcrumbLink>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div class="header-actions">
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <span class="user-info cursor-pointer">
+                  <Avatar :size="32">
+                    <AvatarImage :src="adminStore.admin?.avatar" />
+                    <AvatarFallback>{{ (adminStore.admin?.nickname || adminStore.admin?.username || '?')[0] }}</AvatarFallback>
+                  </Avatar>
                   <span>{{ adminStore.admin?.nickname || adminStore.admin?.username }}</span>
                 </span>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" :side-offset="8">
+                <DropdownMenuItem class="cursor-pointer" @click="handleCommand('logout')">
+                  <LogOut class="mr-2 h-4 w-4" /> 退出登录
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </el-header>
+        </div>
+      </header>
 
-        <el-main class="main-content">
-          <RouterView />
-        </el-main>
-      </el-container>
-    </el-container>
+      <main class="main-content">
+        <RouterView />
+      </main>
+    </div>
+
+    <Toaster richColors />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, markRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import adminApi from '@/utils/adminApi'
 import {
-  House,
-  Document,
-  Picture,
+  Gauge,
+  FileText,
+  Image as ImageIcon,
   Folder,
-  CollectionTag,
-  ChatDotRound,
-  Link,
-  Setting,
-  User,
-  Promotion
-} from '@element-plus/icons-vue'
+  Tag,
+  MessageCircle,
+  Link as LinkIcon,
+  Settings,
+  User as UserIcon,
+  Megaphone,
+  LogOut
+} from 'lucide-vue-next'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
+import { Toaster } from '@/components/ui/toast'
 
 const route = useRoute()
 const router = useRouter()
 const adminStore = useAdminStore()
+
+const menuItems = [
+  { path: '/', label: '控制台', icon: markRaw(Gauge) },
+  { path: '/articles', label: '文章管理', icon: markRaw(FileText) },
+  { path: '/works', label: '作品管理', icon: markRaw(ImageIcon) },
+  { path: '/categories', label: '分类管理', icon: markRaw(Folder) },
+  { path: '/tags', label: '标签管理', icon: markRaw(Tag) },
+  { path: '/comments', label: '评论管理', icon: markRaw(MessageCircle) },
+  { path: '/links', label: '友链管理', icon: markRaw(LinkIcon) },
+  { path: '/settings', label: '系统配置', icon: markRaw(Settings) },
+  { path: '/users', label: '用户管理', icon: markRaw(UserIcon) },
+  { path: '/ads', label: '广告管理', icon: markRaw(Megaphone) },
+]
 
 const activeMenu = computed(() => route.path)
 
@@ -133,7 +129,6 @@ const handleCommand = (command) => {
   }
 }
 
-// 加载网站设置并更新favicon
 const loadSiteSettings = async () => {
   try {
     const response = await adminApi.get('/admin/settings')
@@ -144,7 +139,6 @@ const loadSiteSettings = async () => {
       updateFavicon(siteLogoSetting.value)
     }
     
-    // 更新页面标题
     const siteNameSetting = settings.find(s => s.key === 'site_name')
     if (siteNameSetting && siteNameSetting.value) {
       document.title = `${siteNameSetting.value} - 管理后台`
@@ -154,15 +148,12 @@ const loadSiteSettings = async () => {
   }
 }
 
-// 更新favicon
 const updateFavicon = (logoUrl) => {
-  // 移除旧的favicon
   const oldFavicon = document.querySelector('link[rel="icon"]')
   if (oldFavicon) {
     oldFavicon.remove()
   }
   
-  // 创建新的favicon
   const link = document.createElement('link')
   link.rel = 'icon'
   link.type = 'image/png'
@@ -177,74 +168,87 @@ onMounted(() => {
 
 <style scoped>
 .admin-layout {
-  height: 100vh;
-}
-
-.el-container {
-  height: 100%;
+  @apply min-h-screen flex;
 }
 
 .sidebar {
-  background-color: var(--color-sidebar-bg);
-  height: 100vh;
-  transition: background-color var(--transition-slow);
+  @apply flex flex-col shrink-0;
+  width: 200px;
+  background-color: #1E1B4B;
 }
 
 .logo {
-  padding: var(--spacing-lg);
-  text-align: center;
-  color: var(--color-sidebar-text-active);
-  border-bottom: 1px solid var(--color-sidebar-border);
+  @apply flex items-center justify-center;
+  height: 60px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo h3 {
-  margin: 0;
-  color: var(--color-sidebar-text-active);
+  @apply m-0 font-semibold tracking-wider;
   font-size: var(--font-size-lg);
-  font-weight: 600;
-  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.el-menu {
-  border-right: none;
+.menu {
+  @apply flex flex-col py-2;
+}
+
+.menu-item {
+  @apply flex items-center gap-2 px-4 py-2.5 text-sm font-medium cursor-pointer relative no-underline;
+  color: rgba(255, 255, 255, 0.65);
+  transition: all 150ms ease;
+  border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.menu-item.active {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-left-color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
+.menu-icon {
+  @apply w-[18px] h-[18px] shrink-0;
+}
+
+.main-wrapper {
+  @apply flex flex-col flex-1 min-w-0;
 }
 
 .header {
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-sm);
+  @apply px-4;
+  background-color: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-sm);
   transition: background-color var(--transition-slow), border-color var(--transition-slow);
+  height: 60px;
 }
 
 .header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 100%;
+  @apply h-full flex justify-between items-center;
 }
 
 .header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
+  @apply flex items-center gap-4;
 }
 
 .user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
+  @apply flex items-center gap-2 cursor-pointer;
   transition: opacity var(--transition-base);
 }
 
 .user-info:hover {
-  opacity: 0.8;
+  @apply opacity-80;
 }
 
 .main-content {
+  @apply p-4 flex-1;
   background: var(--color-bg-secondary);
-  padding: var(--spacing-md);
   transition: background-color var(--transition-slow);
 }
 </style>
-

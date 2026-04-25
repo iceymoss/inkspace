@@ -1,0 +1,6 @@
+export { default as Pagination } from './pagination.vue'
+export { default as PaginationContent } from './pagination-content.vue'
+export { default as PaginationItem } from './pagination-item.vue'
+export { default as PaginationLink } from './pagination-link.vue'
+export { default as PaginationPrevious } from './pagination-previous.vue'
+export { default as PaginationNext } from './pagination-next.vue'

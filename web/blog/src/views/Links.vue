@@ -4,25 +4,29 @@
       <h1>友情链接</h1>
       <p class="subtitle">与优秀的站点互相链接，共同成长</p>
 
-      <el-row :gutter="20">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="link in links" :key="link.id">
-          <el-card class="link-card" shadow="hover" @click="openLink(link.url)">
-            <div class="link-content">
-              <el-avatar :size="60" :src="link.logo" :alt="link.name">
-                {{ link.name.charAt(0) }}
-              </el-avatar>
-              <h3>{{ link.name }}</h3>
-              <p class="link-description">{{ link.description }}</p>
-              <el-icon class="link-icon"><Link /></el-icon>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <Card
+          v-for="link in links"
+          :key="link.id"
+          class="link-card card-skeuomorphic cursor-pointer"
+          @click="openLink(link.url)"
+        >
+          <CardContent class="link-content">
+            <Avatar class="h-[60px] w-[60px]">
+              <AvatarImage :src="link.logo" :alt="link.name" />
+              <AvatarFallback>{{ link.name.charAt(0) }}</AvatarFallback>
+            </Avatar>
+            <h3>{{ link.name }}</h3>
+            <p class="link-description">{{ link.description }}</p>
+            <Link class="link-icon h-4 w-4" />
+          </CardContent>
+        </Card>
+      </div>
 
-      <el-empty v-if="links.length === 0" description="暂无友情链接" />
+      <EmptyState v-if="links.length === 0" title="暂无数据" description="暂无友情链接" />
 
       <div class="apply-section">
-        <el-divider />
+        <Separator />
         <h3>{{ applyTitle || '申请友链' }}</h3>
         <p v-if="applyDescription">{{ applyDescription }}</p>
         <p v-if="applyEmail">📧 Email: {{ applyEmail }}</p>
@@ -34,8 +38,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Link } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Link } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
+import { Card, CardContent } from '@/components/ui/card'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { EmptyState } from '@/components/ui/empty-state'
 import api from '@/utils/api'
 
 const links = ref([])
@@ -48,7 +56,7 @@ const loadLinks = async () => {
     const response = await api.get('/links', { params: { status: 1 } })
     links.value = response.data || []
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -96,11 +104,8 @@ onMounted(() => {
 }
 
 .link-card {
-  cursor: pointer;
-  margin-bottom: var(--spacing-lg);
   transition: transform var(--transition-slow), box-shadow var(--transition-base);
   height: 100%;
-  box-shadow: var(--shadow-sm);
   border-radius: var(--radius-lg);
 }
 
@@ -156,4 +161,3 @@ onMounted(() => {
   line-height: var(--line-height-base);
 }
 </style>
-

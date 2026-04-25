@@ -1,37 +1,33 @@
-import { ElLoading } from 'element-plus'
 import api from './api'
 
-/**
- * 预加载作品数据并跳转到详情页
- * @param {number} workId - 作品ID
- * @param {object} routerInstance - Vue Router 实例（从 useRouter() 获取）
- */
-export async function navigateToWorkDetail(workId, routerInstance) {
-  // 显示全屏加载动画
-  const loadingInstance = ElLoading.service({
-    lock: true,
-    text: '加载中...',
-    background: 'rgba(0, 0, 0, 0.7)'
-  })
-
-  try {
-    // 预加载作品数据
-    const response = await api.get(`/works/${workId}`)
-    const workData = response.data
-
-    // 将数据存储到 sessionStorage，供详情页使用
-    sessionStorage.setItem(`preloaded_work_${workId}`, JSON.stringify(workData))
-
-    // 关闭加载动画
-    loadingInstance.close()
-
-    // 跳转到详情页
-    routerInstance.push(`/works/${workId}`)
-  } catch (error) {
-    // 关闭加载动画
-    loadingInstance.close()
-    // 即使加载失败，也跳转到详情页（详情页会处理错误）
-    routerInstance.push(`/works/${workId}`)
+let loadingEl = null
+const startLoading = () => {
+  loadingEl = document.createElement('div')
+  loadingEl.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/20'
+  loadingEl.innerHTML = '<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>'
+  document.body.appendChild(loadingEl)
+}
+const closeLoading = () => {
+  if (loadingEl) {
+    loadingEl.remove()
+    loadingEl = null
   }
 }
 
+export async function navigateToWorkDetail(workId, routerInstance) {
+  startLoading()
+
+  try {
+    const response = await api.get(`/works/${workId}`)
+    const workData = response.data
+
+    sessionStorage.setItem(`preloaded_work_${workId}`, JSON.stringify(workData))
+
+    closeLoading()
+
+    routerInstance.push(`/works/${workId}`)
+  } catch (error) {
+    closeLoading()
+    routerInstance.push(`/works/${workId}`)
+  }
+}

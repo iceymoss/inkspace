@@ -117,7 +117,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from 'vue-sonner'
 import adminApi from '@/utils/adminApi'
 
 const loading = ref(false)
@@ -157,7 +157,7 @@ const fetchUsers = async () => {
     users.value = response.data.list || []
     pagination.total = response.data.total || 0
   } catch (error) {
-    ElMessage.error('获取用户列表失败')
+    toast.error('获取用户列表失败')
   } finally {
     loading.value = false
   }
@@ -185,22 +185,50 @@ const handleToggleStatus = async (row) => {
   const action = newStatus === 1 ? '启用' : '禁用'
   
   try {
-    await ElMessageBox.confirm(
-      `确定要${action}用户 ${row.username} 吗？`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+    if (!confirm(`确定要${action}用户 ${row.username} 吗？`)) return
+
+    await adminApi.put(`/admin/users/${row.id}/status`, { status: newStatus })
+    toast.success(`${action}成功`)
+    fetchUsers()
+  } catch (error) {
+    toast.error(`${action}失败`)
+  }
+}
+
+const handleToggleRole = async (row) => {
+  const newRole = row.role === 'user' ? 'admin' : 'user'
+  const action = newRole === 'admin' ? '设为管理员' : '取消管理员'
+  
+  try {
+    if (!confirm(`确定要将用户 ${row.username} ${action}吗？`)) return
+
+    await adminApi.put(`/admin/users/${row.id}/role`, { role: newRole })
+    toast.success(`${action}成功`)
+    fetchUsers()
+  } catch (error) {
+    toast.error(`${action}失败`)
+  }
+}
+
+const handleDelete = async (row) => {
+  try {
+    if (!confirm(`确定要删除用户 ${row.username} 吗？此操作不可恢复！`)) return
+
+    await adminApi.delete(`/admin/users/${row.id}`)
+    toast.success('删除成功')
+    fetchUsers()
+  } catch (error) {
+    toast.error('删除失败')
+  }
+}
     )
 
     await adminApi.put(`/admin/users/${row.id}/status`, { status: newStatus })
-    ElMessage.success(`${action}成功`)
+    toast.success(`${action}成功`)
     fetchUsers()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(`${action}失败`)
+      toast.error(`${action}失败`)
     }
   }
 }
@@ -211,7 +239,7 @@ const handleToggleRole = async (row) => {
   const action = newRole === 'admin' ? '设为管理员' : '取消管理员'
   
   try {
-    await ElMessageBox.confirm(
+    await toastBox.confirm(
       `确定要将用户 ${row.username} ${action}吗？`,
       '提示',
       {
@@ -222,11 +250,11 @@ const handleToggleRole = async (row) => {
     )
 
     await adminApi.put(`/admin/users/${row.id}/role`, { role: newRole })
-    ElMessage.success(`${action}成功`)
+    toast.success(`${action}成功`)
     fetchUsers()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(`${action}失败`)
+      toast.error(`${action}失败`)
     }
   }
 }
@@ -234,7 +262,7 @@ const handleToggleRole = async (row) => {
 // 删除用户
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(
+    await toastBox.confirm(
       `确定要删除用户 ${row.username} 吗？此操作不可恢复！`,
       '警告',
       {
@@ -245,11 +273,11 @@ const handleDelete = async (row) => {
     )
 
     await adminApi.delete(`/admin/users/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     fetchUsers()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

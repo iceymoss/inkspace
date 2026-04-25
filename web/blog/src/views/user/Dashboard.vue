@@ -50,15 +50,15 @@
           </template>
           <div class="quick-links">
             <el-button @click="$router.push('/dashboard/articles')">
-              <el-icon><Document /></el-icon>
+              <el-icon><FileText /></el-icon>
               我的文章
             </el-button>
             <el-button @click="$router.push('/dashboard/works')">
-              <el-icon><Picture /></el-icon>
+              <el-icon><Image /></el-icon>
               我的作品
             </el-button>
             <el-button @click="$router.push('/dashboard/comments')">
-              <el-icon><ChatDotRound /></el-icon>
+              <el-icon><MessageCircle /></el-icon>
               我的评论
             </el-button>
             <el-button @click="$router.push('/favorites')">
@@ -71,7 +71,7 @@
               <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="badge-inline" />
             </el-button>
             <el-button @click="$router.push('/profile/edit')">
-              <el-icon><Setting /></el-icon>
+              <el-icon><Settings /></el-icon>
               个人设置
             </el-button>
           </div>
@@ -100,8 +100,8 @@
               <div class="item-info">
                 <div class="item-title">{{ work.title }}</div>
                 <div class="item-meta">
-                  <span><el-icon><View /></el-icon> {{ work.view_count }}</span>
-                  <span><el-icon><ChatDotRound /></el-icon> {{ work.comment_count }}</span>
+<span><el-icon><Eye /></el-icon> {{ work.view_count }}</span>
+                   <span><el-icon><MessageCircle /></el-icon> {{ work.comment_count }}</span>
                 </div>
               </div>
             </div>
@@ -135,8 +135,8 @@
               <div class="item-info">
                 <div class="item-title">{{ article.title }}</div>
                 <div class="item-meta">
-                  <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
-                  <span><el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}</span>
+<span><el-icon><Eye /></el-icon> {{ article.view_count }}</span>
+                   <span><el-icon><MessageCircle /></el-icon> {{ article.comment_count }}</span>
                 </div>
               </div>
             </div>
@@ -151,7 +151,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Document, Picture, ChatDotRound, Star, Bell, Setting, View } from '@element-plus/icons-vue'
+import { FileText, Image, MessageCircle, Star, Bell, Settings, Eye } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 

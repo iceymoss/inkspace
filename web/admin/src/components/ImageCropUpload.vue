@@ -1,80 +1,71 @@
 <template>
   <div class="image-crop-upload">
     <div class="upload-area" @click="openFileDialog">
-      <el-image 
-        v-if="modelValue" 
-        :src="modelValue" 
+      <img
+        v-if="modelValue"
+        :src="modelValue"
         :style="previewStyle"
-        fit="cover"
-        class="preview-image"
-      >
-        <template #error>
-          <div class="image-error">
-            <el-icon><Picture /></el-icon>
-          </div>
-        </template>
-      </el-image>
+        class="preview-image object-cover"
+      />
       <div v-else class="upload-placeholder" :style="previewStyle">
-        <el-icon class="upload-icon"><Plus /></el-icon>
-        <div class="upload-text">{{ placeholder }}</div>
+        <Plus class="upload-icon h-10 w-10 text-muted-foreground mb-1" />
+        <div class="upload-text text-sm text-muted-foreground">{{ placeholder }}</div>
       </div>
     </div>
-    <div class="upload-tip">{{ tip }}</div>
+    <div class="upload-tip text-xs text-muted-foreground mt-1 leading-relaxed">{{ tip }}</div>
 
     <input
       ref="fileInput"
       type="file"
       accept="image/*"
-      style="display: none"
+      class="hidden"
       @change="handleFileChange"
     />
 
-    <!-- 裁剪对话框 -->
-    <el-dialog
-      v-model="cropDialogVisible"
-      title="裁剪图片"
-      width="800px"
-      :close-on-click-modal="false"
-      @closed="handleDialogClosed"
-    >
-      <div class="crop-container">
-        <img ref="cropperImage" :src="tempImageUrl" style="max-width: 100%" />
-      </div>
-      <template #footer>
-        <div class="crop-footer">
-          <el-space>
-            <el-button @click="rotateCrop(-90)">
-              <el-icon><RefreshLeft /></el-icon> 左旋
-            </el-button>
-            <el-button @click="rotateCrop(90)">
-              <el-icon><RefreshRight /></el-icon> 右旋
-            </el-button>
-            <el-button @click="resetCrop">
-              <el-icon><Refresh /></el-icon> 重置
-            </el-button>
-            <el-button @click="zoomCrop(0.1)">
-              <el-icon><ZoomIn /></el-icon> 放大
-            </el-button>
-            <el-button @click="zoomCrop(-0.1)">
-              <el-icon><ZoomOut /></el-icon> 缩小
-            </el-button>
-          </el-space>
-          <el-space>
-            <el-button @click="cropDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="handleCropConfirm" :loading="uploading">
-              确定上传
-            </el-button>
-          </el-space>
+    <Dialog v-model:open="cropDialogVisible">
+      <DialogContent class="sm:max-w-[800px]" @after-close="handleDialogClosed">
+        <DialogHeader>
+          <DialogTitle>裁剪图片</DialogTitle>
+        </DialogHeader>
+        <div class="crop-container w-full h-[500px] bg-black flex items-center justify-center overflow-hidden">
+          <img ref="cropperImage" :src="tempImageUrl" style="max-width: 100%" />
         </div>
-      </template>
-    </el-dialog>
+        <DialogFooter class="flex justify-between items-center sm:justify-between">
+          <div class="flex gap-2">
+            <Button variant="outline" size="sm" @click="rotateCrop(-90)">
+              <RotateCcw class="h-4 w-4 mr-1" /> 左旋
+            </Button>
+            <Button variant="outline" size="sm" @click="rotateCrop(90)">
+              <RotateCw class="h-4 w-4 mr-1" /> 右旋
+            </Button>
+            <Button variant="outline" size="sm" @click="resetCrop">
+              <RefreshCw class="h-4 w-4 mr-1" /> 重置
+            </Button>
+            <Button variant="outline" size="sm" @click="zoomCrop(0.1)">
+              <ZoomIn class="h-4 w-4 mr-1" /> 放大
+            </Button>
+            <Button variant="outline" size="sm" @click="zoomCrop(-0.1)">
+              <ZoomOut class="h-4 w-4 mr-1" /> 缩小
+            </Button>
+          </div>
+          <div class="flex gap-2">
+            <Button variant="outline" @click="cropDialogVisible = false">取消</Button>
+            <Button @click="handleCropConfirm" :disabled="uploading">
+              {{ uploading ? '上传中...' : '确定上传' }}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, nextTick, computed } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Plus, Picture, RefreshLeft, RefreshRight, Refresh, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus, RotateCcw, RotateCw, RefreshCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import adminApi from '@/utils/adminApi'
@@ -98,19 +89,19 @@ const props = defineProps({
   },
   maxSize: {
     type: Number,
-    default: 2 // MB
+    default: 2
   },
   aspectRatio: {
     type: Number,
-    default: 1 // 1:1 正方形
+    default: 1
   },
   outputWidth: {
     type: Number,
-    default: 800 // 输出宽度
+    default: 800
   },
   outputHeight: {
     type: Number,
-    default: 800 // 输出高度
+    default: 800
   }
 })
 
@@ -123,10 +114,8 @@ const tempImageUrl = ref('')
 const uploading = ref(false)
 let cropper = null
 
-// 计算预览样式
 const previewStyle = computed(() => {
   if (props.aspectRatio && props.aspectRatio !== 1) {
-    // 如果不是正方形，根据宽高比计算预览尺寸
     const width = parseInt(props.previewSize) || 120
     const height = width / props.aspectRatio
     return {
@@ -148,31 +137,26 @@ const handleFileChange = (e) => {
   const file = e.target.files[0]
   if (!file) return
 
-  // 验证文件类型
   if (!file.type.startsWith('image/')) {
-    ElMessage.error('请选择图片文件')
+    toast.error('请选择图片文件')
     return
   }
 
-  // 验证文件大小
   if (file.size / 1024 / 1024 > props.maxSize) {
-    ElMessage.error(`图片大小不能超过 ${props.maxSize}MB`)
+    toast.error(`图片大小不能超过 ${props.maxSize}MB`)
     return
   }
 
-  // 读取图片并打开裁剪对话框
   const reader = new FileReader()
   reader.onload = (e) => {
     tempImageUrl.value = e.target.result
     cropDialogVisible.value = true
-    // 初始化裁剪器
     nextTick(() => {
       initCropper()
     })
   }
   reader.readAsDataURL(file)
 
-  // 清空input，允许重复选择同一文件
   e.target.value = ''
 }
 
@@ -195,7 +179,6 @@ const initCropper = () => {
       toggleDragModeOnDblclick: false,
     }
     
-    // 如果aspectRatio为0，则不设置aspectRatio限制，允许自由裁切
     if (props.aspectRatio && props.aspectRatio !== 0) {
       cropperOptions.aspectRatio = props.aspectRatio
     }
@@ -229,7 +212,6 @@ const handleCropConfirm = async () => {
 
   uploading.value = true
   try {
-    // 获取裁剪后的canvas，使用自定义输出尺寸
     const canvas = cropper.getCroppedCanvas({
       width: props.outputWidth,
       height: props.outputHeight,
@@ -237,15 +219,13 @@ const handleCropConfirm = async () => {
       imageSmoothingQuality: 'high'
     })
 
-    // 转换为blob
     canvas.toBlob(async (blob) => {
       if (!blob) {
-        ElMessage.error('图片处理失败')
+        toast.error('图片处理失败')
         uploading.value = false
         return
       }
 
-      // 上传裁剪后的图片
       const formData = new FormData()
       formData.append('file', blob, 'cropped.jpg')
 
@@ -257,21 +237,20 @@ const handleCropConfirm = async () => {
         })
 
         if (response.code === 0 && response.data) {
-          // 直接使用相对路径，不拼接域名
           emit('update:modelValue', response.data.url)
-          ElMessage.success('上传成功')
+          toast.success('上传成功')
           cropDialogVisible.value = false
         } else {
-          ElMessage.error(response.message || '上传失败')
+          toast.error(response.message || '上传失败')
         }
       } catch (error) {
-        ElMessage.error('上传失败')
+        toast.error('上传失败')
       } finally {
         uploading.value = false
       }
     }, 'image/jpeg', 0.9)
   } catch (error) {
-    ElMessage.error('图片处理失败')
+    toast.error('图片处理失败')
     uploading.value = false
   }
 }
@@ -284,20 +263,20 @@ const handleCropConfirm = async () => {
 
 .upload-area {
   cursor: pointer;
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius-md);
+  border: 2px dashed hsl(var(--border));
+  border-radius: var(--radius);
   overflow: hidden;
-  transition: all var(--transition-slow);
+  transition: all 0.2s;
   display: inline-block;
 }
 
 .upload-area:hover {
-  border-color: var(--color-primary);
+  border-color: hsl(var(--primary));
 }
 
 .preview-image {
   display: block;
-  border-radius: var(--radius-sm);
+  border-radius: calc(var(--radius) - 2px);
 }
 
 .upload-placeholder {
@@ -305,61 +284,18 @@ const handleCropConfirm = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-bg-secondary);
-  transition: all var(--transition-slow);
+  background-color: hsl(var(--muted));
+  transition: all 0.2s;
 }
 
 .upload-placeholder:hover {
-  background-color: var(--color-bg-hover);
-}
-
-.upload-icon {
-  font-size: 40px;
-  color: var(--color-text-tertiary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.upload-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.image-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-tertiary);
-  font-size: 40px;
+  background-color: hsl(var(--accent));
 }
 
 .upload-tip {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  margin-top: var(--spacing-sm);
-  line-height: var(--line-height-relaxed);
-}
-
-.crop-container {
-  width: 100%;
-  height: 500px;
-  background-color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.crop-container img {
-  max-width: 100%;
-  max-height: 100%;
-}
-
-.crop-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem;
+  line-height: 1.625;
 }
 </style>

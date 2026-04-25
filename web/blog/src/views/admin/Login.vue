@@ -66,7 +66,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 import { useAdminStore } from '@/stores/admin'
 
 const router = useRouter()
@@ -98,10 +98,10 @@ const handleLogin = async () => {
     loading.value = true
     try {
       await adminStore.login(form)
-      ElMessage.success('登录成功')
+      toast.success('登录成功')
       router.push('/admin')
     } catch (error) {
-      ElMessage.error(error.message || '登录失败，请检查账号密码')
+      toast.error(error.message || '登录失败，请检查账号密码')
     } finally {
       loading.value = false
     }

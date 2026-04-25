@@ -56,13 +56,11 @@
               >
                 <template #error>
                   <div class="image-error">
-                    <el-icon><icon-picture /></el-icon>
+                    <ImageIcon class="w-8 h-8" />
                   </div>
                 </template>
               </el-image>
-              <el-icon v-else class="avatar-uploader-icon">
-                <Plus />
-              </el-icon>
+              <Plus class="avatar-uploader-icon" :size="28" />
             </el-upload>
             <div class="avatar-tips">
               <div>点击上传头像</div>
@@ -145,8 +143,8 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
-import { Picture as IconPicture, Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { ImageIcon, Plus } from 'lucide-vue-next'
 import api from '@/utils/api'
 
 const router = useRouter()
@@ -236,7 +234,7 @@ const fetchUserProfile = async () => {
       bio: data.data.bio || ''
     })
   } catch (error) {
-    ElMessage.error('获取用户信息失败')
+    toast.error('获取用户信息失败')
   }
 }
 
@@ -250,7 +248,7 @@ const handleSubmit = async () => {
     loading.value = true
     try {
       const data = await api.put('/profile', form)
-      ElMessage.success('保存成功')
+      toast.success('保存成功')
       
       // 更新store中的用户信息
       userStore.setUser(data.data)
@@ -258,7 +256,7 @@ const handleSubmit = async () => {
       // 刷新当前数据
       Object.assign(currentUser, data.data)
     } catch (error) {
-      ElMessage.error(error.message || '保存失败')
+      toast.error(error.message || '保存失败')
     } finally {
       loading.value = false
     }
@@ -289,7 +287,7 @@ const handlePasswordChange = async () => {
         new_password: passwordForm.newPassword
       })
       
-      ElMessage.success('密码修改成功，请重新登录')
+      toast.success('密码修改成功，请重新登录')
       
       // 清空表单
       passwordForm.oldPassword = ''
@@ -302,7 +300,7 @@ const handlePasswordChange = async () => {
         router.push('/login')
       }, 1500)
     } catch (error) {
-      ElMessage.error(error.message || '密码修改失败')
+      toast.error(error.message || '密码修改失败')
     } finally {
       passwordLoading.value = false
     }
@@ -315,11 +313,11 @@ const beforeAvatarUpload = (file) => {
   const isLt2M = file.size / 1024 / 1024 < 2
 
   if (!isImage) {
-    ElMessage.error('只支持上传 jpg, png, webp 格式的图片')
+    toast.error('只支持上传 jpg, png, webp 格式的图片')
     return false
   }
   if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB')
+    toast.error('图片大小不能超过 2MB')
     return false
   }
   return true
@@ -330,9 +328,9 @@ const handleAvatarSuccess = (response) => {
   if (response.code === 0 && response.data) {
     // 后端返回的是相对路径，直接使用
     form.avatar = response.data.url
-    ElMessage.success('头像上传成功')
+    toast.success('头像上传成功')
   } else {
-    ElMessage.error(response.message || '头像上传失败')
+    toast.error(response.message || '头像上传失败')
   }
 }
 

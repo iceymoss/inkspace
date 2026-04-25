@@ -1,162 +1,146 @@
 <template>
   <div class="blog">
-    <div class="container">
+    <div class="container-blog">
       <div class="blog-header">
-        <div class="header-left">
+        <div class="flex items-center gap-md flex-wrap">
           <h1>博客文章</h1>
-          
-          <!-- 榜单选择器 -->
-          <el-radio-group v-model="rankType" @change="handleRankChange" size="default" class="rank-selector">
-            <el-radio-button label="">全部</el-radio-button>
-            <el-radio-button label="hot">热门</el-radio-button>
-            <el-radio-button label="week">周榜</el-radio-button>
-            <el-radio-button label="month">月榜</el-radio-button>
-            <el-radio-button label="year">年榜</el-radio-button>
-          </el-radio-group>
-          
-          <!-- 分类选择器 -->
-          <el-dropdown trigger="click" @command="handleCategorySelect" class="category-dropdown">
-            <el-button>
-              <el-image 
-                v-if="selectedCategoryData?.logo" 
-                :src="selectedCategoryData.logo" 
-                class="category-logo-small"
-                fit="cover"
-              />
-              <span>{{ selectedCategoryData?.name || '全部分类' }}</span>
-              <el-icon class="el-icon--right"><arrow-down /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item :command="null">
-                  <span>全部分类</span>
-                </el-dropdown-item>
-                <el-dropdown-item 
-                  v-for="cat in categories" 
-                  :key="cat.id" 
-                  :command="cat.id"
-                >
-                  <div class="dropdown-category-item">
-                    <el-image 
-                      v-if="cat.logo" 
-                      :src="cat.logo" 
-                      class="category-logo-dropdown"
-                      fit="cover"
-                    />
-                    <span>{{ cat.name }}</span>
-                    <el-badge :value="cat.article_count" class="category-badge" />
-                  </div>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+
+          <div class="flex rounded-lg bg-muted p-1 ml-lg">
+            <button
+              v-for="tab in rankTabs"
+              :key="tab.value"
+              @click="rankType = tab.value; handleRankChange()"
+              :class="rankType === tab.value ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="outline" class="gap-2">
+                <img v-if="selectedCategoryData?.logo" :src="selectedCategoryData.logo" class="w-6 h-6 rounded object-cover" />
+                <span>{{ selectedCategoryData?.name || '全部分类' }}</span>
+                <ChevronDown class="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem @click="handleCategorySelect(null)">
+                <span>全部分类</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                v-for="cat in categories"
+                :key="cat.id"
+                @click="handleCategorySelect(cat.id)"
+              >
+                <div class="flex items-center gap-2 min-w-[200px]">
+                  <img v-if="cat.logo" :src="cat.logo" class="w-8 h-8 rounded object-cover" />
+                  <span>{{ cat.name }}</span>
+                  <Badge variant="secondary" class="ml-auto">{{ cat.article_count }}</Badge>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        
-        <div class="header-right">
-          <!-- 排序选择器 -->
-          <el-select v-model="sortBy" @change="handleSortChange" placeholder="排序方式" class="sort-select" size="default">
-            <el-option label="最热排序" value="hot" />
-            <el-option label="最新发布" value="time" />
-            <el-option label="最多浏览" value="view_count" />
-            <el-option label="最多点赞" value="like_count" />
-            <el-option label="最多评论" value="comment_count" />
-          </el-select>
-          
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索文章..."
-            class="search-input"
-            @keyup.enter="handleSearch"
-          >
-            <template #append>
-              <el-button :icon="Search" @click="handleSearch" />
-            </template>
-          </el-input>
+
+        <div class="flex items-center gap-md flex-shrink-0">
+          <Select v-model="sortBy" @update:model-value="handleSortChange">
+            <SelectTrigger class="w-[140px]">
+              <SelectValue placeholder="排序方式" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hot">最热排序</SelectItem>
+              <SelectItem value="time">最新发布</SelectItem>
+              <SelectItem value="view_count">最多浏览</SelectItem>
+              <SelectItem value="like_count">最多点赞</SelectItem>
+              <SelectItem value="comment_count">最多评论</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div class="relative max-w-[400px]">
+            <Input v-model="searchKeyword" placeholder="搜索文章..." @keyup.enter="handleSearch" class="pr-9" />
+            <Button variant="ghost" size="sm" class="absolute right-0.5 top-0.5 h-9 w-9 p-0" @click="handleSearch">
+              <Search class="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      <el-row :gutter="20">
-        <el-col :xs="24" :md="18">
-          <div class="article-list">
-            <el-card
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div class="md:col-span-3">
+          <div class="flex flex-col gap-sm mb-xl">
+            <div
               v-for="article in articles"
               :key="article.id"
-              class="article-item"
-              shadow="hover"
+              class="card-skeuomorphic cursor-pointer h-[140px] overflow-hidden article-card"
               @click="$router.push(`/blog/${article.id}`)"
             >
-              <div class="article-content">
-                <img v-if="article.cover" :src="article.cover" class="article-cover" />
-                <div class="article-info">
-                  <div class="article-header">
-                    <h2>{{ article.title }}</h2>
-                    <el-tag v-if="article.is_top" type="danger" size="small">置顶</el-tag>
-                  </div>
-                  <p class="article-summary">{{ article.summary }}</p>
-                  <div class="article-meta">
-                    <el-tag v-if="article.category" size="small">{{ article.category.name }}</el-tag>
-                    <span class="author-info">
-                      <el-avatar :size="20" :src="article.author?.avatar" />
-                      <span>{{ article.author?.nickname || article.author?.username }}</span>
-                    </span>
-                    <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
-                    <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
-                    <span v-if="article.like_count">
-                      <el-icon><Star /></el-icon> {{ article.like_count }}
-                    </span>
-                    <span v-if="article.comment_count">
-                      <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
-                    </span>
-                    <span v-if="article.favorite_count">
-                      <el-icon><Collection /></el-icon> {{ article.favorite_count }}
-                    </span>
-                    <!-- 书签样式的标签 -->
-                    <div class="article-bookmarks" v-if="article.tags && article.tags.length > 0">
-                      <span 
-                        v-for="tag in article.tags.slice(0, 3)" 
-                        :key="tag.id" 
-                        class="bookmark-tag"
-                        :style="{ backgroundColor: getTagColor(tag.name) }"
-                        @click.stop="handleTagClick(tag.id)"
-                      >
-                        {{ tag.name }}
+              <div class="h-full p-md">
+                <div class="flex gap-md h-full items-center article-content">
+                  <img v-if="article.cover" :src="article.cover" class="article-cover" />
+                  <div class="article-info">
+                    <div class="article-header">
+                      <h2>{{ article.title }}</h2>
+                      <Badge v-if="article.is_top" variant="destructive" class="text-xs flex-shrink-0">置顶</Badge>
+                    </div>
+                    <p class="article-summary">{{ article.summary }}</p>
+                    <div class="article-meta">
+                      <Badge v-if="article.category" variant="secondary" class="text-xs">{{ article.category.name }}</Badge>
+                      <span class="author-info">
+                        <Avatar class="w-5 h-5">
+                          <AvatarImage :src="article.author?.avatar" />
+                        </Avatar>
+                        <span>{{ article.author?.nickname || article.author?.username }}</span>
                       </span>
+                      <span><Eye class="w-4 h-4" /> {{ article.view_count }}</span>
+                      <span><Clock class="w-4 h-4" /> {{ formatDate(article.created_at) }}</span>
+                      <span v-if="article.like_count"><Star class="w-4 h-4" /> {{ article.like_count }}</span>
+                      <span v-if="article.comment_count"><MessageCircle class="w-4 h-4" /> {{ article.comment_count }}</span>
+                      <span v-if="article.favorite_count"><Bookmark class="w-4 h-4" /> {{ article.favorite_count }}</span>
+                      <div class="article-bookmarks" v-if="article.tags && article.tags.length > 0">
+                        <span
+                          v-for="tag in article.tags.slice(0, 3)"
+                          :key="tag.id"
+                          class="bookmark-tag"
+                          :style="{ backgroundColor: getTagColor(tag.name) }"
+                          @click.stop="handleTagClick(tag.id)"
+                        >
+                          {{ tag.name }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </el-card>
-          </div>
-
-          <div class="pagination">
-            <el-pagination
-              v-model:current-page="currentPage"
-              v-model:page-size="pageSize"
-              :total="total"
-              layout="prev, pager, next"
-              @current-change="loadArticles"
-            />
-          </div>
-        </el-col>
-
-        <el-col :xs="24" :md="6">
-          <el-card class="sidebar-card">
-            <h3>热门标签</h3>
-            <div class="tag-list">
-              <el-tag
-                v-for="tag in tags"
-                :key="tag.id"
-                :type="selectedTag === tag.id ? 'primary' : ''"
-                size="small"
-                class="tag-item"
-                @click="filterByTag(tag.id)"
-              >
-                {{ tag.name }}
-              </el-tag>
             </div>
-          </el-card>
+          </div>
 
-          <!-- 广告位 -->
+          <div class="flex items-center justify-center gap-2 mt-xl" v-if="totalPages > 1">
+            <Button variant="outline" size="sm" :disabled="currentPage <= 1" @click="currentPage--; loadArticles()">上一页</Button>
+            <span class="text-sm text-muted-foreground">{{ currentPage }} / {{ totalPages }}</span>
+            <Button variant="outline" size="sm" :disabled="currentPage >= totalPages" @click="currentPage++; loadArticles()">下一页</Button>
+          </div>
+        </div>
+
+        <div class="md:col-span-1">
+          <Card class="shadow-md mb-lg">
+            <CardContent class="p-md pt-md">
+              <h3 class="mb-md text-lg">热门标签</h3>
+              <div class="flex flex-wrap gap-sm">
+                <Badge
+                  v-for="tag in tags"
+                  :key="tag.id"
+                  :variant="selectedTag === tag.id ? 'default' : 'outline'"
+                  class="cursor-pointer"
+                  @click="filterByTag(tag.id)"
+                >
+                  {{ tag.name }}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
           <div class="ad-slots" v-if="ads.length > 0">
             <div
               v-for="(ad, index) in ads"
@@ -170,8 +154,8 @@
               </div>
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -179,7 +163,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search, User, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
+import { Search, Eye, Clock, ChevronDown, Star, MessageCircle, Bookmark } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 
@@ -195,10 +186,19 @@ const total = ref(0)
 const searchKeyword = ref('')
 const selectedCategory = ref(null)
 const selectedTag = ref(null)
-const rankType = ref('') // 默认全部
-const sortBy = ref('time') // 默认最新发布
+const rankType = ref('')
+const sortBy = ref('time')
 
-// 当前选中的分类数据
+const rankTabs = [
+  { label: '全部', value: '' },
+  { label: '热门', value: 'hot' },
+  { label: '周榜', value: 'week' },
+  { label: '月榜', value: 'month' },
+  { label: '年榜', value: 'year' },
+]
+
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
 const selectedCategoryData = computed(() => {
   if (!selectedCategory.value) return null
   return categories.value.find(c => c.id === selectedCategory.value)
@@ -215,16 +215,14 @@ const loadArticles = async () => {
     if (searchKeyword.value) params.keyword = searchKeyword.value
     if (selectedCategory.value) params.category_id = selectedCategory.value
     if (selectedTag.value) params.tag_id = selectedTag.value
-    
-    // 榜单类型
+
     if (rankType.value) {
       params.rank_type = rankType.value
     }
-    
-    // 排序方式（榜单模式下也支持排序）
+
     if (sortBy.value) {
       params.sort_by = sortBy.value
-      params.sort_order = 'desc' // 默认降序
+      params.sort_order = 'desc'
     }
 
     const response = await api.get('/articles', { params })
@@ -255,7 +253,6 @@ const loadTags = async () => {
 
 const loadAds = async () => {
   try {
-    // 加载博客列表右侧广告位，根据API返回的数量动态显示
     const response = await api.get('/ads', { params: { code: 'blog_right_ad' } })
     ads.value = response.data || []
   } catch (error) {
@@ -266,7 +263,6 @@ const loadAds = async () => {
 
 const handleAdClick = (ad) => {
   if (ad && ad.link) {
-    // 记录点击
     if (ad.id) {
       api.post(`/ads/${ad.id}/click`).catch(() => {})
     }
@@ -316,13 +312,13 @@ const handleTagClick = (tagId) => {
   loadArticles()
 }
 
-// 根据标签名称生成颜色（用于书签样式）
 const getTagColor = (tagName) => {
   const colors = [
-    '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
-    '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'
+    'var(--color-info)', 'var(--color-success)', 'var(--color-warning)',
+    'var(--color-danger)', 'var(--color-text-tertiary)',
+    'var(--color-info)', 'var(--color-success)', 'var(--color-warning)',
+    'var(--color-danger)', 'var(--color-text-tertiary)'
   ]
-  // 根据标签名称的hash值选择颜色
   let hash = 0
   for (let i = 0; i < tagName.length; i++) {
     hash = tagName.charCodeAt(i) + ((hash << 5) - hash)
@@ -330,7 +326,6 @@ const getTagColor = (tagName) => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-// 监听 URL 参数变化，自动更新筛选条件
 watch(() => route.query, (newQuery) => {
   if (newQuery.category_id) {
     selectedCategory.value = parseInt(newQuery.category_id)
@@ -347,14 +342,13 @@ onMounted(() => {
   loadCategories()
   loadTags()
   loadAds()
-  
-  // 从 URL 参数初始化筛选条件
+
   if (route.query.category_id) {
     selectedCategory.value = parseInt(route.query.category_id)
   } else if (route.query.tag_id) {
     selectedTag.value = parseInt(route.query.tag_id)
   }
-  
+
   loadArticles()
 })
 </script>
@@ -376,100 +370,13 @@ onMounted(() => {
   border-bottom: 1px solid var(--theme-border-light);
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
+.article-card {
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 
-.blog-header h1 {
-  font-size: var(--font-size-2xl);
-  color: var(--theme-text-primary);
-  margin: 0;
-}
-
-.category-dropdown {
-  flex-shrink: 0;
-}
-
-.category-button-content {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.category-logo-small {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-.dropdown-category-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  min-width: 200px;
-}
-
-.category-logo-dropdown {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-.category-badge {
-  margin-left: auto;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.rank-selector {
-  margin-left: var(--spacing-lg);
-}
-
-.sort-select {
-  width: 140px;
-}
-
-.search-input {
-  max-width: 400px;
-}
-
-.article-list {
-  margin-bottom: var(--spacing-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm) !important;
-}
-
-.article-list :deep(.el-card) {
-  margin-bottom: 0 !important;
-}
-
-.article-item {
-  margin-bottom: 0 !important;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  height: 140px;
-  overflow: hidden;
-  position: relative;
-}
-
-.article-item :deep(.el-card__body) {
-  height: 100%;
-  padding: var(--spacing-md);
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-card {
-  box-shadow: var(--shadow-md);
+.article-card:hover {
+  box-shadow: var(--hover-lift-shadow), var(--card-inset-shadow);
+  transform: translateY(var(--hover-lift));
 }
 
 .article-content {
@@ -542,6 +449,7 @@ onMounted(() => {
   color: var(--theme-text-secondary);
   font-size: var(--font-size-sm);
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .article-meta span {
@@ -554,66 +462,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--spacing-xl);
-}
-
-.sidebar-card {
-  margin-bottom: var(--spacing-lg);
-}
-
-.sidebar-card h3 {
-  margin-bottom: var(--spacing-md);
-  font-size: var(--font-size-lg);
-}
-
-.category-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.category-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-slow);
-  border: 1px solid var(--theme-border-light);
-}
-
-.category-item:hover {
-  background-color: var(--theme-bg-secondary);
-  transform: translateX(5px);
-}
-
-.category-item.active {
-  background-color: var(--theme-bg-hover);
-  border-color: var(--theme-primary);
-  color: var(--theme-primary);
-}
-
-.category-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.category-tag, .tag-item {
-  cursor: pointer;
 }
 
 .article-bookmarks {
@@ -723,4 +571,3 @@ onMounted(() => {
   }
 }
 </style>
-

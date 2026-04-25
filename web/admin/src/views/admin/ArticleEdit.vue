@@ -2,91 +2,131 @@
   <div class="article-edit">
     <div class="page-header">
       <h2>{{ isEdit ? '编辑文章' : '新建文章' }}</h2>
-      <el-button @click="$router.back()">返回</el-button>
+      <Button variant="outline" @click="$router.back()">返回</Button>
     </div>
 
-    <el-card>
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="form.title" placeholder="请输入文章标题" />
-        </el-form-item>
+    <Card>
+      <CardContent class="pt-6">
+        <form class="space-y-4">
+          <div class="space-y-2">
+            <label class="text-sm font-medium">标题 <span class="text-destructive">*</span></label>
+            <Input v-model="form.title" placeholder="请输入文章标题" />
+            <p v-if="formErrors.title" class="text-sm text-destructive">{{ formErrors.title }}</p>
+          </div>
 
-        <el-form-item label="摘要" prop="summary">
-          <el-input v-model="form.summary" type="textarea" :rows="3" placeholder="请输入文章摘要" />
-        </el-form-item>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">摘要</label>
+            <Textarea v-model="form.summary" :rows="3" placeholder="请输入文章摘要" />
+          </div>
 
-        <el-form-item label="封面" prop="cover">
-          <ImageCropUpload 
-            v-model="form.cover" 
-            preview-size="160px"
-            placeholder="上传封面"
-            tip="可自由裁切任意比例，最大5MB"
-            :aspect-ratio="NaN"
-          />
-        </el-form-item>
-
-        <el-form-item label="分类" prop="category_id">
-          <el-select v-model="form.category_id" placeholder="请选择分类">
-            <el-option
-              v-for="category in categories"
-              :key="category.id"
-              :label="category.name"
-              :value="category.id"
+          <div class="space-y-2">
+            <label class="text-sm font-medium">封面</label>
+            <ImageCropUpload
+              v-model="form.cover"
+              preview-size="160px"
+              placeholder="上传封面"
+              tip="可自由裁切任意比例，最大5MB"
+              :aspect-ratio="NaN"
             />
-          </el-select>
-        </el-form-item>
+          </div>
 
-        <el-form-item label="标签" prop="tag_ids">
-          <el-select 
-            v-model="form.tag_ids" 
-            multiple 
-            filterable 
-            allow-create
-            default-first-option
-            placeholder="选择或创建标签"
-            @change="handleTagChange"
-          >
-            <el-option
-              v-for="tag in tags"
-              :key="tag.id"
-              :label="tag.name"
-              :value="tag.id"
-            />
-          </el-select>
-        </el-form-item>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">分类 <span class="text-destructive">*</span></label>
+            <Select :model-value="form.category_id ? String(form.category_id) : undefined" @update:model-value="form.category_id = $event ? Number($event) : null">
+              <SelectTrigger>
+                <SelectValue placeholder="请选择分类" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="category in categories" :key="category.id" :value="String(category.id)">
+                  {{ category.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p v-if="formErrors.category_id" class="text-sm text-destructive">{{ formErrors.category_id }}</p>
+          </div>
 
-        <el-form-item label="内容" prop="content" class="content-form-item">
-          <VditorEditor v-model="form.content" height="600px" />
-        </el-form-item>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">标签</label>
+            <div class="flex flex-wrap gap-2 mb-2" v-if="form.tag_ids.length">
+              <Badge v-for="tagId in form.tag_ids" :key="tagId" variant="secondary" class="gap-1">
+                {{ getTagName(tagId) }}
+                <X class="h-3 w-3 cursor-pointer" @click="removeTag(tagId)" />
+              </Badge>
+            </div>
+            <div class="flex gap-2">
+              <Select @update:model-value="addTag($event)">
+                <SelectTrigger class="w-[200px]">
+                  <SelectValue placeholder="选择标签" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="tag in availableTags" :key="tag.id" :value="String(tag.id)">
+                    {{ tag.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <div class="flex gap-2">
+                <Input v-model="newTagName" placeholder="创建新标签" class="w-[160px]" @keyup.enter="createNewTag" />
+                <Button type="button" variant="outline" size="sm" @click="createNewTag" :disabled="!newTagName.trim()">添加</Button>
+              </div>
+            </div>
+          </div>
 
-        <el-form-item label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio :label="1">发布</el-radio>
-            <el-radio :label="0">草稿</el-radio>
-          </el-radio-group>
-        </el-form-item>
+          <div class="space-y-2 content-form-item">
+            <label class="text-sm font-medium">内容 <span class="text-destructive">*</span></label>
+            <VditorEditor v-model="form.content" height="600px" />
+            <p v-if="formErrors.content" class="text-sm text-destructive">{{ formErrors.content }}</p>
+          </div>
 
-        <el-form-item label="置顶">
-          <el-switch v-model="form.is_top" />
-        </el-form-item>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">状态</label>
+            <RadioGroup :model-value="String(form.status)" @update:model-value="form.status = Number($event)" class="flex gap-4">
+              <div class="flex items-center space-x-2">
+                <RadioGroupItem value="1" id="status-publish" />
+                <label for="status-publish">发布</label>
+              </div>
+              <div class="flex items-center space-x-2">
+                <RadioGroupItem value="0" id="status-draft" />
+                <label for="status-draft">草稿</label>
+              </div>
+            </RadioGroup>
+          </div>
 
-        <el-form-item label="推荐">
-          <el-switch v-model="form.is_recommend" />
-        </el-form-item>
+          <div class="flex items-center gap-6">
+            <div class="flex items-center space-x-2">
+              <Switch :checked="form.is_top" @update:checked="form.is_top = $event" />
+              <label class="text-sm font-medium">置顶</label>
+            </div>
+            <div class="flex items-center space-x-2">
+              <Switch :checked="form.is_recommend" @update:checked="form.is_recommend = $event" />
+              <label class="text-sm font-medium">推荐</label>
+            </div>
+          </div>
 
-        <el-form-item>
-          <el-button type="primary" @click="handleSubmit" :loading="loading">保存</el-button>
-          <el-button @click="$router.back()">取消</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+          <div class="flex gap-2 pt-4">
+            <Button @click="handleSubmit" :disabled="loading">
+              <Loader2 v-if="loading" class="h-4 w-4 mr-1 animate-spin" /> 保存
+            </Button>
+            <Button variant="outline" @click="$router.back()">取消</Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
+import { X, Loader2 } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import adminApi from '@/utils/adminApi'
 import VditorEditor from '@/components/VditorEditor.vue'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
@@ -94,10 +134,16 @@ import ImageCropUpload from '@/components/ImageCropUpload.vue'
 const route = useRoute()
 const router = useRouter()
 
-const formRef = ref()
 const loading = ref(false)
 const categories = ref([])
 const tags = ref([])
+const newTagName = ref('')
+
+const formErrors = reactive({
+  title: '',
+  category_id: '',
+  content: ''
+})
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -119,6 +165,80 @@ const rules = {
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
 }
 
+const validateForm = () => {
+  let valid = true
+  formErrors.title = ''
+  formErrors.category_id = ''
+  formErrors.content = ''
+
+  for (const rule of rules.title) {
+    if (rule.required && !form.title) {
+      formErrors.title = rule.message
+      valid = false
+      break
+    }
+  }
+  for (const rule of rules.category_id) {
+    if (rule.required && !form.category_id) {
+      formErrors.category_id = rule.message
+      valid = false
+      break
+    }
+  }
+  for (const rule of rules.content) {
+    if (rule.required && !form.content) {
+      formErrors.content = rule.message
+      valid = false
+      break
+    }
+  }
+  return valid
+}
+
+const availableTags = computed(() => {
+  return tags.value.filter(t => !form.tag_ids.includes(t.id))
+})
+
+const getTagName = (tagId) => {
+  const tag = tags.value.find(t => t.id === tagId)
+  return tag ? tag.name : tagId
+}
+
+const addTag = (value) => {
+  if (value && !form.tag_ids.includes(Number(value))) {
+    form.tag_ids.push(Number(value))
+  }
+}
+
+const removeTag = (tagId) => {
+  const index = form.tag_ids.indexOf(tagId)
+  if (index > -1) {
+    form.tag_ids.splice(index, 1)
+  }
+}
+
+const createNewTag = async () => {
+  const tagName = newTagName.value.trim()
+  if (!tagName) return
+
+  try {
+    const response = await adminApi.post('/admin/tags', {
+      name: tagName,
+      slug: tagName.toLowerCase().replace(/\s+/g, '-'),
+      color: '#409eff'
+    })
+
+    const newTag = response.data
+    tags.value.push(newTag)
+    form.tag_ids.push(newTag.id)
+    newTagName.value = ''
+
+    toast.success(`标签"${tagName}"创建成功`)
+  } catch (error) {
+    toast.error(`创建标签"${tagName}"失败`)
+  }
+}
+
 const loadCategories = async () => {
   try {
     const response = await adminApi.get('/admin/categories', {
@@ -127,7 +247,6 @@ const loadCategories = async () => {
         page_size: 100
       }
     })
-    // 兼容分页结构和旧的数组结构
     categories.value = response.data?.list || response.data || []
   } catch (error) {
     console.error('Failed to load categories:', error)
@@ -143,35 +262,29 @@ const loadTags = async () => {
   }
 }
 
-// 处理标签变化（支持创建新标签）
 const handleTagChange = async (values) => {
-  // 检查是否有新标签（字符串类型的值）
   const newTags = values.filter(v => typeof v === 'string')
-  
+
   if (newTags.length > 0) {
     for (const tagName of newTags) {
       try {
-        // 创建新标签
         const response = await adminApi.post('/admin/tags', {
           name: tagName,
           slug: tagName.toLowerCase().replace(/\s+/g, '-'),
           color: '#409eff'
         })
-        
-        // 添加到标签列表
+
         const newTag = response.data
         tags.value.push(newTag)
-        
-        // 替换form中的字符串为ID
+
         const index = form.tag_ids.indexOf(tagName)
         if (index > -1) {
           form.tag_ids[index] = newTag.id
         }
-        
-        ElMessage.success(`标签"${tagName}"创建成功`)
+
+        toast.success(`标签"${tagName}"创建成功`)
       } catch (error) {
-        ElMessage.error(`创建标签"${tagName}"失败`)
-        // 移除失败的标签
+        toast.error(`创建标签"${tagName}"失败`)
         const index = form.tag_ids.indexOf(tagName)
         if (index > -1) {
           form.tag_ids.splice(index, 1)
@@ -198,30 +311,28 @@ const loadArticle = async () => {
       is_recommend: article.is_recommend
     })
   } catch (error) {
-    ElMessage.error('加载文章失败')
+    toast.error('加载文章失败')
   }
 }
 
 const handleSubmit = async () => {
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
+  if (!validateForm()) return
 
-    loading.value = true
-    try {
-      if (isEdit.value) {
-        await adminApi.put(`/admin/articles/${route.params.id}`, form)
-        ElMessage.success('更新成功')
-      } else {
-        await adminApi.post('/admin/articles', form)
-        ElMessage.success('创建成功')
-      }
-      router.push('/articles')
-    } catch (error) {
-      ElMessage.error('保存失败')
-    } finally {
-      loading.value = false
+  loading.value = true
+  try {
+    if (isEdit.value) {
+      await adminApi.put(`/admin/articles/${route.params.id}`, form)
+      toast.success('更新成功')
+    } else {
+      await adminApi.post('/admin/articles', form)
+      toast.success('创建成功')
     }
-  })
+    router.push('/articles')
+  } catch (error) {
+    toast.error('保存失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
@@ -252,43 +363,4 @@ onMounted(() => {
 .content-form-item {
   margin-bottom: var(--spacing-lg);
 }
-
-.content-form-item :deep(.el-form-item__label) {
-  display: none;
-}
-
-.content-form-item :deep(.el-form-item__content) {
-  margin-left: 0 !important;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-:deep(.el-button) {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-:deep(.el-switch) {
-  cursor: pointer;
-}
-
-:deep(.el-radio) {
-  cursor: pointer;
-}
-
-:deep(.el-select) {
-  cursor: pointer;
-}
-
-:deep(.el-input__wrapper) {
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
-}
-
-:deep(.el-textarea__inner) {
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
-}
 </style>
-

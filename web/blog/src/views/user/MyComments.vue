@@ -60,12 +60,27 @@
         />
       </div>
     </el-card>
+
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from 'vue-sonner'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 
@@ -75,6 +90,42 @@ const comments = ref([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const loadComments = async () => {
   try {
@@ -94,18 +145,14 @@ const loadComments = async () => {
 
 const handleDelete = async (commentId) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await confirmDialog('确定要删除这条评论吗？')
     
     await api.delete(`/comments/${commentId}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadComments()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

@@ -5,7 +5,7 @@
         <div class="header">
           <span>我的文章</span>
           <el-button type="primary" @click="$router.push('/dashboard/articles/create')">
-            <el-icon><Plus /></el-icon> 写文章
+            <Plus class="h-4 w-4" /> 写文章
           </el-button>
         </div>
       </template>
@@ -78,14 +78,29 @@
         class="mt-20"
       />
     </el-card>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
@@ -126,7 +141,7 @@ const fetchArticles = async () => {
     articles.value = response.data.list || []
     pagination.total = response.data.total || 0
   } catch (error) {
-    ElMessage.error('获取文章列表失败')
+    toast.error('获取文章列表失败')
   } finally {
     loading.value = false
   }
@@ -152,24 +167,43 @@ const handleEdit = (row) => {
   router.push(`/dashboard/articles/${row.id}/edit`)
 }
 
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
+
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除文章《${row.title}》吗？此操作不可恢复！`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    )
-
+    await confirmDialog(`确定要删除文章《${row.title}》吗？此操作不可恢复！`, '警告')
     await api.delete(`/articles/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     fetchArticles()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

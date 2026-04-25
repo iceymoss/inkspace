@@ -110,8 +110,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
 import adminApi from '@/utils/adminApi'
 
 const activeGroup = ref('site')
@@ -164,7 +164,7 @@ const loadAllSettings = async () => {
       }
     })
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -172,10 +172,10 @@ const saveSiteSettings = async () => {
   saving.value = true
   try {
     await adminApi.put('/admin/settings/batch', siteSettings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -191,10 +191,10 @@ const saveFeatureSettings = async () => {
     })
     
     await adminApi.put('/admin/settings/batch', settings)
-    ElMessage.success('保存成功')
+    toast.success('保存成功')
     loadAllSettings()
   } catch (error) {
-    ElMessage.error('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -225,11 +225,11 @@ const submitEdit = async () => {
     editLoading.value = true
     try {
       await adminApi.put('/admin/settings', editForm)
-      ElMessage.success('保存成功')
+      toast.success('保存成功')
       editDialogVisible.value = false
       loadAllSettings()
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       editLoading.value = false
     }
@@ -238,14 +238,14 @@ const submitEdit = async () => {
 
 const handleDelete = async (setting) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个配置吗？', '提示', { type: 'warning' })
+    if (!confirm('确定要删除这个配置吗？')) return
     await adminApi.delete(`/admin/settings/${setting.key}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadAllSettings()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    toast.error('删除失败')
+  }
+}
   }
 }
 

@@ -52,16 +52,16 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { Document, Collection, ChatDotRound, User, EditPen } from '@element-plus/icons-vue'
+import { FileText, Bookmark, MessageCircle, User, PenLine } from 'lucide-vue-next'
 import api from '@/utils/api'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const stats = ref([
-  { title: '我的文章', value: 0, icon: Document, color: '#409eff', clickable: true, action: 'articles' },
-  { title: '我的收藏', value: 0, icon: Collection, color: '#67c23a', clickable: true, action: 'favorites' },
-  { title: '我的评论', value: 0, icon: ChatDotRound, color: '#e6a23c', clickable: false, action: null },
+  { title: '我的文章', value: 0, icon: FileText, color: '#409eff', clickable: true, action: 'articles' },
+  { title: '我的收藏', value: 0, icon: Bookmark, color: '#67c23a', clickable: true, action: 'favorites' },
+  { title: '我的评论', value: 0, icon: MessageCircle, color: '#e6a23c', clickable: false, action: null },
   { title: '粉丝数', value: 0, icon: User, color: '#f56c6c', clickable: true, action: 'followers' }
 ])
 

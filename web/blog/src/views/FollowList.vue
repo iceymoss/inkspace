@@ -106,7 +106,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
@@ -135,7 +135,7 @@ const loadUser = async () => {
     const response = await api.get(`/users/${userId.value}`)
     user.value = response.data
   } catch (error) {
-    ElMessage.error('获取用户信息失败')
+    toast.error('获取用户信息失败')
   }
 }
 
@@ -148,7 +148,7 @@ const loadFollowing = async () => {
     followingList.value = response.data.list || []
     followingTotal.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('获取关注列表失败')
+    toast.error('获取关注列表失败')
   }
 }
 
@@ -161,7 +161,7 @@ const loadFollowers = async () => {
     followersList.value = response.data.list || []
     followersTotal.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('获取粉丝列表失败')
+    toast.error('获取粉丝列表失败')
   }
 }
 
@@ -183,28 +183,28 @@ const goToUserProfile = (uid) => {
 // 关注/取消关注
 const handleFollowToggle = async (item) => {
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     return
   }
   
   const targetUserId = item.user?.id
   if (!targetUserId) {
-    ElMessage.error('用户ID无效')
+    toast.error('用户ID无效')
     return
   }
   
   try {
     if (item.is_following) {
       await api.delete(`/users/${targetUserId}/follow`)
-      ElMessage.success('已取消关注')
+      toast.success('已取消关注')
       item.is_following = false
     } else {
       await api.post(`/users/${targetUserId}/follow`)
-      ElMessage.success('关注成功')
+      toast.success('关注成功')
       item.is_following = true
     }
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    toast.error(error.response?.data?.message || '操作失败')
   }
 }
 

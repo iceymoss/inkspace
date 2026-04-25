@@ -1,105 +1,99 @@
 <template>
   <div class="user-center-layout">
-    <el-container>
-      <el-aside width="200px" class="sidebar">
-        <div class="logo">
-          <router-link to="/">InkSpace</router-link>
-        </div>
-        <el-menu
-          :default-active="activeMenu"
-          :router="true"
-          class="menu"
+    <aside class="sidebar">
+      <div class="logo">
+        <router-link to="/">InkSpace</router-link>
+      </div>
+      <nav class="menu">
+        <router-link
+          v-for="item in menuItems"
+          :key="item.path"
+          :to="item.path"
+          class="menu-item"
+          :class="{ active: activeMenu === item.path }"
         >
-          <el-menu-item index="/dashboard">
-            <el-icon><Odometer /></el-icon>
-            <span>我的主页</span>
-          </el-menu-item>
-          <el-menu-item index="/dashboard/articles">
-            <el-icon><Document /></el-icon>
-            <span>我的文章</span>
-          </el-menu-item>
-          <el-menu-item index="/dashboard/works">
-            <el-icon><Picture /></el-icon>
-            <span>我的作品</span>
-          </el-menu-item>
-          <el-menu-item index="/dashboard/comments">
-            <el-icon><ChatDotRound /></el-icon>
-            <span>我的评论</span>
-          </el-menu-item>
-          <el-menu-item index="/favorites">
-            <el-icon><Collection /></el-icon>
-            <span>我的收藏</span>
-          </el-menu-item>
-          <el-menu-item index="/dashboard/notifications">
-            <el-icon><Bell /></el-icon>
-            <span>我的通知</span>
-            <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge" />
-          </el-menu-item>
-          <el-menu-item index="/profile/edit">
-            <el-icon><User /></el-icon>
-            <span>个人设置</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
+          <component :is="item.icon" class="menu-icon" />
+          <span>{{ item.label }}</span>
+          <Badge v-if="item.badge && unreadCount > 0" variant="destructive" class="ml-auto">{{ unreadCount }}</Badge>
+        </router-link>
+      </nav>
+    </aside>
 
-      <el-container>
-        <el-header class="header">
-          <div class="header-content">
-            <el-breadcrumb separator="/">
-              <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-              <el-breadcrumb-item>{{ breadcrumbTitle }}</el-breadcrumb-item>
-            </el-breadcrumb>
-            <div class="header-actions">
-              <el-button text @click="$router.push('/')">返回网站</el-button>
-              <el-button v-if="userStore.isAdmin" type="primary" @click="goToAdminBackend">
-                管理后台
-              </el-button>
-              <el-dropdown @command="handleCommand">
-                <span class="user-info">
-                  <el-avatar :size="32" :src="userStore.user?.avatar" />
+    <div class="main-wrapper">
+      <header class="header">
+        <div class="header-content">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink as-child>
+                  <router-link to="/">首页</router-link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink>{{ breadcrumbTitle }}</BreadcrumbLink>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div class="header-actions">
+            <Button variant="ghost" @click="$router.push('/')">返回网站</Button>
+            <Button v-if="userStore.isAdmin" variant="accent" @click="goToAdminBackend">
+              管理后台
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <span class="user-info cursor-pointer">
+                  <Avatar :size="32">
+                    <AvatarImage :src="userStore.user?.avatar" :alt="userStore.user?.nickname" />
+                    <AvatarFallback>{{ (userStore.user?.nickname || userStore.user?.username || '?')[0] }}</AvatarFallback>
+                  </Avatar>
                   <span>{{ userStore.user?.nickname || userStore.user?.username }}</span>
                 </span>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="logout">
-                      <el-icon><SwitchButton /></el-icon> 退出登录
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" :side-offset="8">
+                <DropdownMenuItem class="cursor-pointer" @click="handleCommand('logout')">
+                  <LogOut class="mr-2 h-4 w-4" /> 退出登录
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </el-header>
+        </div>
+      </header>
 
-        <el-main class="main">
-          <RouterView />
-        </el-main>
-      </el-container>
-    </el-container>
+      <main class="main">
+        <RouterView />
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, markRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { Gauge, FileText, Image, MessageCircle, Bookmark, Bell, User as UserIcon, Settings, LogOut } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import api from '@/utils/api'
-import {
-  Odometer,
-  Document,
-  Picture,
-  Collection,
-  Bell,
-  User,
-  SwitchButton,
-  ChatDotRound
-} from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const unreadCount = ref(0)
 const adminBackendUrl = ref('')
+
+const menuItems = [
+  { path: '/dashboard', label: '我的主页', icon: markRaw(Gauge) },
+  { path: '/dashboard/articles', label: '我的文章', icon: markRaw(FileText) },
+  { path: '/dashboard/works', label: '我的作品', icon: markRaw(Image) },
+  { path: '/dashboard/comments', label: '我的评论', icon: markRaw(MessageCircle) },
+  { path: '/favorites', label: '我的收藏', icon: markRaw(Bookmark) },
+  { path: '/dashboard/notifications', label: '我的通知', icon: markRaw(Bell), badge: true },
+  { path: '/profile/edit', label: '个人设置', icon: markRaw(Settings) },
+]
 
 const loadUnreadCount = async () => {
   try {
@@ -194,45 +188,40 @@ const handleCommand = (command) => {
 
 <style scoped>
 .user-center-layout {
-  min-height: 100vh;
+  @apply min-h-screen flex;
   background-color: var(--theme-bg-secondary);
 }
 
 .sidebar {
+  @apply flex flex-col shrink-0;
+  width: 220px;
   background-color: var(--theme-bg-card);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), var(--card-inset-shadow);
   border-right: 1px solid var(--theme-border);
   transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .logo {
+  @apply flex items-center justify-center font-bold;
   height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: var(--font-size-lg);
-  font-weight: bold;
   border-bottom: 1px solid var(--theme-border);
   background-color: var(--theme-bg-card);
   transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .logo a {
+  @apply font-serif font-bold cursor-pointer inline-block relative;
   font-size: 24px;
-  font-weight: 700;
-  font-family: var(--font-serif);
+  letter-spacing: 1px;
   background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-accent) 50%, var(--color-accent) 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-decoration: none;
-  letter-spacing: 1px;
-  position: relative;
-  display: inline-block;
   transition: all var(--transition-base);
   animation: gradientShift 3s ease infinite;
-  cursor: pointer;
 }
 
 .logo a:hover {
@@ -249,64 +238,65 @@ const handleCommand = (command) => {
 }
 
 .menu {
-  border-right: none;
-  background-color: var(--theme-bg-card);
-  transition: background-color var(--transition-slow);
+  @apply flex flex-col py-sm;
+}
+
+.menu-item {
+  @apply flex items-center gap-sm px-md py-sm text-sm font-medium cursor-pointer relative;
+  color: var(--theme-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+  background-color: var(--theme-bg-hover);
+  color: var(--theme-primary);
+}
+
+.menu-item.active {
+  background-color: var(--theme-bg-hover);
+  color: var(--theme-primary);
+  border-left-color: var(--theme-primary);
+  font-weight: 600;
+}
+
+.menu-icon {
+  @apply w-[18px] h-[18px] shrink-0;
+}
+
+.main-wrapper {
+  @apply flex flex-col flex-1 min-w-0;
 }
 
 .header {
   background-color: var(--theme-bg-card);
   border-bottom: 1px solid var(--theme-border);
-  padding: 0 var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  @apply px-md;
   color: var(--theme-text-primary);
   transition: background-color var(--transition-slow), border-color var(--transition-slow);
+  height: 56px;
 }
 
 .header-content {
-  height: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @apply h-full flex justify-between items-center;
 }
 
 .header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
+  @apply flex items-center gap-md;
 }
 
 .user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
+  @apply flex items-center gap-sm cursor-pointer;
   transition: opacity var(--transition-base);
 }
 
 .user-info:hover {
-  opacity: 0.8;
+  @apply opacity-80;
 }
 
 .main {
-  padding: var(--spacing-md);
-}
-
-:deep(.el-menu-item) {
-  position: relative;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-:deep(.el-menu-item .notification-badge) {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-top: 0;
-}
-
-:deep(.el-menu-item .notification-badge .el-badge__content) {
-  position: static;
-  transform: none;
+  @apply p-md flex-1;
 }
 </style>
-

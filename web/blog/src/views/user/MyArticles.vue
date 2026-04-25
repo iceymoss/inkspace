@@ -104,14 +104,29 @@
         class="mt-20"
       />
     </el-card>
+
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
@@ -119,7 +134,43 @@ const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const articles = ref([])
-const activeTab = ref('all') // all, published, private, draft
+const activeTab = ref('all')
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const searchForm = reactive({
   title: ''
@@ -135,7 +186,7 @@ const pagination = reactive({
 const fetchArticles = async () => {
   // 确保用户已登录
   if (!userStore.isLoggedIn || !userStore.user) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     router.push('/login')
     return
   }
@@ -176,7 +227,7 @@ const fetchArticles = async () => {
     articles.value = response.data.list || []
     pagination.total = response.data.total || 0
   } catch (error) {
-    ElMessage.error('获取文章列表失败')
+    toast.error('获取文章列表失败')
   } finally {
     loading.value = false
   }
@@ -231,9 +282,7 @@ const getStatusType = (status) => {
 // 发布草稿
 const handlePublish = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要发布这篇文章吗？', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要发布这篇文章吗？')
     
     // 使用编辑API获取完整的文章详情（确保权限检查）
     const detailResponse = await api.get(`/articles/${row.id}/edit`)
@@ -252,12 +301,12 @@ const handlePublish = async (row) => {
       is_recommend: article.is_recommend || false
     })
     
-    ElMessage.success('发布成功')
+    toast.success('发布成功')
     fetchArticles()
   } catch (error) {
     if (error !== 'cancel') {
       const errorMessage = error.response?.data?.message || error.message || '发布失败'
-      ElMessage.error(errorMessage)
+      toast.error(errorMessage)
     }
   }
 }
@@ -265,9 +314,7 @@ const handlePublish = async (row) => {
 // 设为私有
 const handleMakePrivate = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要将这篇文章设为私有吗？设为私有后，只有您可以查看。', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要将这篇文章设为私有吗？设为私有后，只有您可以查看。')
     
     // 使用编辑API获取完整的文章详情（确保权限检查）
     const detailResponse = await api.get(`/articles/${row.id}/edit`)
@@ -286,12 +333,12 @@ const handleMakePrivate = async (row) => {
       is_recommend: article.is_recommend || false
     })
     
-    ElMessage.success('已设为私有')
+    toast.success('已设为私有')
     fetchArticles()
   } catch (error) {
     if (error !== 'cancel') {
       const errorMessage = error.response?.data?.message || error.message || '操作失败'
-      ElMessage.error(errorMessage)
+      toast.error(errorMessage)
     }
   }
 }
@@ -299,9 +346,7 @@ const handleMakePrivate = async (row) => {
 // 设为公开
 const handleMakePublic = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要将这篇文章设为公开吗？设为公开后，所有人都可以查看。', '提示', {
-      type: 'warning'
-    })
+    await confirmDialog('确定要将这篇文章设为公开吗？设为公开后，所有人都可以查看。')
     
     // 使用编辑API获取完整的文章详情（确保权限检查）
     const detailResponse = await api.get(`/articles/${row.id}/edit`)
@@ -320,12 +365,12 @@ const handleMakePublic = async (row) => {
       is_recommend: article.is_recommend || false
     })
     
-    ElMessage.success('已设为公开')
+    toast.success('已设为公开')
     fetchArticles()
   } catch (error) {
     if (error !== 'cancel') {
       const errorMessage = error.response?.data?.message || error.message || '操作失败'
-      ElMessage.error(errorMessage)
+      toast.error(errorMessage)
     }
   }
 }
@@ -340,22 +385,16 @@ const handleEdit = (row) => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除文章《${row.title}》吗？此操作不可恢复！`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
+    await confirmDialog(
+      `确定要删除文章《${row.title}》吗？此操作不可恢复！`
     )
 
     await api.delete(`/articles/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     fetchArticles()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

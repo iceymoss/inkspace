@@ -26,16 +26,16 @@
           </template>
           <el-space wrap>
             <el-button type="primary" @click="$router.push('/admin/articles/create')">
-              <el-icon><EditPen /></el-icon> 写文章
+              <el-icon><PencilLine /></el-icon> 写文章
             </el-button>
             <el-button @click="$router.push('/admin/works')">
-              <el-icon><Picture /></el-icon> 添加作品
+              <el-icon><ImageIcon /></el-icon> 添加作品
             </el-button>
             <el-button @click="$router.push('/admin/categories')">
               <el-icon><Folder /></el-icon> 管理分类
             </el-button>
             <el-button @click="$router.push('/admin/tags')">
-              <el-icon><CollectionTag /></el-icon> 管理标签
+              <el-icon><Tag /></el-icon> 管理标签
             </el-button>
           </el-space>
         </el-card>
@@ -46,15 +46,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Document, Picture, ChatDotRound, User, EditPen, Folder, CollectionTag } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { FileText, Image as ImageIcon, MessageCircle, User as UserIcon, PencilLine, Folder, Tag } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import adminApi from '@/utils/adminApi'
 
 const stats = ref([
-  { title: '文章总数', value: 0, icon: Document, color: '#409eff' },
-  { title: '作品总数', value: 0, icon: Picture, color: '#67c23a' },
-  { title: '评论总数', value: 0, icon: ChatDotRound, color: '#e6a23c' },
-  { title: '用户总数', value: 0, icon: User, color: '#f56c6c' }
+  { title: '文章总数', value: 0, icon: FileText, color: '#409eff' },
+  { title: '作品总数', value: 0, icon: ImageIcon, color: '#67c23a' },
+  { title: '评论总数', value: 0, icon: MessageCircle, color: '#e6a23c' },
+  { title: '用户总数', value: 0, icon: UserIcon, color: '#f56c6c' }
 ])
 
 // 获取统计数据

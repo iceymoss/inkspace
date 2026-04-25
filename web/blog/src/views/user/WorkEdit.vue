@@ -51,7 +51,7 @@
             height="400px"
           />
           <div v-else style="height: 400px; display: flex; align-items: center; justify-content: center;">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <Loader2 class="h-5 w-5 animate-spin" />
           </div>
         </el-form-item>
 
@@ -245,14 +245,29 @@
         </el-form-item>
       </el-form>
     </el-card>
+
+    <Dialog :open="showConfirmDialog" @update:open="onConfirmDialogUpdateOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>确认</DialogTitle>
+          <DialogDescription>{{ confirmDialogMessage }}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="cancelConfirmDialog">取消</Button>
+          <Button @click="confirmDialogCallback?.()">确认</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Loading } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus, Loader2 } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 import VditorEditor from '@/components/VditorEditor.vue'
@@ -263,13 +278,49 @@ const userStore = useUserStore()
 
 const formRef = ref()
 const submitting = ref(false)
-const loading = ref(true) // 页面加载状态，用于控制VditorEditor的渲染
-const permissionError = ref(false) // 标记是否有权限错误，用于防止渲染VditorEditor
+const loading = ref(true)
+const permissionError = ref(false)
 const quotaUsed = ref(0)
 const activePhotoIndex = ref(0)
-const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
-const originalData = ref(null) // 保存原始数据用于对比
-const isSaved = ref(false) // 标记是否已保存成功，用于跳过路由守卫提示
+const hasUnsavedChanges = ref(false)
+const originalData = ref(null)
+const isSaved = ref(false)
+
+const showConfirmDialog = ref(false)
+const confirmDialogMessage = ref('')
+const confirmDialogCallback = ref(null)
+let _confirmDialogReject = null
+
+const confirmDialog = (message) => {
+  return new Promise((resolve, reject) => {
+    confirmDialogMessage.value = message
+    _confirmDialogReject = reject
+    confirmDialogCallback.value = () => {
+      _confirmDialogReject = null
+      showConfirmDialog.value = false
+      resolve()
+    }
+    showConfirmDialog.value = true
+  })
+}
+
+const onConfirmDialogUpdateOpen = (open) => {
+  showConfirmDialog.value = open
+  if (!open && _confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    rejectFn('cancel')
+  }
+}
+
+const cancelConfirmDialog = () => {
+  if (_confirmDialogReject) {
+    const rejectFn = _confirmDialogReject
+    _confirmDialogReject = null
+    showConfirmDialog.value = false
+    rejectFn('cancel')
+  }
+}
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -338,7 +389,7 @@ const handleTypeChange = () => {
 const handleCoverSuccess = (response) => {
   if (response.code === 0) {
     form.cover = response.data.url
-    ElMessage.success('封面上传成功')
+    toast.success('封面上传成功')
   }
 }
 
@@ -347,11 +398,11 @@ const beforeUpload = (file) => {
   const isLt10M = file.size / 1024 / 1024 < 10
 
   if (!isImage) {
-    ElMessage.error('只能上传图片')
+    toast.error('只能上传图片')
     return false
   }
   if (!isLt10M) {
-    ElMessage.error('图片大小不能超过 10MB')
+    toast.error('图片大小不能超过 10MB')
     return false
   }
   return true
@@ -362,15 +413,15 @@ const beforePhotoUpload = (file) => {
   const isLt20M = file.size / 1024 / 1024 < 20
 
   if (!isImage) {
-    ElMessage.error('只能上传图片')
+    toast.error('只能上传图片')
     return false
   }
   if (!isLt20M) {
-    ElMessage.error('照片大小不能超过 20MB')
+    toast.error('照片大小不能超过 20MB')
     return false
   }
   if (photos.value.length >= photoLimit.value) {
-    ElMessage.warning(`照片数量已达上限（${photoLimit.value}张）`)
+    toast.warning(`照片数量已达上限（${photoLimit.value}张）`)
     return false
   }
   return true
@@ -397,7 +448,7 @@ const handlePhotoSuccess = (response, file) => {
       form.cover = response.data.url
     }
     
-    ElMessage.success('照片上传成功')
+    toast.success('照片上传成功')
   }
 }
 
@@ -487,7 +538,7 @@ const loadWork = async () => {
   if (!isEdit.value) {
     // 创建模式下，检查是否登录
     if (!userStore.isLoggedIn) {
-      ElMessage.warning('请先登录')
+      toast.warning('请先登录')
       router.push('/login')
       return
     }
@@ -499,7 +550,7 @@ const loadWork = async () => {
 
   // 编辑模式下，先检查是否登录
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    toast.warning('请先登录')
     router.push('/login')
     return
   }
@@ -571,15 +622,15 @@ const loadWork = async () => {
     // 处理各种错误情况
     const status = error.response?.status
     if (status === 403) {
-      ElMessage.error('无权限编辑此作品')
+      toast.error('无权限编辑此作品')
     } else if (status === 404) {
-      ElMessage.error('作品不存在')
+      toast.error('作品不存在')
     } else if (status === 401) {
-      ElMessage.error('请先登录')
+      toast.error('请先登录')
       router.push('/login')
       return
     } else {
-      ElMessage.error('加载作品失败')
+      toast.error('加载作品失败')
     }
     
     // 标记为已保存，避免路由守卫拦截
@@ -599,17 +650,17 @@ const handleSubmit = async () => {
     // 验证摄影作品照片数量
     if (form.type === 'photography') {
       if (photos.value.length === 0) {
-        ElMessage.warning('请至少上传1张照片')
+        toast.warning('请至少上传1张照片')
         return
       }
       if (photos.value.length > photoLimit.value) {
-        ElMessage.warning(`照片数量超过限制（最多${photoLimit.value}张）`)
+        toast.warning(`照片数量超过限制（最多${photoLimit.value}张）`)
         return
       }
       
       // 检查配额
       if (!isEdit.value && quotaUsed.value >= 3) {
-        ElMessage.warning('今日摄影作品发布数量已达上限（3个相册/天）')
+        toast.warning('今日摄影作品发布数量已达上限（3个相册/天）')
         return
       }
     }
@@ -645,10 +696,10 @@ const handleSubmit = async () => {
 
       if (isEdit.value) {
         await api.put(`/works/${route.params.id}`, submitData)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await api.post('/works', submitData)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       
       // 清除未保存标记，标记为已保存
@@ -658,7 +709,7 @@ const handleSubmit = async () => {
       
       router.push('/dashboard/works')
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '保存失败')
+      toast.error(error.response?.data?.message || '保存失败')
     } finally {
       submitting.value = false
     }
@@ -669,14 +720,8 @@ const handleSubmit = async () => {
 const handleCancel = async () => {
   if (checkUnsavedChanges()) {
     try {
-      await ElMessageBox.confirm(
-        '您有未保存的更改，确定要离开吗？',
-        '提示',
-        {
-          confirmButtonText: '确定离开',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
+      await confirmDialog(
+        '您有未保存的更改，确定要离开吗？'
       )
       router.back()
     } catch {
@@ -708,14 +753,8 @@ onBeforeRouteLeave((to, from, next) => {
   }
   
   if (checkUnsavedChanges()) {
-    ElMessageBox.confirm(
-      '您有未保存的更改，确定要离开吗？',
-      '提示',
-      {
-        confirmButtonText: '确定离开',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+    confirmDialog(
+      '您有未保存的更改，确定要离开吗？'
     ).then(() => {
       next()
     }).catch(() => {

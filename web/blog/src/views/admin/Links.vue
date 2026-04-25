@@ -66,8 +66,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
 import adminApi from '@/utils/adminApi'
 
 const links = ref([])
@@ -98,7 +98,7 @@ const loadLinks = async () => {
     const response = await adminApi.get('/links')
     links.value = response.data || []
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
@@ -129,15 +129,15 @@ const handleSubmit = async () => {
     try {
       if (isEdit.value) {
         await adminApi.put(`/admin/links/${editingId.value}`, form)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await adminApi.post('/admin/links', form)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       dialogVisible.value = false
       loadLinks()
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       loading.value = false
     }
@@ -146,14 +146,14 @@ const handleSubmit = async () => {
 
 const handleDelete = async (link) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个友链吗？', '提示', { type: 'warning' })
+    if (!confirm('确定要删除这个友链吗？')) return
     await adminApi.delete(`/admin/links/${link.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadLinks()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    toast.error('删除失败')
+  }
+}
   }
 }
 

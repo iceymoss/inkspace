@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 import { useUserStore } from '@/stores/user'
 
 const api = axios.create({
@@ -31,7 +31,7 @@ api.interceptors.response.use(
       return data
     } else {
       // 即使 HTTP 状态码是 200，如果 code 不是 0，也是错误
-      ElMessage.error(data.message || '请求失败')
+      toast.error(data.message || '请求失败')
       return Promise.reject(new Error(data.message || '请求失败'))
     }
   },
@@ -45,25 +45,25 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          ElMessage.error(errorMessage || '未登录或登录已过期')
+          toast.error(errorMessage || '未登录或登录已过期')
           const userStore = useUserStore()
           userStore.logout()
           window.location.href = '/login'
           break
         case 403:
-          ElMessage.error(errorMessage || '没有权限')
+          toast.error(errorMessage || '没有权限')
           break
         case 404:
-          ElMessage.error(errorMessage || '请求的资源不存在')
+          toast.error(errorMessage || '请求的资源不存在')
           break
         case 500:
-          ElMessage.error(errorMessage || '服务器错误')
+          toast.error(errorMessage || '服务器错误')
           break
         default:
-          ElMessage.error(errorMessage || '请求失败')
+          toast.error(errorMessage || '请求失败')
       }
     } else {
-      ElMessage.error('网络错误')
+      toast.error('网络错误')
     }
     return Promise.reject(error)
   }

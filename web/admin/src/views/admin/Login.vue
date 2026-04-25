@@ -1,63 +1,70 @@
 <template>
   <div class="admin-login">
     <div class="login-container">
-      <el-card class="login-card">
-        <div class="login-header">
-          <h1>管理后台登录</h1>
-          <p>Management System</p>
-        </div>
+      <Card class="login-card">
+        <CardContent class="p-6">
+          <div class="login-header">
+            <h1>管理后台登录</h1>
+            <p>Management System</p>
+          </div>
 
-        <el-form
-          ref="formRef"
-          :model="form"
-          :rules="rules"
-          @keyup.enter="handleLogin"
-        >
-          <el-form-item prop="username">
-            <el-input
-              v-model="form.username"
-              placeholder="管理员账号"
-              size="large"
-              prefix-icon="User"
-            />
-          </el-form-item>
+          <form @submit.prevent="handleLogin">
+            <div class="space-y-4">
+              <div class="space-y-2">
+                <div class="relative">
+                  <UserIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    v-model="form.username"
+                    placeholder="管理员账号"
+                    class="pl-9 h-11"
+                  />
+                </div>
+                <p v-if="errors.username" class="text-sm text-destructive">{{ errors.username }}</p>
+              </div>
 
-          <el-form-item prop="password">
-            <el-input
-              v-model="form.password"
-              type="password"
-              placeholder="密码"
-              size="large"
-              prefix-icon="Lock"
-              show-password
-            />
-          </el-form-item>
+              <div class="space-y-2">
+                <div class="relative">
+                  <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    v-model="form.password"
+                    :type="showPassword ? 'text' : 'password'"
+                    placeholder="密码"
+                    class="pl-9 pr-9 h-11"
+                  />
+                  <button
+                    type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    @click="showPassword = !showPassword"
+                  >
+                    <Eye v-if="!showPassword" class="h-4 w-4" />
+                    <EyeOff v-else class="h-4 w-4" />
+                  </button>
+                </div>
+                <p v-if="errors.password" class="text-sm text-destructive">{{ errors.password }}</p>
+              </div>
 
-          <el-form-item>
-            <el-button
-              type="primary"
-              size="large"
-              :loading="loading"
-              @click="handleLogin"
-              class="login-btn"
-            >
-              登录
-            </el-button>
-          </el-form-item>
-        </el-form>
+              <Button
+                type="submit"
+                class="w-full h-11"
+                :disabled="loading"
+              >
+                <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+                登录
+              </Button>
+            </div>
+          </form>
 
-        <div class="login-footer">
-          <el-link type="primary" @click="goToHome">返回首页</el-link>
-        </div>
-      </el-card>
+          <div class="login-footer">
+            <router-link to="/" class="text-primary hover:underline">返回首页</router-link>
+          </div>
+        </CardContent>
+      </Card>
 
       <div class="login-tips">
-        <el-alert
-          title="安全提示"
-          type="warning"
-          :closable="false"
-          description="这是系统管理后台，仅限管理员访问。请妥善保管您的账号密码。"
-        />
+        <Alert>
+          <AlertTitle>安全提示</AlertTitle>
+          <AlertDescription>这是系统管理后台，仅限管理员访问。请妥善保管您的账号密码。</AlertDescription>
+        </Alert>
       </div>
     </div>
   </div>
@@ -66,15 +73,25 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 import { useAdminStore } from '@/stores/admin'
+import { User as UserIcon, Lock, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 const router = useRouter()
 const adminStore = useAdminStore()
-const formRef = ref(null)
 const loading = ref(false)
+const showPassword = ref(false)
 
 const form = reactive({
+  username: '',
+  password: ''
+})
+
+const errors = reactive({
   username: '',
   password: ''
 })
@@ -89,98 +106,81 @@ const rules = {
   ]
 }
 
-const handleLogin = async () => {
-  if (!formRef.value) return
+const validate = () => {
+  errors.username = ''
+  errors.password = ''
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
-
-    loading.value = true
-    try {
-      await adminStore.login(form)
-      ElMessage.success('登录成功')
-      router.push('/')  // 跳转到根路径
-    } catch (error) {
-      ElMessage.error(error.message || '登录失败，请检查账号密码')
-    } finally {
-      loading.value = false
+  for (const rule of rules.username) {
+    if (rule.required && !form.username) {
+      errors.username = rule.message
+      return false
     }
-  })
+  }
+
+  for (const rule of rules.password) {
+    if (rule.required && !form.password) {
+      errors.password = rule.message
+      return false
+    }
+    if (rule.min && form.password.length < rule.min) {
+      errors.password = rule.message
+      return false
+    }
+  }
+
+  return true
 }
 
-const goToHome = () => {
-  router.push('/')
+const handleLogin = async () => {
+  if (!validate()) return
+
+  loading.value = true
+  try {
+    await adminStore.login(form)
+    toast.success('登录成功')
+    router.push('/')
+  } catch (error) {
+    toast.error(error.message || '登录失败，请检查账号密码')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <style scoped>
 .admin-login {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply min-h-screen flex items-center justify-center p-4;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-  padding: var(--spacing-md);
 }
 
 .login-container {
-  width: 100%;
-  max-width: 400px;
+  @apply w-full max-w-[400px];
 }
 
 .login-card {
-  margin-bottom: var(--spacing-md);
-  border-radius: var(--radius-lg);
+  @apply mb-4 rounded-lg;
   box-shadow: var(--shadow-lg);
-  transition: box-shadow var(--transition-base);
 }
 
 .login-header {
-  text-align: center;
-  margin-bottom: var(--spacing-lg);
+  @apply text-center mb-6;
 }
 
 .login-header h1 {
-  margin: 0 0 var(--spacing-sm) 0;
-  font-size: var(--font-size-2xl);
+  @apply m-0 mb-2 text-2xl font-bold;
   color: var(--color-text-primary);
-  font-weight: 700;
 }
 
 .login-header p {
-  margin: 0;
+  @apply m-0 text-sm;
   color: var(--color-text-tertiary);
-  font-size: var(--font-size-sm);
-}
-
-.login-btn {
-  width: 100%;
 }
 
 .login-footer {
-  text-align: center;
-  margin-top: var(--spacing-md);
-}
-
-.login-footer :deep(.el-link) {
-  cursor: pointer;
-  transition: color var(--transition-fast);
+  @apply text-center mt-4;
 }
 
 .login-tips {
-  text-align: center;
-}
-
-:deep(.el-card__body) {
-  padding: var(--spacing-xl);
-}
-
-:deep(.el-form-item) {
-  margin-bottom: var(--spacing-lg);
-}
-
-:deep(.el-alert) {
-  background-color: var(--color-bg-card);
+  @apply text-center;
 }
 </style>
-

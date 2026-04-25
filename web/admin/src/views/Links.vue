@@ -13,7 +13,7 @@
               </el-avatar>
               <h3>{{ link.name }}</h3>
               <p class="link-description">{{ link.description }}</p>
-              <el-icon class="link-icon"><Link /></el-icon>
+              <Link class="link-icon h-4 w-4" />
             </div>
           </el-card>
         </el-col>
@@ -33,8 +33,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Link } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Link } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import api from '@/utils/api'
 
 const links = ref([])
@@ -44,7 +44,7 @@ const loadLinks = async () => {
     const response = await api.get('/links', { params: { status: 1 } })
     links.value = response.data || []
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 

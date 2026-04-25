@@ -122,12 +122,27 @@
         class="mt-20"
       />
     </el-card>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from 'vue-sonner'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import adminApi from '@/utils/adminApi'
 
 const loading = ref(false)
@@ -145,6 +160,34 @@ const pagination = reactive({
   pageSize: 10,
   total: 0
 })
+
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
 
 // 获取用户列表
 const fetchUsers = async () => {
@@ -173,7 +216,7 @@ const fetchUsers = async () => {
     users.value = response.data.list || []
     pagination.total = response.data.total || 0
   } catch (error) {
-    ElMessage.error('获取用户列表失败')
+    toast.error('获取用户列表失败')
   } finally {
     loading.value = false
   }
@@ -201,22 +244,14 @@ const handleToggleStatus = async (row) => {
   const action = newStatus === 1 ? '启用' : '禁用'
   
   try {
-    await ElMessageBox.confirm(
-      `确定要${action}用户 ${row.username} 吗？`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await confirmDialog(`确定要${action}用户 ${row.username} 吗？`, '提示')
 
     await adminApi.put(`/admin/users/${row.id}/status`, { status: newStatus })
-    ElMessage.success(`${action}成功`)
+    toast.success(`${action}成功`)
     fetchUsers()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(`${action}失败`)
+      toast.error(`${action}失败`)
     }
   }
 }
@@ -227,22 +262,14 @@ const handleToggleRole = async (row) => {
   const action = newRole === 'admin' ? '设为管理员' : '取消管理员'
   
   try {
-    await ElMessageBox.confirm(
-      `确定要将用户 ${row.username} ${action}吗？`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await confirmDialog(`确定要将用户 ${row.username} ${action}吗？`, '提示')
 
     await adminApi.put(`/admin/users/${row.id}/role`, { role: newRole })
-    ElMessage.success(`${action}成功`)
+    toast.success(`${action}成功`)
     fetchUsers()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(`${action}失败`)
+      toast.error(`${action}失败`)
     }
   }
 }
@@ -250,22 +277,14 @@ const handleToggleRole = async (row) => {
 // 删除用户
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除用户 ${row.username} 吗？此操作不可恢复！`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    )
+    await confirmDialog(`确定要删除用户 ${row.username} 吗？此操作不可恢复！`, '警告')
 
     await adminApi.delete(`/admin/users/${row.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     fetchUsers()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

@@ -2,7 +2,7 @@
   <div class="tags">
     <div class="header">
       <h2>标签管理</h2>
-      <el-button type="primary" @click="showDialog()"><el-icon><Plus /></el-icon> 新建标签</el-button>
+      <el-button type="primary" @click="showDialog()"><Plus class="h-4 w-4" /> 新建标签</el-button>
     </div>
 
     <div class="filter-bar">
@@ -114,13 +114,28 @@
         <el-button type="primary" @click="handleSubmit" :loading="loading">保存</el-button>
       </template>
     </el-dialog>
+
+    <Dialog v-model:open="confirmDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ confirmDialogConfig.title }}</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">{{ confirmDialogConfig.message }}</p>
+        <DialogFooter>
+          <Button variant="outline" @click="handleConfirmCancel">取消</Button>
+          <Button variant="destructive" @click="handleConfirmOk">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 
@@ -130,6 +145,34 @@ const formRef = ref()
 const loading = ref(false)
 const tableLoading = ref(false)
 const editingId = ref(null)
+
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = reactive({
+  title: '提示',
+  message: '',
+  onConfirm: null,
+  onCancel: null,
+})
+
+const confirmDialog = (message, title = '提示') => {
+  return new Promise((resolve, reject) => {
+    confirmDialogConfig.title = title
+    confirmDialogConfig.message = message
+    confirmDialogConfig.onConfirm = resolve
+    confirmDialogConfig.onCancel = () => reject('cancel')
+    confirmDialogVisible.value = true
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onConfirm?.()
+}
+
+const handleConfirmCancel = () => {
+  confirmDialogVisible.value = false
+  confirmDialogConfig.onCancel?.()
+}
 
 const currentPage = ref(1)
 const pageSize = ref(20)
@@ -196,7 +239,7 @@ const loadTags = async () => {
     tags.value = response.data?.list || []
     total.value = response.data?.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   } finally {
     tableLoading.value = false
   }
@@ -232,15 +275,15 @@ const handleSubmit = async () => {
     try {
       if (isEdit.value) {
         await adminApi.put(`/admin/tags/${editingId.value}`, form)
-        ElMessage.success('更新成功')
+        toast.success('更新成功')
       } else {
         await adminApi.post('/admin/tags', form)
-        ElMessage.success('创建成功')
+        toast.success('创建成功')
       }
       dialogVisible.value = false
       loadTags()
     } catch (error) {
-      ElMessage.error('保存失败')
+      toast.error('保存失败')
     } finally {
       loading.value = false
     }
@@ -249,13 +292,13 @@ const handleSubmit = async () => {
 
 const handleDelete = async (tag) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个标签吗？', '提示', { type: 'warning' })
+    await confirmDialog('确定要删除这个标签吗？', '提示')
     await adminApi.delete(`/admin/tags/${tag.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadTags()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      toast.error('删除失败')
     }
   }
 }

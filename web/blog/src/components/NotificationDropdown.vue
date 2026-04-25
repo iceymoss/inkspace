@@ -1,56 +1,67 @@
 <template>
-  <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge">
-    <el-dropdown @command="handleCommand" trigger="click">
-      <el-button text circle>
-        <el-icon :size="20"><Bell /></el-icon>
-      </el-button>
-      <template #dropdown>
-        <el-dropdown-menu class="notification-dropdown">
-          <div class="dropdown-header">
-            <span>通知</span>
-            <el-link type="primary" @click="$router.push('/dashboard/notifications')">
-              查看全部
-            </el-link>
-          </div>
-          
-          <div class="notifications-preview">
-            <div 
-              v-for="notification in recentNotifications" 
-              :key="notification.id"
-              class="notification-item"
-              :class="{ unread: !notification.is_read }"
-              @click="handleNotificationClick(notification)"
-            >
-              <el-avatar :size="32" :src="notification.from_user?.avatar" />
-              <div class="notification-content">
-                <div class="notification-text">
-                  <span class="from-user">
-                    {{ notification.from_user?.nickname || notification.from_user?.username }}
-                  </span>
-                  {{ notification.content }}
-                </div>
-                <div class="notification-time">
-                  {{ formatDate(notification.created_at) }}
-                </div>
+  <div class="relative mr-4">
+    <DropdownMenu>
+      <DropdownMenuTrigger>
+        <Button variant="ghost" size="icon" class="rounded-full">
+          <Bell class="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" class="w-[360px] p-0">
+        <div class="dropdown-header">
+          <span>通知</span>
+          <button class="text-primary hover:underline text-sm cursor-pointer" @click="$router.push('/dashboard/notifications')">
+            查看全部
+          </button>
+        </div>
+
+        <div class="notifications-preview">
+          <div
+            v-for="notification in recentNotifications"
+            :key="notification.id"
+            class="notification-item"
+            :class="{ unread: !notification.is_read }"
+            @click="handleNotificationClick(notification)"
+          >
+            <Avatar class="h-8 w-8">
+              <AvatarImage :src="notification.from_user?.avatar" />
+              <AvatarFallback />
+            </Avatar>
+            <div class="notification-content">
+              <div class="notification-text">
+                <span class="from-user">
+                  {{ notification.from_user?.nickname || notification.from_user?.username }}
+                </span>
+                {{ notification.content }}
+              </div>
+              <div class="notification-time">
+                {{ formatDate(notification.created_at) }}
               </div>
             </div>
-            
-            <el-empty 
-              v-if="recentNotifications.length === 0" 
-              description="暂无通知" 
-              :image-size="60"
-            />
           </div>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-  </el-badge>
+
+          <EmptyState
+            v-if="recentNotifications.length === 0"
+            description="暂无通知"
+            class="py-6"
+          />
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+    <Badge v-if="unreadCount > 0" class="absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center px-1">
+      {{ unreadCount }}
+    </Badge>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell } from '@element-plus/icons-vue'
+import { Bell } from 'lucide-vue-next'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { EmptyState } from '@/components/ui/empty-state'
 import api from '@/utils/api'
 
 const router = useRouter()
@@ -82,7 +93,6 @@ const loadRecentNotifications = async () => {
 }
 
 const handleNotificationClick = async (notification) => {
-  // 标记为已读
   if (!notification.is_read) {
     try {
       await api.put(`/notifications/${notification.id}/read`)
@@ -93,9 +103,7 @@ const handleNotificationClick = async (notification) => {
     }
   }
 
-  // 跳转到相关内容
   if (notification.type === 'follow' && notification.from_user_id) {
-    // 关注通知：跳转到关注者的个人主页
     router.push(`/users/${notification.from_user_id}`)
   } else if (notification.article_id) {
     router.push(`/blog/${notification.article_id}`)
@@ -109,16 +117,15 @@ const formatDate = (date) => {
   const d = new Date(date)
   const now = new Date()
   const diff = now - d
-  
+
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
   if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`
-  
+
   return d.toLocaleDateString('zh-CN')
 }
 
-// 每30秒刷新一次
 setInterval(() => {
   loadUnreadCount()
   loadRecentNotifications()
@@ -131,15 +138,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.notification-badge {
-  margin-right: var(--spacing-md);
-}
-
-.notification-dropdown {
-  width: 360px;
-  max-height: 500px;
-}
-
 .dropdown-header {
   display: flex;
   justify-content: space-between;

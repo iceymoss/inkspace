@@ -55,7 +55,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from 'vue-sonner'
 import adminApi from '@/utils/adminApi'
 import dayjs from 'dayjs'
 
@@ -77,30 +77,30 @@ const loadComments = async () => {
     comments.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
-    ElMessage.error('加载失败')
+    toast.error('加载失败')
   }
 }
 
 const approve = async (comment) => {
   try {
     await adminApi.put(`/admin/comments/${comment.id}/status`, { status: 1 })
-    ElMessage.success('已通过')
+    toast.success('已通过')
     loadComments()
   } catch (error) {
-    ElMessage.error('操作失败')
+    toast.error('操作失败')
   }
 }
 
 const handleDelete = async (comment) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' })
+    if (!confirm('确定要删除这条评论吗？')) return
     await adminApi.delete(`/comments/${comment.id}`)
-    ElMessage.success('删除成功')
+    toast.success('删除成功')
     loadComments()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
+    toast.error('删除失败')
+  }
+}
   }
 }
 
