@@ -7,6 +7,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const currentWorkspace = ref(null)
   const catalogs = ref([])
   const docs = ref([])
+  const treeDocs = ref([])
   const loading = ref(false)
 
   const workspaceCount = computed(() => workspaces.value.length)
@@ -78,11 +79,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function fetchDocs(workspaceId, catalogId = null) {
     const response = await api.get(`/workspaces/${workspaceId}/docs`, {
-      params: catalogId === null ? {} : { catalog_id: catalogId }
+      params: { catalog_id: catalogId === null ? 0 : catalogId }
     })
-    const list = Array.isArray(response.data) ? response.data : response.data?.list || []
-    docs.value = catalogId === null ? list.filter(item => item.catalog_id == null) : list
+    docs.value = Array.isArray(response.data) ? response.data : response.data?.list || []
     return docs.value
+  }
+
+  async function fetchTreeDocs(workspaceId) {
+    const response = await api.get(`/workspaces/${workspaceId}/docs`)
+    treeDocs.value = Array.isArray(response.data) ? response.data : response.data?.list || []
+    return treeDocs.value
   }
 
   async function searchDocs(workspaceId, query) {
@@ -109,6 +115,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     currentWorkspace.value = null
     catalogs.value = []
     docs.value = []
+    treeDocs.value = []
   }
 
   return {
@@ -116,6 +123,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     currentWorkspace,
     catalogs,
     docs,
+    treeDocs,
     loading,
     workspaceCount,
     fetchWorkspaces,
@@ -129,6 +137,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     deleteCatalog,
     moveCatalog,
     fetchDocs,
+    fetchTreeDocs,
     searchDocs,
     createDoc,
     deleteDoc,

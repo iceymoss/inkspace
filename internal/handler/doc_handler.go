@@ -133,6 +133,24 @@ func (h *DocHandler) Publish(c *gin.Context) {
 	utils.Success(c, doc.ToResponse())
 }
 
+func (h *DocHandler) PublishToBlog(c *gin.Context) {
+	id, userID, ok := docAndUser(c)
+	if !ok {
+		return
+	}
+	var req models.DocPublishToBlogRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	article, err := h.service.PublishToBlog(id, userID, &req)
+	if err != nil {
+		knowledgeError(c, err)
+		return
+	}
+	utils.Success(c, article.ToResponse())
+}
+
 func (h *DocHandler) Delete(c *gin.Context) {
 	id, userID, ok := docAndUser(c)
 	if !ok {

@@ -93,17 +93,30 @@ func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models
 }
 
 func (s *DocService) Autosave(id, ownerID uint, req *models.DocAutosaveRequest) (*models.Doc, error) {
-	result := database.DB.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", id, ownerID).
-		Updates(map[string]interface{}{"content": req.Content, "word_count": countWords(req.Content)})
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	if result.RowsAffected == 0 {
-		if _, err := s.get(id, ownerID, database.DB); err != nil {
-			return nil, err
+	var doc models.Doc
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, ownerID).First(&doc).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrKnowledgeNotFound
+			}
+			return err
 		}
+		if doc.Content == req.Content {
+			return nil
+		}
+		doc.Content = req.Content
+		doc.WordCount = countWords(req.Content)
+		if err := tx.Model(&doc).Updates(map[string]interface{}{
+			"content": doc.Content, "word_count": doc.WordCount,
+		}).Error; err != nil {
+			return err
+		}
+		return createDocVersion(tx, &doc, "自动保存")
+	})
+	if err != nil {
+		return nil, err
 	}
-	return s.get(id, ownerID, database.DB)
+	return s.get(doc.ID, ownerID, database.DB)
 }
 
 func (s *DocService) Publish(id, ownerID uint, status int) (*models.Doc, error) {
@@ -136,6 +149,50 @@ func (s *DocService) Publish(id, ownerID uint, status int) (*models.Doc, error) 
 		return nil, err
 	}
 	return s.get(id, ownerID, database.DB)
+}
+
+func (s *DocService) PublishToBlog(id, ownerID uint, req *models.DocPublishToBlogRequest) (*models.Article, error) {
+	doc, err := s.get(id, ownerID, database.DB)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(doc.Title) == "" || strings.TrimSpace(doc.Content) == "" {
+		return nil, ErrKnowledgeInvalid
+	}
+	var categoryCount int64
+	if err := database.DB.Model(&models.Category{}).Where("id = ?", req.CategoryID).Count(&categoryCount).Error; err != nil {
+		return nil, err
+	}
+	if categoryCount == 0 {
+		return nil, ErrKnowledgeInvalid
+	}
+
+	articleReq := &models.ArticleRequest{
+		Title: doc.Title, Content: doc.Content, Summary: req.Summary, Cover: req.Cover,
+		CategoryID: req.CategoryID, TagIDs: req.TagIDs, Status: 1,
+	}
+	articleService := NewArticleService()
+	if doc.ArticleID != nil {
+		var count int64
+		if err := database.DB.Model(&models.Article{}).
+			Where("id = ? AND author_id = ?", *doc.ArticleID, ownerID).Count(&count).Error; err != nil {
+			return nil, err
+		}
+		if count > 0 {
+			return articleService.Update(*doc.ArticleID, articleReq, ownerID, "user")
+		}
+	}
+
+	article, err := articleService.Create(articleReq, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	if err := database.DB.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", id, ownerID).
+		Update("article_id", article.ID).Error; err != nil {
+		_ = articleService.Delete(article.ID, ownerID, "user")
+		return nil, err
+	}
+	return article, nil
 }
 
 func (s *DocService) Delete(id, ownerID uint) error {
@@ -251,7 +308,7 @@ func (s *DocService) Search(workspaceID, ownerID uint, keyword string) ([]*model
 	result := make([]*models.DocSearchResponse, 0, len(docs))
 	for i := range docs {
 		result = append(result, &models.DocSearchResponse{
-			ID: docs[i].ID, CatalogID: docs[i].CatalogID, Title: docs[i].Title,
+			ID: docs[i].ID, CatalogID: docs[i].CatalogID, ArticleID: docs[i].ArticleID, Title: docs[i].Title,
 			Summary: contentSummary(docs[i].Content, keyword), Status: docs[i].Status,
 			WordCount: docs[i].WordCount, UpdatedAt: docs[i].UpdatedAt,
 		})

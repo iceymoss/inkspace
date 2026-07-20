@@ -15,6 +15,7 @@ type Doc struct {
 	ID          uint           `gorm:"primarykey" json:"id"`
 	WorkspaceID uint           `gorm:"index;not null" json:"workspace_id"`
 	CatalogID   *uint          `gorm:"index" json:"catalog_id"`
+	ArticleID   *uint          `gorm:"index" json:"article_id"`
 	OwnerID     uint           `gorm:"index;not null" json:"owner_id"`
 	Title       string         `gorm:"size:200;not null" json:"title"`
 	Content     string         `gorm:"type:longtext" json:"content"`
@@ -55,6 +56,13 @@ type DocPublishRequest struct {
 	Status *int `json:"status" binding:"omitempty,oneof=0 1"`
 }
 
+type DocPublishToBlogRequest struct {
+	CategoryID uint   `json:"category_id" binding:"required"`
+	TagIDs     []uint `json:"tag_ids"`
+	Summary    string `json:"summary" binding:"max=500"`
+	Cover      string `json:"cover" binding:"max=255"`
+}
+
 type DocListQuery struct {
 	CatalogID *uint `form:"catalog_id"`
 }
@@ -63,6 +71,7 @@ type DocResponse struct {
 	ID          uint       `json:"id"`
 	WorkspaceID uint       `json:"workspace_id"`
 	CatalogID   *uint      `json:"catalog_id"`
+	ArticleID   *uint      `json:"article_id"`
 	Title       string     `json:"title"`
 	Summary     string     `json:"summary,omitempty"`
 	Content     string     `json:"content"`
@@ -79,6 +88,7 @@ type DocResponse struct {
 type DocSearchResponse struct {
 	ID        uint      `json:"id"`
 	CatalogID *uint     `json:"catalog_id"`
+	ArticleID *uint     `json:"article_id"`
 	Title     string    `json:"title"`
 	Summary   string    `json:"summary"`
 	Status    int       `json:"status"`
@@ -88,7 +98,7 @@ type DocSearchResponse struct {
 
 func (d *Doc) ToResponse() *DocResponse {
 	return &DocResponse{
-		ID: d.ID, WorkspaceID: d.WorkspaceID, CatalogID: d.CatalogID, Title: d.Title,
+		ID: d.ID, WorkspaceID: d.WorkspaceID, CatalogID: d.CatalogID, ArticleID: d.ArticleID, Title: d.Title,
 		Content: d.Content, ContentHTML: d.ContentHTML, Status: d.Status, WordCount: d.WordCount,
 		ViewCount: d.ViewCount, Sort: d.Sort, PublishedAt: d.PublishedAt,
 		CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt,

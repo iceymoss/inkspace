@@ -2,7 +2,7 @@
   <section class="workspace-page">
     <header class="page-header">
       <div>
-        <p class="eyebrow">PRIVATE LIBRARY</p>
+        <p class="eyebrow">个人知识空间</p>
         <h1>我的知识库</h1>
         <p class="subtitle">把灵感、资料和长期项目整理成独立空间。</p>
       </div>
@@ -16,25 +16,38 @@
         v-for="workspace in store.workspaces"
         :key="workspace.id"
         class="workspace-card"
+        role="link"
+        tabindex="0"
         @click="openWorkspace(workspace.id)"
+        @keyup.enter="openWorkspace(workspace.id)"
+        @keyup.space.prevent="openWorkspace(workspace.id)"
       >
-        <div class="card-top">
-          <span class="workspace-icon">{{ workspace.icon || '知' }}</span>
-          <el-dropdown trigger="click" @command="command => handleCommand(command, workspace)" @click.stop>
-            <el-button text circle aria-label="空间操作"><el-icon><MoreFilled /></el-icon></el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="edit">编辑空间</el-dropdown-item>
-                <el-dropdown-item command="delete" divided>删除空间</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+        <div class="workspace-cover">
+          <img v-if="isCoverImage(workspace.icon)" :src="workspace.icon" :alt="`${workspace.name}封面`" />
+          <div v-else class="cover-placeholder" aria-hidden="true">
+            <span>{{ workspace.icon || workspace.name?.slice(0, 1) || '知' }}</span>
+            <small>INKSPACE</small>
+          </div>
         </div>
-        <h2>{{ workspace.name }}</h2>
+        <div class="card-top">
+          <h2>{{ workspace.name }}</h2>
+          <span class="workspace-actions" @click.stop @keydown.stop>
+            <el-dropdown trigger="click" @command="command => handleCommand(command, workspace)">
+              <el-button text circle aria-label="空间操作"><el-icon><MoreFilled /></el-icon></el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="edit">编辑空间</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided>删除空间</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </span>
+        </div>
         <p>{{ workspace.description || '还没有简介，进入空间开始记录吧。' }}</p>
         <footer>
-          <span>{{ workspace.doc_count || 0 }} 篇文档</span>
+          <span class="doc-count"><strong>{{ workspace.doc_count || 0 }}</strong> 篇文档</span>
           <span>更新于 {{ formatDate(workspace.updated_at) }}</span>
+          <el-icon class="enter-icon"><ArrowRight /></el-icon>
         </footer>
       </article>
     </div>
@@ -51,8 +64,19 @@
         <el-form-item label="简介">
           <el-input v-model="form.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
         </el-form-item>
-        <el-form-item label="图标">
-          <el-input v-model="form.icon" maxlength="20" placeholder="可输入一个 emoji 或文字" />
+        <el-form-item label="空间封面">
+          <div class="cover-field">
+            <ImageCropUpload
+              v-model="form.icon"
+              preview-size="100%"
+              placeholder="上传封面图片"
+              tip="支持最高 50MB 原图，将自动裁剪并压缩后上传"
+              :max-size="5"
+              :source-max-size="50"
+              :aspect-ratio="16 / 9"
+            />
+            <el-button v-if="form.icon" text type="danger" @click="form.icon = ''">移除封面</el-button>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -68,8 +92,9 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MoreFilled, Plus } from '@element-plus/icons-vue'
+import { ArrowRight, MoreFilled, Plus } from '@element-plus/icons-vue'
 import { useWorkspaceStore } from '@/stores/workspace'
+import ImageCropUpload from '@/components/ImageCropUpload.vue'
 
 const router = useRouter()
 const store = useWorkspaceStore()
@@ -81,6 +106,7 @@ const form = reactive({ name: '', description: '', icon: '', sort: 0 })
 const rules = { name: [{ required: true, message: '请输入空间名称', trigger: 'blur' }] }
 
 const formatDate = value => value ? dayjs(value).format('YYYY-MM-DD') : '刚刚'
+const isCoverImage = value => /^(https?:\/\/|\/uploads\/)/.test(value || '')
 const openWorkspace = id => router.push(`/dashboard/workspaces/${id}`)
 
 function openCreate() {
@@ -94,7 +120,7 @@ function openEdit(workspace) {
   Object.assign(form, {
     name: workspace.name,
     description: workspace.description || '',
-    icon: workspace.icon || '',
+    icon: isCoverImage(workspace.icon) ? workspace.icon : '',
     sort: workspace.sort || 0
   })
   dialogVisible.value = true
@@ -118,11 +144,15 @@ async function submitWorkspace() {
 
 async function handleCommand(command, workspace) {
   if (command === 'edit') return openEdit(workspace)
-  await ElMessageBox.confirm(
-    `删除“${workspace.name}”后，其中的目录和文档也会被删除。此操作不可恢复，是否继续？`,
-    '删除工作空间',
-    { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' }
-  )
+  try {
+    await ElMessageBox.confirm(
+      `删除“${workspace.name}”后，其中的目录和文档也会被删除。此操作不可恢复，是否继续？`,
+      '删除工作空间',
+      { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
   await store.deleteWorkspace(workspace.id)
   ElMessage.success('工作空间已删除')
 }
@@ -137,12 +167,30 @@ onMounted(() => store.fetchWorkspaces())
 h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); }
 .subtitle { margin: 6px 0 0; color: var(--theme-text-tertiary); }
 .workspace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; min-height: 120px; }
-.workspace-card { min-height: 210px; padding: 22px; background: var(--theme-bg-card); border: 1px solid var(--theme-border); border-radius: 14px; box-shadow: 0 8px 30px var(--theme-shadow); cursor: pointer; transition: transform .2s, border-color .2s; }
-.workspace-card:hover { transform: translateY(-3px); border-color: var(--theme-primary); }
-.card-top { display: flex; justify-content: space-between; align-items: center; }
-.workspace-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 13px; background: color-mix(in srgb, var(--theme-primary) 14%, var(--theme-bg-card)); color: var(--theme-primary); font-size: 22px; font-weight: 700; }
-.workspace-card h2 { margin: 20px 0 7px; font-size: 20px; }
-.workspace-card p { height: 48px; margin: 0; color: var(--theme-text-tertiary); line-height: 1.7; overflow: hidden; }
-.workspace-card footer { display: flex; justify-content: space-between; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--theme-border-light); color: var(--theme-text-tertiary); font-size: 12px; }
+.workspace-card { position: relative; min-height: 310px; padding: 0 22px 22px; overflow: hidden; background: var(--theme-bg-card); border: 1px solid var(--theme-border); border-radius: 14px; box-shadow: 0 8px 30px var(--theme-shadow); cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s; }
+.workspace-card::before { position: absolute; inset: 0 0 auto; height: 3px; background: var(--theme-primary); content: ''; opacity: 0; transform: scaleX(.45); transition: opacity .2s, transform .2s; }
+.workspace-card:hover, .workspace-card:focus-visible { transform: translateY(-3px); border-color: color-mix(in srgb, var(--theme-primary) 60%, var(--theme-border)); box-shadow: 0 14px 36px var(--theme-shadow); outline: none; }
+.workspace-card:hover::before, .workspace-card:focus-visible::before { opacity: 1; transform: scaleX(1); }
+.workspace-cover { height: 142px; margin: 0 -22px; overflow: hidden; background: color-mix(in srgb, var(--theme-primary) 8%, var(--theme-bg-secondary)); }
+.workspace-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.workspace-card:hover .workspace-cover img { transform: scale(1.035); }
+.cover-placeholder { display: flex; align-items: flex-end; justify-content: space-between; height: 100%; padding: 20px 22px; background: linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 82%, #18243a), color-mix(in srgb, var(--theme-primary) 30%, var(--theme-bg-secondary))); color: #fff; }
+.cover-placeholder span { font-size: 44px; font-weight: 700; line-height: 1; opacity: .94; }
+.cover-placeholder small { font-size: 10px; font-weight: 700; letter-spacing: 2px; opacity: .7; }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 18px; }
+.workspace-actions { flex: none; }
+.workspace-card h2 { min-width: 0; margin: 0; overflow: hidden; font-size: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-card p { height: 48px; margin: 7px 0 0; color: var(--theme-text-tertiary); line-height: 1.7; overflow: hidden; }
+.workspace-card footer { display: flex; align-items: center; gap: 12px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--theme-border-light); color: var(--theme-text-tertiary); font-size: 12px; }
+.workspace-card footer > span:nth-child(2) { margin-left: auto; }
+.doc-count strong { color: var(--theme-text-primary); font-size: 15px; }
+.enter-icon { color: var(--theme-primary); opacity: 0; transform: translateX(-5px); transition: opacity .2s, transform .2s; }
+.workspace-card:hover .enter-icon, .workspace-card:focus-visible .enter-icon { opacity: 1; transform: translateX(0); }
+.cover-field { width: 100%; }
+.cover-field > .el-button { margin-top: 4px; padding-left: 0; }
+.cover-field :deep(.image-crop-upload), .cover-field :deep(.upload-area) { width: 100%; }
+.cover-field :deep(.upload-area) { min-height: 150px; border-color: var(--theme-border); border-radius: 10px; }
+.cover-field :deep(.preview-image), .cover-field :deep(.preview-image img) { width: 100%; height: 150px; max-height: 150px !important; object-fit: cover; }
+.cover-field :deep(.upload-placeholder) { width: 100% !important; min-height: 150px !important; background: var(--theme-bg-secondary); }
 @media (max-width: 640px) { .page-header { align-items: stretch; flex-direction: column; } .page-header .el-button { width: 100%; } .workspace-grid { grid-template-columns: 1fr; } }
 </style>

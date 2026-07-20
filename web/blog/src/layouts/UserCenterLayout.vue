@@ -212,13 +212,32 @@ const handleCommand = (command) => {
 <style scoped>
 .user-center-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--theme-bg-secondary);
 }
 
+.user-center-layout > .el-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: stretch;
+}
+
+.user-center-layout > .el-container > .el-container {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
   background-color: var(--theme-bg-card);
   box-shadow: 2px 0 8px var(--theme-shadow);
   border-right: 1px solid var(--theme-border);
+  overflow: hidden;
 }
 
 .logo {
@@ -266,8 +285,12 @@ const handleCommand = (command) => {
 }
 
 .menu {
+  height: calc(100vh - 60px);
+  height: calc(100dvh - 60px);
   border-right: none;
   background-color: var(--theme-bg-card);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .header {
@@ -322,6 +345,8 @@ const handleCommand = (command) => {
 @media (max-width: 768px) {
   .sidebar {
     width: 64px !important;
+    height: 100vh;
+    height: 100dvh;
   }
 
   .logo a {
@@ -363,4 +388,3 @@ const handleCommand = (command) => {
   }
 }
 </style>
-

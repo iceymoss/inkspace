@@ -195,6 +195,7 @@ func SetupUserRouter() *gin.Engine {
 			protected.PUT("/docs/:id", docHandler.Save)
 			protected.PUT("/docs/:id/autosave", docHandler.Autosave)
 			protected.POST("/docs/:id/publish", docHandler.Publish)
+			protected.POST("/docs/:id/publish-to-blog", docHandler.PublishToBlog)
 			protected.DELETE("/docs/:id", docHandler.Delete)
 			protected.PUT("/docs/:id/move", docHandler.Move)
 			protected.GET("/docs/:id/versions", docHandler.Versions)
