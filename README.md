@@ -20,6 +20,7 @@
 ### 核心功能
 - ✅ **用户系统** - 注册登录、个人主页、用户关注/粉丝系统、个人资料管理
 - ✅ **内容管理** - Markdown 编辑器、文章发布编辑、分类标签管理、作品展示（开源项目/摄影作品）
+- ✅ **私有知识库** - 多工作区、树形目录、文档版本与分享，并支持将知识库文档同步发布到博客
 - ✅ **社交互动** - 评论系统（支持回复）、点赞、收藏、实时通知、用户关注
 - ✅ **内容发现** - 热门文章排名、推荐文章/作品、分类浏览、标签筛选、搜索功能
 - ✅ **作品展示** - 支持开源项目和摄影作品两种类型，摄影作品支持相册管理和EXIF信息
@@ -74,6 +75,22 @@
     <td width="50%">
       <img src="docs/introduce/admin.png" alt="管理后台" />
       <br/><p align="center"><b>管理后台 - 内容与系统管理</b></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/introduce/knowledge-base-list.png" alt="知识库列表" />
+      <br/><p align="center"><b>知识库列表 - 多工作区内容管理</b></p>
+    </td>
+    <td width="50%">
+      <img src="docs/introduce/workspace-detail.png" alt="工作区详情" />
+      <br/><p align="center"><b>工作区详情 - 目录与文档知识树</b></p>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/introduce/workspace-doc-blog-sync.png" alt="工作区文档同步到博客" />
+      <br/><p align="center"><b>文档编辑 - 版本管理与博客同步发布</b></p>
     </td>
   </tr>
 </table>
