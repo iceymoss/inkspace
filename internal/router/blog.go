@@ -29,6 +29,10 @@ func SetupUserRouter() *gin.Engine {
 	notificationHandler := handler.NewNotificationHandler()
 	uploadHandler := handler.NewUploadHandler()
 	adHandler := handler.NewAdHandler()
+	workspaceHandler := handler.NewWorkspaceHandler()
+	catalogHandler := handler.NewCatalogHandler()
+	docHandler := handler.NewDocHandler()
+	shareHandler := handler.NewShareHandler()
 
 	// API routes
 	api := r.Group("/api")
@@ -39,6 +43,7 @@ func SetupUserRouter() *gin.Engine {
 			// Authentication
 			public.POST("/register", userHandler.Register)
 			public.POST("/login", userHandler.Login)
+			public.GET("/share/:token", shareHandler.Public)
 
 			// Articles (public read)
 			public.GET("/articles", articleHandler.GetList)
@@ -172,6 +177,34 @@ func SetupUserRouter() *gin.Engine {
 			protected.PUT("/notifications/read-all", notificationHandler.MarkAllAsRead)
 			protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
 			protected.DELETE("/notifications/read-all", notificationHandler.DeleteAllRead)
+
+			// Private knowledge base
+			protected.POST("/workspaces", workspaceHandler.Create)
+			protected.GET("/workspaces", workspaceHandler.List)
+			protected.GET("/workspaces/:id", workspaceHandler.Get)
+			protected.PUT("/workspaces/:id", workspaceHandler.Update)
+			protected.DELETE("/workspaces/:id", workspaceHandler.Delete)
+			protected.POST("/workspaces/:id/catalogs", catalogHandler.Create)
+			protected.GET("/workspaces/:id/catalogs", catalogHandler.Tree)
+			protected.PUT("/catalogs/:id", catalogHandler.Update)
+			protected.DELETE("/catalogs/:id", catalogHandler.Delete)
+			protected.PUT("/catalogs/:id/move", catalogHandler.Move)
+			protected.POST("/docs", docHandler.Create)
+			protected.GET("/workspaces/:id/docs", docHandler.List)
+			protected.GET("/docs/:id/edit", docHandler.GetEdit)
+			protected.PUT("/docs/:id", docHandler.Save)
+			protected.PUT("/docs/:id/autosave", docHandler.Autosave)
+			protected.POST("/docs/:id/publish", docHandler.Publish)
+			protected.DELETE("/docs/:id", docHandler.Delete)
+			protected.PUT("/docs/:id/move", docHandler.Move)
+			protected.GET("/docs/:id/versions", docHandler.Versions)
+			protected.GET("/docs/:id/versions/:version", docHandler.Version)
+			protected.POST("/docs/:id/versions/:version/rollback", docHandler.Rollback)
+			protected.GET("/workspaces/:id/search", docHandler.Search)
+			protected.POST("/docs/:id/shares", shareHandler.Create)
+			protected.GET("/docs/:id/shares", shareHandler.List)
+			protected.PUT("/shares/:id", shareHandler.Update)
+			protected.DELETE("/shares/:id", shareHandler.Delete)
 		}
 	}
 

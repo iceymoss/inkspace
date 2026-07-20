@@ -57,6 +57,10 @@
               <el-icon><Picture /></el-icon>
               我的作品
             </el-button>
+            <el-button @click="$router.push('/dashboard/workspaces')">
+              <el-icon><Reading /></el-icon>
+              我的知识库
+            </el-button>
             <el-button @click="$router.push('/dashboard/comments')">
               <el-icon><ChatDotRound /></el-icon>
               我的评论
@@ -151,7 +155,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Document, Picture, ChatDotRound, Star, Bell, Setting, View } from '@element-plus/icons-vue'
+import { Document, Picture, ChatDotRound, Star, Bell, Setting, View, Reading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 

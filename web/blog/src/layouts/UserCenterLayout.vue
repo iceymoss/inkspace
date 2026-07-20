@@ -18,6 +18,10 @@
             <el-icon><Document /></el-icon>
             <span>我的文章</span>
           </el-menu-item>
+          <el-menu-item index="/dashboard/workspaces">
+            <el-icon><Reading /></el-icon>
+            <span>我的知识库</span>
+          </el-menu-item>
           <el-menu-item index="/dashboard/works">
             <el-icon><Picture /></el-icon>
             <span>我的作品</span>
@@ -92,7 +96,8 @@ import {
   Bell,
   User,
   SwitchButton,
-  ChatDotRound
+  ChatDotRound,
+  Reading
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -138,13 +143,19 @@ onUnmounted(() => {
   }
 })
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  if (route.path.startsWith('/dashboard/workspaces') || route.path.startsWith('/dashboard/docs/')) {
+    return '/dashboard/workspaces'
+  }
+  return route.path
+})
 
 const breadcrumbTitle = computed(() => {
   const titles = {
     '/dashboard': '我的主页',
     '/dashboard/articles': '我的文章',
     '/dashboard/articles/create': '写文章',
+    '/dashboard/workspaces': '我的知识库',
     '/dashboard/works': '我的作品',
     '/dashboard/works/create': '创建作品',
     '/dashboard/comments': '我的评论',
@@ -159,6 +170,12 @@ const breadcrumbTitle = computed(() => {
   // 检查作品编辑路径
   if (route.path.includes('/dashboard/works/') && route.path.includes('/edit')) {
     return '编辑作品'
+  }
+  if (route.path.startsWith('/dashboard/workspaces/')) {
+    return '知识库空间'
+  }
+  if (route.path.startsWith('/dashboard/docs/')) {
+    return '编辑知识库文档'
   }
   return titles[route.path] || '用户中心'
 })
@@ -300,6 +317,50 @@ const handleCommand = (command) => {
 :deep(.el-menu-item .notification-badge .el-badge__content) {
   position: static;
   transform: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 64px !important;
+  }
+
+  .logo a {
+    width: 38px;
+    overflow: hidden;
+    font-size: 0;
+    letter-spacing: 0;
+  }
+
+  .logo a::after {
+    content: 'Ink';
+    font-size: 17px;
+  }
+
+  :deep(.el-menu-item) {
+    justify-content: center;
+    padding: 0 !important;
+  }
+
+  :deep(.el-menu-item span) {
+    display: none;
+  }
+
+  .header {
+    padding: 0 10px;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .header-actions > .el-button,
+  .user-info > span {
+    display: none;
+  }
+
+  .main {
+    padding: 12px 10px;
+  }
 }
 </style>
 
