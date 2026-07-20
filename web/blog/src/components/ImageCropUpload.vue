@@ -100,6 +100,10 @@ const props = defineProps({
     type: Number,
     default: 5 // MB
   },
+  sourceMaxSize: {
+    type: Number,
+    default: 0 // 0 表示与 maxSize 一致
+  },
   aspectRatio: {
     type: Number,
     default: NaN // NaN 表示不限制比例，自由裁切
@@ -129,9 +133,9 @@ const handleFileChange = (e) => {
     return
   }
 
-  // 验证文件大小
-  if (file.size / 1024 / 1024 > props.maxSize) {
-    ElMessage.error(`图片大小不能超过 ${props.maxSize}MB`)
+  const sourceMaxSize = props.sourceMaxSize || props.maxSize
+  if (file.size / 1024 / 1024 > sourceMaxSize) {
+    ElMessage.error(`原图大小不能超过 ${sourceMaxSize}MB`)
     return
   }
 
@@ -193,6 +197,39 @@ const handleDialogClosed = () => {
   tempImageUrl.value = ''
 }
 
+const canvasToBlob = (canvas, quality) => new Promise(resolve => {
+  canvas.toBlob(resolve, 'image/jpeg', quality)
+})
+
+async function compressCanvas(canvas) {
+  const maxBytes = props.maxSize * 1024 * 1024
+  let currentCanvas = canvas
+  let quality = 0.9
+  let blob = await canvasToBlob(currentCanvas, quality)
+  let attempts = 0
+
+  while (blob && blob.size > maxBytes && attempts < 16) {
+    attempts++
+    if (quality > 0.55) {
+      quality -= 0.1
+    } else {
+      const resized = document.createElement('canvas')
+      resized.width = Math.max(320, Math.round(currentCanvas.width * 0.8))
+      resized.height = Math.max(180, Math.round(currentCanvas.height * 0.8))
+      const context = resized.getContext('2d')
+      context.imageSmoothingEnabled = true
+      context.imageSmoothingQuality = 'high'
+      context.drawImage(currentCanvas, 0, 0, resized.width, resized.height)
+      currentCanvas = resized
+      quality = 0.8
+    }
+    blob = await canvasToBlob(currentCanvas, quality)
+  }
+
+  if (blob?.size > maxBytes) throw new Error('Compressed image exceeds upload limit')
+  return blob
+}
+
 const handleCropConfirm = async () => {
   if (!cropper) return
 
@@ -211,43 +248,28 @@ const handleCropConfirm = async () => {
       imageSmoothingQuality: 'high'
     })
 
-    // 转换为blob
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        ElMessage.error('图片处理失败')
-        uploading.value = false
-        return
+    const blob = await compressCanvas(canvas)
+    if (!blob) throw new Error('Failed to encode image')
+
+    const formData = new FormData()
+    formData.append('file', blob, 'cover.jpg')
+    const response = await api.post('/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
+    })
 
-      // 上传裁剪后的图片
-      const formData = new FormData()
-      formData.append('file', blob, 'cover.jpg')
-
-      try {
-        const response = await api.post('/upload/image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
-
-        if (response.code === 0 && response.data) {
-          // 直接使用相对路径
-          emit('update:modelValue', response.data.url)
-          ElMessage.success('上传成功')
-          cropDialogVisible.value = false
-        } else {
-          ElMessage.error(response.message || '上传失败')
-        }
-      } catch (error) {
-        console.error('Upload error:', error)
-        ElMessage.error('上传失败')
-      } finally {
-        uploading.value = false
-      }
-    }, 'image/jpeg', 0.9)
+    if (response.code === 0 && response.data) {
+      emit('update:modelValue', response.data.url)
+      ElMessage.success('上传成功')
+      cropDialogVisible.value = false
+    } else {
+      ElMessage.error(response.message || '上传失败')
+    }
   } catch (error) {
     console.error('Crop error:', error)
-    ElMessage.error('图片处理失败')
+    ElMessage.error('图片压缩或上传失败')
+  } finally {
     uploading.value = false
   }
 }
@@ -356,4 +378,3 @@ const handleCropConfirm = async () => {
   padding: 30px;
 }
 </style>
-

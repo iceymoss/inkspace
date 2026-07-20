@@ -1,6 +1,6 @@
 module github.com/iceymoss/inkspace
 
-go 1.21
+go 1.26.4
 
 require (
 	github.com/gin-contrib/cors v1.5.0
@@ -11,6 +11,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/spf13/viper v1.18.2
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.72
+	github.com/yuin/goldmark v1.7.13
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.17.0
 	gorm.io/driver/mysql v1.5.2

@@ -149,15 +149,45 @@ defineExpose({
 }
 
 :deep(.vditor) {
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--theme-border);
   border-radius: 8px;
   width: 100%;
+  background: var(--theme-bg-card);
+  color: var(--theme-text-primary);
 }
 
 :deep(.vditor-toolbar) {
-  background-color: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: var(--theme-bg-card);
+  border-bottom: 1px solid var(--theme-border);
   padding: 8px 12px;
+}
+
+:deep(.vditor-toolbar__item button) {
+  color: var(--theme-text-secondary);
+}
+
+:deep(.vditor-toolbar__item button:hover),
+:deep(.vditor-toolbar__item button.vditor-menu--current) {
+  background: var(--theme-bg-hover);
+  color: var(--theme-primary);
+}
+
+:deep(.vditor-content),
+:deep(.vditor-sv),
+:deep(.vditor-sv textarea),
+:deep(.vditor-sv__preview) {
+  background: var(--theme-bg-card);
+  color: var(--theme-text-primary);
+}
+
+:deep(.vditor-sv textarea) {
+  border-right-color: var(--theme-border);
+  caret-color: var(--theme-primary);
+}
+
+:deep(.vditor-counter) {
+  background: color-mix(in srgb, var(--theme-bg-card) 92%, transparent);
+  color: var(--theme-text-tertiary);
 }
 
 :deep(.vditor-sv) {
@@ -207,6 +237,21 @@ defineExpose({
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.8;
-  color: #24292e;
+  color: var(--theme-text-primary);
+}
+
+:deep(.vditor-reset p),
+:deep(.vditor-reset li) {
+  color: var(--theme-text-secondary);
+}
+
+:deep(.vditor-reset blockquote) {
+  color: var(--theme-text-tertiary);
+  border-left-color: var(--theme-primary);
+}
+
+@media (max-width: 700px) {
+  :deep(.vditor-toolbar) { padding: 6px; }
+  :deep(.vditor-sv .vditor-sv__preview) { padding: 16px; }
 }
 </style>

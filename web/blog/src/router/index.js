@@ -50,6 +50,11 @@ const routes = [
         path: 'users/:id',
         name: 'UserProfile',
         component: () => import('@/views/UserProfile.vue')
+      },
+      {
+        path: 'share/:token',
+        name: 'ShareDoc',
+        component: () => import('@/views/ShareDoc.vue')
       }
     ]
   },
@@ -107,6 +112,21 @@ const routes = [
         path: 'comments',
         name: 'MyComments',
         component: () => import('@/views/user/MyComments.vue')
+      },
+      {
+        path: 'workspaces',
+        name: 'WorkspaceList',
+        component: () => import('@/views/user/WorkspaceList.vue')
+      },
+      {
+        path: 'workspaces/:id',
+        name: 'WorkspaceDetail',
+        component: () => import('@/views/user/WorkspaceDetail.vue')
+      },
+      {
+        path: 'docs/:id/edit',
+        name: 'DocEdit',
+        component: () => import('@/views/user/DocEdit.vue')
       }
     ]
   },

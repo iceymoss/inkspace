@@ -83,6 +83,11 @@ func autoMigrate() error {
 		&models.AdPosition{},
 		&models.Advertisement{},
 		&models.AdPlacement{},
+		&models.Workspace{},
+		&models.Catalog{},
+		&models.Doc{},
+		&models.DocVersion{},
+		&models.ShareLink{},
 		// 日志表
 		&models.VisitLog{},
 		&models.VisitLogSummary{},
