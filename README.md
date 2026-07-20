@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=for-the-badge&logo=go)
+![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?style=for-the-badge&logo=go)
 ![Vue](https://img.shields.io/badge/Vue-3.3-4FC08D?style=for-the-badge&logo=vue.js)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)
