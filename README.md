@@ -223,6 +223,8 @@ go run cmd/admin/main.go
 
 > 💡 详细部署步骤、DNS 配置、HTTPS 配置等请查看 [部署文档](docs/DEPLOYMENT.md)
 
+公网 HTTPS 使用 `docker-compose.https.yml` 叠加配置。首次签发证书、启用 HTTPS 和自动续期命令见 [HTTPS 配置](docs/DEPLOYMENT.md#https-配置)。
+
 ---
 
 ## 🛠️ 技术栈

@@ -14,3 +14,4 @@ scheduler
 *.log
 config/config.yaml
 config/admin.yaml
+certbot/conf

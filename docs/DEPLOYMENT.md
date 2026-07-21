@@ -382,23 +382,64 @@ Nginx 配置文件位于 `nginx/nginx.conf`，已配置两个子域名：
 
 如需修改子域名，编辑 `nginx/nginx.conf` 中的 `server_name` 配置。
 
-### HTTPS 配置（可选）
+### HTTPS 配置
 
-如果需要启用 HTTPS：
+项目提供 `docker-compose.https.yml` 和 `nginx/nginx.https.conf`。以下步骤会申请一张同时覆盖 `is.iceymoss.com` 和 `admin.is.iceymoss.com` 的 Let's Encrypt 证书。
 
-1. **获取 SSL 证书**（推荐使用 Let's Encrypt）
+1. 先使用基础 Compose 启动 HTTP 服务。基础 Nginx 已开放 `/.well-known/acme-challenge/`：
+
 ```bash
-# 使用 certbot 获取证书
-certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
+# 内置 MySQL/Redis
+docker compose up -d --build
+
+# 或使用外部 MySQL/Redis
+docker compose -f docker-compose.external-db.yml up -d --build
 ```
 
-2. **配置证书路径**
-   - 将证书文件放到 `./nginx/ssl/` 目录
-   - 取消注释 `nginx/nginx.conf` 中的 HTTPS 配置
-   - 修改证书路径
+2. 在服务器仓库根目录签发证书，将邮箱替换为实际运维邮箱：
 
-3. **更新 docker-compose 配置**
-   - 取消注释 SSL 证书挂载配置
+```bash
+docker run --rm \
+  -v "$PWD/certbot/www:/var/www/certbot" \
+  -v "$PWD/certbot/conf:/etc/letsencrypt" \
+  certbot/certbot certonly --webroot \
+  --webroot-path /var/www/certbot \
+  --email your-email@example.com \
+  --agree-tos --no-eff-email \
+  --cert-name is.iceymoss.com \
+  -d is.iceymoss.com \
+  -d admin.is.iceymoss.com
+```
+
+3. 证书签发成功后叠加 HTTPS 配置启动。HTTP 请求会自动 301 跳转到 HTTPS：
+
+```bash
+# 内置 MySQL/Redis
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+
+# 外部 MySQL/Redis
+docker compose -f docker-compose.external-db.yml -f docker-compose.https.yml up -d
+```
+
+4. 验证两个域名：
+
+```bash
+curl -I https://is.iceymoss.com/health
+curl -I https://admin.is.iceymoss.com/health
+```
+
+5. 手动续期并热加载 Nginx：
+
+```bash
+docker run --rm \
+  -v "$PWD/certbot/www:/var/www/certbot" \
+  -v "$PWD/certbot/conf:/etc/letsencrypt" \
+  certbot/certbot renew --webroot --webroot-path /var/www/certbot
+
+docker exec inkspace-nginx-proxy nginx -s reload
+```
+
+可将上述续期命令加入服务器 cron，每天执行一次。Certbot 只会在证书接近过期时实际续期。`certbot/conf/` 中的证书和私钥不会提交到 Git。
 
 ---
 

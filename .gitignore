@@ -41,6 +41,8 @@ config/config.local.yaml
 .env
 .env.local
 .env.*.local
+certbot/conf/*
+!certbot/conf/.gitkeep
 
 # Log files
 *.log

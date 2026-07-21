@@ -111,8 +111,7 @@ services:
       - "443:443" # HTTPS 端口（如果有 SSL 证书）
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # 如果有 SSL 证书，取消注释下面这行并配置证书路径
-      # - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - backend-1
       - backend-2
