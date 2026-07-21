@@ -8,6 +8,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/router"
 	"github.com/iceymoss/inkspace/internal/utils"
+	blogweb "github.com/iceymoss/inkspace/internal/webassets/blog"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +39,7 @@ func main() {
 	gin.SetMode(config.AppConfig.Server.Mode)
 
 	// 设置用户服务路由
-	r := router.SetupUserRouter()
+	r := router.SetupUserRouter(blogweb.FS())
 
 	// 启动服务器
 	port := config.AppConfig.Server.Port

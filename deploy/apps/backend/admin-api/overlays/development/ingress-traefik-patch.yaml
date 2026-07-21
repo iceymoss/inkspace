@@ -6,10 +6,10 @@ metadata:
   namespace: inkspace-backend
 spec:
   rules:
-    - host: dev.api.test.com
+    - host: dev.admin.test.com
       http:
         paths:
-          - path: /admin/
+          - path: /
             pathType: Prefix
             backend:
               service:

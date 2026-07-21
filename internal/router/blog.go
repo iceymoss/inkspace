@@ -1,6 +1,8 @@
 package router
 
 import (
+	"io/fs"
+
 	"github.com/iceymoss/inkspace/internal/handler"
 	"github.com/iceymoss/inkspace/internal/middleware"
 
@@ -8,7 +10,7 @@ import (
 )
 
 // SetupUserRouter 设置用户服务路由
-func SetupUserRouter() *gin.Engine {
+func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -216,6 +218,9 @@ func SetupUserRouter() *gin.Engine {
 
 	// Serve static files (uploads)
 	r.Static("/uploads", "./uploads")
+	if len(assets) > 0 && assets[0] != nil {
+		serveSPA(r, assets[0])
+	}
 
 	return r
 }

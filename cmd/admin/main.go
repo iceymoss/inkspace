@@ -8,6 +8,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/router"
 	"github.com/iceymoss/inkspace/internal/utils"
+	adminweb "github.com/iceymoss/inkspace/internal/webassets/admin"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,7 +43,7 @@ func main() {
 	gin.SetMode(config.AppConfig.Server.Mode)
 
 	// 设置管理后台路由
-	r := router.SetupAdminRouter()
+	r := router.SetupAdminRouter(adminweb.FS())
 
 	// 获取端口（优先使用admin配置，否则使用server配置+1）
 	port := config.AppConfig.Server.Port + 1

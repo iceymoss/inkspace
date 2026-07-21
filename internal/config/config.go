@@ -100,9 +100,17 @@ func InitWithFile(configName string) error {
 	viper.SetConfigName(configName)
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./config")
-	viper.AddConfigPath(".")
 
 	if err := viper.ReadInConfig(); err != nil {
+		if configName == "admin" {
+			viper.SetConfigName("config")
+			if fallbackErr := viper.ReadInConfig(); fallbackErr == nil {
+				log.Printf("未找到 admin.yaml，已加载默认配置: %s\n", viper.ConfigFileUsed())
+				bindEnvVars()
+				AppConfig = &Config{}
+				return viper.Unmarshal(AppConfig)
+			}
+		}
 		// 如果配置文件不存在，尝试使用环境变量
 		log.Printf("警告: 无法读取配置文件 %s.yaml，将使用环境变量和默认值: %v\n", configName, err)
 	} else {

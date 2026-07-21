@@ -112,38 +112,63 @@
 
 ### 前置要求
 
-- Go 1.21+
-- Node.js 18+ (推荐使用 pnpm)
+- Go 1.26+
+- Node.js 18+（支持 pnpm 或 Bun）
 - Docker & Docker Compose (用于数据库)
 - MySQL 8.0+ 和 Redis 7+ (或使用 Docker)
 
 ### 开发环境启动
 
 ```bash
-# 1. 克隆项目
-git clone https://github.com/your-username/inkspace.git
+# 1. 克隆项目并安装前端依赖
+git clone https://github.com/iceymoss/inkspace.git
 cd inkspace
+cd web/blog && pnpm install && cd ../..
+cd web/admin && pnpm install && cd ../..
 
 # 2. 启动数据库服务
-docker-compose up -d mysql redis
+docker compose up -d mysql redis
 
 # 3. 配置环境变量（可选）
 cp env.example .env
 # 编辑 .env 文件修改数据库配置
-
-# 4. 创建你的db
-CREATE DATABASE
-    inkspace CHARACTER SET = 'utf8mb4';
-
-# 5. 启动后端服务
-go run cmd/server/main.go    # 用户服务 :8081
-go run cmd/admin/main.go     # 管理服务 :8083
-go run cmd/scheduler/main.go # 定时任务调度器（可选）
-
-# 6. 启动前端（新终端）
-cd web/blog && pnpm install && pnpm dev   # 博客前端 :3001
-cd web/admin && pnpm install && pnpm dev  # 管理前端 :3002
 ```
+
+使用 Bun 时，前端依赖安装命令可替换为：
+
+```bash
+cd web/blog && bun install && cd ../..
+cd web/admin && bun install && cd ../..
+```
+
+首次使用外部 MySQL 时创建数据库；使用上面的 Compose 服务时数据库会自动创建：
+
+```sql
+CREATE DATABASE inkspace CHARACTER SET utf8mb4;
+```
+
+分别在独立终端启动需要的服务：
+
+```bash
+# 终端 1：博客/用户 API :8081
+go run cmd/server/main.go
+
+# 终端 2：管理后台 API :8083
+go run cmd/admin/main.go
+
+# 终端 3：博客前端 :3001
+cd web/blog && pnpm dev
+
+# 终端 4：管理前端 :3002
+cd web/admin && pnpm dev
+
+# 可选：定时任务调度器（无 HTTP 端口）
+go run cmd/scheduler/main.go
+```
+
+使用 Bun 时，对应的前端启动命令是 `bun run dev`。
+
+日常开发由 Vite 提供前端页面并将 `/api`、`/uploads` 代理到对应 Go 服务，不需要先构建。需要直接从 Go 端口访问前端时，先执行对应项目的 `bun run build` 或 `pnpm build`，再重启 `go run`；构建产物会写入 `internal/webassets/*/dist` 并在 Go 编译时嵌入。
 
 **访问地址：**
 - 博客前端: http://localhost:3001
@@ -151,16 +176,43 @@ cd web/admin && pnpm install && pnpm dev  # 管理前端 :3002
 
 ### Docker Compose 一键部署
 
-使用 Docker Compose 可以快速启动所有服务，适合生产环境部署：
+生产构建会先构建两个 Vue 应用，再将 blog SPA 嵌入 `server`、admin SPA 嵌入 `admin`。scheduler 镜像不构建也不包含前端资源；Nginx 只负责域名、TLS 和负载均衡，不再运行独立前端容器。
 
 ```bash
 # 方式一：完整部署（包含 MySQL 和 Redis）
-docker-compose up -d
+docker compose up -d --build
 
-# 方式二：使用外部数据库服务
-# 你需要配置好你的MySQL和Redis
-docker-compose -f docker-compose.external-db.yml up -d
+# 方式二：连接已配置好的外部 MySQL 和 Redis
+docker compose -f docker-compose.external-db.yml up -d --build
+
+# 查看服务状态和日志
+docker compose ps
+docker compose logs -f
 ```
+
+也可以按服务单独构建生产镜像：
+
+```bash
+docker build --target server-runtime -t inkspace-server .
+docker build --target admin-runtime -t inkspace-admin .
+docker build --target scheduler-runtime -t inkspace-scheduler .
+```
+
+如需在本机直接从 Go 服务端口访问构建后的前端：
+
+```bash
+# blog：构建完成后重新启动 go run
+cd web/blog && bun run build && cd ../..
+go run cmd/server/main.go
+# 访问 http://127.0.0.1:8081/
+
+# admin
+cd web/admin && bun run build && cd ../..
+go run cmd/admin/main.go
+# 访问 http://127.0.0.1:8083/
+```
+
+也可以使用 `./scripts/build-embedded.sh server` 或 `./scripts/build-embedded.sh admin` 同时构建前端和 `bin/` 下的 Go 二进制。生成的 hash 资源保留在本地但被 Git 忽略；前端变化后必须重新构建并重启 Go 进程。
 
 **部署后访问：**
 - 博客前端: http://is.iceymoss.com（需配置 DNS）
@@ -171,12 +223,14 @@ docker-compose -f docker-compose.external-db.yml up -d
 
 > 💡 详细部署步骤、DNS 配置、HTTPS 配置等请查看 [部署文档](docs/DEPLOYMENT.md)
 
+公网 HTTPS 使用 `docker-compose.https.yml` 叠加配置。首次签发证书、启用 HTTPS 和自动续期命令见 [HTTPS 配置](docs/DEPLOYMENT.md#https-配置)。
+
 ---
 
 ## 🛠️ 技术栈
 
 ### 后端
-- **语言**: Go 1.21+
+- **语言**: Go 1.26+
 - **框架**: Gin (HTTP 路由)
 - **ORM**: GORM (数据库操作)
 - **数据库**: MySQL 8.0+
@@ -247,13 +301,15 @@ inkspace/
 │   ├── middleware/        # 中间件
 │   ├── model/             # 数据模型
 │   ├── router/            # 路由定义
-│   └── service/           # 业务逻辑层
+│   ├── service/           # 业务逻辑层
+│   └── webassets/         # blog/admin SPA 嵌入资源
 ├── web/                   # 前端项目
 │   ├── blog/             # 博客前端
 │   └── admin/            # 管理后台前端
 ├── config/                # 配置文件
 ├── scripts/               # 脚本文件
 ├── nginx/                 # Nginx 配置
+├── Dockerfile             # 双前端构建和三个 Go 运行镜像 target
 ├── docker-compose.yml     # Docker Compose 配置
 ├── docker-compose.external-db.yml # 使用外部数据库的 Docker Compose 配置
 ├── deploy/                # GitOps 部署方案（Docker + Kubernetes + Argocd）

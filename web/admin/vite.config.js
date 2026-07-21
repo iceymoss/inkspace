@@ -1,9 +1,25 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
+import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const outDir = process.env.VITE_OUT_DIR || '../../internal/webassets/admin/dist'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    {
+      name: 'preserve-embed-directory',
+      closeBundle() {
+        writeFileSync(resolve(process.cwd(), outDir, '.gitkeep'), '')
+      }
+    }
+  ],
+  build: {
+    outDir,
+    emptyOutDir: true
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -23,4 +39,3 @@ export default defineConfig({
     }
   }
 })
-

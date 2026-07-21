@@ -15,7 +15,7 @@ spec:
     - host: dev.blog.test.com
       http:
         paths:
-          - path: /api
+          - path: /
             pathType: Prefix
             backend:
               service:

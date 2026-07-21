@@ -69,7 +69,7 @@ cp env.example .env
 ### 4. 启动所有服务
 
 ```bash
-# 构建并启动所有服务（包括 MySQL、Redis、后端、前端）
+# 构建并启动所有服务（前端会构建并嵌入对应 Go 服务）
 docker-compose up -d --build
 ```
 
@@ -79,8 +79,6 @@ docker-compose up -d --build
 - `backend-1/2/3` - 用户服务（3个实例，负载均衡）
 - `admin-backend` - 管理后台服务 (端口 8083)
 - `scheduler` - 定时任务调度器
-- `blog-frontend` - 博客前端（通过 Nginx 代理）
-- `admin-frontend` - 管理前端（通过 Nginx 代理）
 - `nginx-proxy` - Nginx 反向代理 (端口 80/443)
 
 ### 5. 查看服务状态
@@ -106,7 +104,7 @@ docker-compose logs -f admin-backend
 - **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
 
 **注意：**
-- 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
+- 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
 - 确保 DNS 解析已生效
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
 
@@ -249,8 +247,6 @@ docker-compose -f docker-compose.external-db.yml up -d --build
 - `backend-1/2/3` - 用户服务（3个实例，负载均衡）
 - `admin-backend` - 管理后台服务 (端口 8083)
 - `scheduler` - 定时任务调度器
-- `blog-frontend` - 博客前端（通过 Nginx 代理）
-- `admin-frontend` - 管理前端（通过 Nginx 代理）
 - `nginx-proxy` - Nginx 反向代理 (端口 80/443)
 
 ### 6. 查看服务状态
@@ -272,9 +268,9 @@ docker-compose -f docker-compose.external-db.yml logs -f
 - **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
 
 **注意：**
-- 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
+- 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
 - 确保 DNS 解析已生效
-- 用户服务有 3 个实例（backend-1/2/3），通过前端 Nginx 进行负载均衡
+- 用户服务有 3 个实例（backend-1/2/3），通过外层 Nginx 进行负载均衡
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
 
 ### 8. 停止服务
@@ -386,23 +382,64 @@ Nginx 配置文件位于 `nginx/nginx.conf`，已配置两个子域名：
 
 如需修改子域名，编辑 `nginx/nginx.conf` 中的 `server_name` 配置。
 
-### HTTPS 配置（可选）
+### HTTPS 配置
 
-如果需要启用 HTTPS：
+项目提供 `docker-compose.https.yml` 和 `nginx/nginx.https.conf`。以下步骤会申请一张同时覆盖 `is.iceymoss.com` 和 `admin.is.iceymoss.com` 的 Let's Encrypt 证书。
 
-1. **获取 SSL 证书**（推荐使用 Let's Encrypt）
+1. 先使用基础 Compose 启动 HTTP 服务。基础 Nginx 已开放 `/.well-known/acme-challenge/`：
+
 ```bash
-# 使用 certbot 获取证书
-certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
+# 内置 MySQL/Redis
+docker compose up -d --build
+
+# 或使用外部 MySQL/Redis
+docker compose -f docker-compose.external-db.yml up -d --build
 ```
 
-2. **配置证书路径**
-   - 将证书文件放到 `./nginx/ssl/` 目录
-   - 取消注释 `nginx/nginx.conf` 中的 HTTPS 配置
-   - 修改证书路径
+2. 在服务器仓库根目录签发证书，将邮箱替换为实际运维邮箱：
 
-3. **更新 docker-compose 配置**
-   - 取消注释 SSL 证书挂载配置
+```bash
+docker run --rm \
+  -v "$PWD/certbot/www:/var/www/certbot" \
+  -v "$PWD/certbot/conf:/etc/letsencrypt" \
+  certbot/certbot certonly --webroot \
+  --webroot-path /var/www/certbot \
+  --email your-email@example.com \
+  --agree-tos --no-eff-email \
+  --cert-name is.iceymoss.com \
+  -d is.iceymoss.com \
+  -d admin.is.iceymoss.com
+```
+
+3. 证书签发成功后叠加 HTTPS 配置启动。HTTP 请求会自动 301 跳转到 HTTPS：
+
+```bash
+# 内置 MySQL/Redis
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+
+# 外部 MySQL/Redis
+docker compose -f docker-compose.external-db.yml -f docker-compose.https.yml up -d
+```
+
+4. 验证两个域名：
+
+```bash
+curl -I https://is.iceymoss.com/health
+curl -I https://admin.is.iceymoss.com/health
+```
+
+5. 手动续期并热加载 Nginx：
+
+```bash
+docker run --rm \
+  -v "$PWD/certbot/www:/var/www/certbot" \
+  -v "$PWD/certbot/conf:/etc/letsencrypt" \
+  certbot/certbot renew --webroot --webroot-path /var/www/certbot
+
+docker exec inkspace-nginx-proxy nginx -s reload
+```
+
+可将上述续期命令加入服务器 cron，每天执行一次。Certbot 只会在证书接近过期时实际续期。`certbot/conf/` 中的证书和私钥不会提交到 Git。
 
 ---
 
@@ -416,13 +453,9 @@ certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
 │  ├── is.iceymoss.com                │
 │  └── admin.is.iceymoss.com          │
 ├─────────────────────────────────────┤
-│  Frontend Services                  │
-│  ├── Blog Frontend                  │
-│  └── Admin Frontend                 │
-├─────────────────────────────────────┤
-│  Backend Services                   │
-│  ├── Backend-1/2/3 (负载均衡)      │
-│  ├── Admin Backend (8083)           │
+│  Application Services               │
+│  ├── Backend-1/2/3 + Blog SPA       │
+│  ├── Admin Backend + Admin SPA      │
 │  └── Scheduler                      │
 ├─────────────────────────────────────┤
 │  Data Services                      │
@@ -439,13 +472,9 @@ certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
 │  ├── is.iceymoss.com                │
 │  └── admin.is.iceymoss.com          │
 ├─────────────────────────────────────┤
-│  Frontend Services                  │
-│  ├── Blog Frontend                  │
-│  └── Admin Frontend                 │
-├─────────────────────────────────────┤
-│  Backend Services                   │
-│  ├── Backend-1/2/3 (负载均衡)      │
-│  ├── Admin Backend (8083)           │
+│  Application Services               │
+│  ├── Backend-1/2/3 + Blog SPA       │
+│  ├── Admin Backend + Admin SPA      │
 │  └── Scheduler                      │
 ├─────────────────────────────────────┤
 │  External Services                  │
