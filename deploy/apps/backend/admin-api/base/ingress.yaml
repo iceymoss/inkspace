@@ -15,7 +15,7 @@ spec:
     - host: dev.admin.test.com
       http:
         paths:
-          - path: /admin
+          - path: /
             pathType: Prefix
             backend:
               service:

@@ -1,0 +1,16 @@
+.git
+.gitignore
+.DS_Store
+.idea
+.vscode
+**/node_modules
+**/dist
+uploads
+logs
+tmp
+server
+admin
+scheduler
+*.log
+config/config.yaml
+config/admin.yaml

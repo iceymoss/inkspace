@@ -23,7 +23,7 @@ spec:
           # ！！！ 关键：这是占位符，不是实际地址
           image: inkspace-blog-api-image
           ports:
-            - containerPort: 8080
+            - containerPort: 8081
               name: http-blog-api
           resources:
             # 适配 1G 内存节点的 Base 配置

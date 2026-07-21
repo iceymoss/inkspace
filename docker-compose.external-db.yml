@@ -20,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: server-runtime
     container_name: inkspace-backend-1
     restart: always
     # 注意：多个实例不映射端口，通过负载均衡访问
@@ -36,6 +37,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: server-runtime
     container_name: inkspace-backend-2
     restart: always
     # 注意：多个实例不映射端口，通过负载均衡访问
@@ -52,6 +54,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: server-runtime
     container_name: inkspace-backend-3
     restart: always
     # 注意：多个实例不映射端口，通过负载均衡访问
@@ -68,9 +71,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: admin-runtime
     container_name: inkspace-admin-backend
     restart: always
-    command: [ "./admin" ]
     ports:
       - "8083:8083"
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
@@ -86,41 +89,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: scheduler-runtime
     container_name: inkspace-scheduler
     restart: always
-    command: [ "./scheduler" ]
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
     volumes:
       - ./config:/app/config
       - /var/www/inkspace/uploads:/app/uploads # 修改为服务器绝对路径，可根据实际情况调整
-    networks:
-      - inkspace-network
-
-  blog-frontend:
-    build:
-      context: ./web/blog
-      dockerfile: Dockerfile
-    container_name: inkspace-blog-frontend
-    restart: always
-    # 注意：不直接暴露端口，通过 Nginx 反向代理访问
-    depends_on:
-      - backend-1
-      - backend-2
-      - backend-3
-    networks:
-      - inkspace-network
-
-  admin-frontend:
-    build:
-      context: ./web/admin
-      dockerfile: Dockerfile
-    container_name: inkspace-admin-frontend
-    restart: always
-    # 注意：不直接暴露端口，通过 Nginx 反向代理访问
-    depends_on:
-      - admin-backend
     networks:
       - inkspace-network
 
@@ -137,8 +114,10 @@ services:
       # 如果有 SSL 证书，取消注释下面这行并配置证书路径
       # - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - blog-frontend
-      - admin-frontend
+      - backend-1
+      - backend-2
+      - backend-3
+      - admin-backend
     networks:
       - inkspace-network
 
@@ -148,4 +127,3 @@ networks:
     name: inkspace-network
     # 如果网络已存在，取消下面的注释
     # external: true
-

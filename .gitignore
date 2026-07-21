@@ -57,6 +57,12 @@ tmp/
 # Build output
 build/
 dist/
+!internal/webassets/blog/dist/
+internal/webassets/blog/dist/*
+!internal/webassets/blog/dist/.gitkeep
+!internal/webassets/admin/dist/
+internal/webassets/admin/dist/*
+!internal/webassets/admin/dist/.gitkeep
 bin/
 
 # OS
@@ -76,6 +82,3 @@ web/pnpm-debug.log*
 # web node_modules (specific paths)
 web/blog/node_modules/
 web/admin/node_modules/
-# Docker
-.dockerignore
-

@@ -69,7 +69,7 @@ cp env.example .env
 ### 4. 启动所有服务
 
 ```bash
-# 构建并启动所有服务（包括 MySQL、Redis、后端、前端）
+# 构建并启动所有服务（前端会构建并嵌入对应 Go 服务）
 docker-compose up -d --build
 ```
 
@@ -79,8 +79,6 @@ docker-compose up -d --build
 - `backend-1/2/3` - 用户服务（3个实例，负载均衡）
 - `admin-backend` - 管理后台服务 (端口 8083)
 - `scheduler` - 定时任务调度器
-- `blog-frontend` - 博客前端（通过 Nginx 代理）
-- `admin-frontend` - 管理前端（通过 Nginx 代理）
 - `nginx-proxy` - Nginx 反向代理 (端口 80/443)
 
 ### 5. 查看服务状态
@@ -106,7 +104,7 @@ docker-compose logs -f admin-backend
 - **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
 
 **注意：**
-- 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
+- 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
 - 确保 DNS 解析已生效
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
 
@@ -249,8 +247,6 @@ docker-compose -f docker-compose.external-db.yml up -d --build
 - `backend-1/2/3` - 用户服务（3个实例，负载均衡）
 - `admin-backend` - 管理后台服务 (端口 8083)
 - `scheduler` - 定时任务调度器
-- `blog-frontend` - 博客前端（通过 Nginx 代理）
-- `admin-frontend` - 管理前端（通过 Nginx 代理）
 - `nginx-proxy` - Nginx 反向代理 (端口 80/443)
 
 ### 6. 查看服务状态
@@ -272,9 +268,9 @@ docker-compose -f docker-compose.external-db.yml logs -f
 - **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
 
 **注意：**
-- 前端服务不直接暴露端口，必须通过 Nginx 反向代理访问
+- 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
 - 确保 DNS 解析已生效
-- 用户服务有 3 个实例（backend-1/2/3），通过前端 Nginx 进行负载均衡
+- 用户服务有 3 个实例（backend-1/2/3），通过外层 Nginx 进行负载均衡
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
 
 ### 8. 停止服务
@@ -416,13 +412,9 @@ certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
 │  ├── is.iceymoss.com                │
 │  └── admin.is.iceymoss.com          │
 ├─────────────────────────────────────┤
-│  Frontend Services                  │
-│  ├── Blog Frontend                  │
-│  └── Admin Frontend                 │
-├─────────────────────────────────────┤
-│  Backend Services                   │
-│  ├── Backend-1/2/3 (负载均衡)      │
-│  ├── Admin Backend (8083)           │
+│  Application Services               │
+│  ├── Backend-1/2/3 + Blog SPA       │
+│  ├── Admin Backend + Admin SPA      │
 │  └── Scheduler                      │
 ├─────────────────────────────────────┤
 │  Data Services                      │
@@ -439,13 +431,9 @@ certbot certonly --standalone -d is.iceymoss.com -d admin.is.iceymoss.com
 │  ├── is.iceymoss.com                │
 │  └── admin.is.iceymoss.com          │
 ├─────────────────────────────────────┤
-│  Frontend Services                  │
-│  ├── Blog Frontend                  │
-│  └── Admin Frontend                 │
-├─────────────────────────────────────┤
-│  Backend Services                   │
-│  ├── Backend-1/2/3 (负载均衡)      │
-│  ├── Admin Backend (8083)           │
+│  Application Services               │
+│  ├── Backend-1/2/3 + Blog SPA       │
+│  ├── Admin Backend + Admin SPA      │
 │  └── Scheduler                      │
 ├─────────────────────────────────────┤
 │  External Services                  │
