@@ -144,6 +144,25 @@ func TestThemeSystemMySQLIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("default guest appearance settings are public", func(t *testing.T) {
+		settingService := NewSettingService()
+		if err := settingService.BatchSet(map[string]string{
+			models.SettingDefaultGuestUITheme: "swiss",
+			models.SettingDefaultGuestScheme:  "dark",
+		}); err != nil {
+			t.Fatalf("save default guest appearance: %v", err)
+		}
+		for _, key := range []string{models.SettingDefaultGuestUITheme, models.SettingDefaultGuestScheme} {
+			setting, err := settingService.Get(key)
+			if err != nil {
+				t.Fatalf("get default guest setting %q: %v", key, err)
+			}
+			if setting.Group != "theme" || !setting.IsPublic {
+				t.Fatalf("default guest setting %q visibility = group %q, public %t", key, setting.Group, setting.IsPublic)
+			}
+		}
+	})
+
 	t.Run("public wiki filters drafts and private workspaces", func(t *testing.T) {
 		privateWorkspace := models.Workspace{OwnerID: 7, Name: "Private"}
 		publicWorkspace := models.Workspace{OwnerID: 7, Name: "Public", IsPublic: true}

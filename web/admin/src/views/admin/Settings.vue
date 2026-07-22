@@ -412,6 +412,27 @@
 
       <el-tab-pane label="网站主题" name="theme">
         <el-form :model="themeSettings" label-width="150px">
+          <el-divider content-position="left">未登录默认外观</el-divider>
+          <el-form-item label="默认 UI 主题">
+            <el-select v-model="themeSettings.default_guest_ui_theme" style="width: 300px">
+              <el-option label="屿刊 · 极简杂志风" value="magazine" />
+              <el-option label="inkspace.log · 暗色科技感" value="terminal" />
+              <el-option label="InkSpace · 温暖手作感" value="cozy" />
+              <el-option label="Swiss · 瑞士网格风" value="swiss" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="默认明暗模式">
+            <el-select v-model="themeSettings.default_guest_color_scheme" style="width: 300px">
+              <el-option label="跟随系统" value="system" />
+              <el-option label="浅色" value="light" />
+              <el-option label="深色" value="dark" />
+            </el-select>
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              只用于未登录且没有本地外观缓存的首次访问者；不会覆盖访客已有选择或登录用户的账号偏好。
+            </div>
+          </el-form-item>
+
+          <el-divider content-position="left">特殊站点主题</el-divider>
           <el-form-item label="整体主题">
             <el-select v-model="themeSettings.site_theme" placeholder="选择网站整体主题" style="width: 300px">
               <el-option label="白天" value="day" />
@@ -623,6 +644,8 @@ const featureSettings = reactive({
 })
 
 const themeSettings = reactive({
+  default_guest_ui_theme: 'magazine',
+  default_guest_color_scheme: 'system',
   site_theme: 'day', // 默认使用白天主题
   holiday_type: 'spring_festival', // 节假日类型
   holiday_bg_primary: '#fff5f5', // 节假日背景主色

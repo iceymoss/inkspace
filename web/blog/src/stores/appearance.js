@@ -164,6 +164,8 @@ export const useAppearanceStore = defineStore('appearance', () => {
     requestVersion += 1
     useCachedContext()
     loadAccountPreference()
+    const userStore = useUserStore()
+    if (!userStore.token && storageGet(GUEST_CACHE_KEY) === null) refreshSiteOverride(true)
   }
 
   function preview(preference) {
@@ -230,6 +232,17 @@ export const useAppearanceStore = defineStore('appearance', () => {
     try {
       const response = await api.get('/settings/public')
       const settings = response.data || {}
+      const userStore = useUserStore()
+      if (!userStore.token && storageGet(GUEST_CACHE_KEY) === null) {
+        const guestDefault = normalizePreference({
+          ui_theme: settings.default_guest_ui_theme,
+          color_scheme: settings.default_guest_color_scheme
+        })
+        savedPreference.value = guestDefault
+        previewPreference.value = null
+        writeCache(GUEST_CACHE_KEY, guestDefault)
+        apply(guestDefault)
+      }
       siteOverride.value = SPECIAL_THEMES.has(settings.site_theme) ? settings.site_theme : null
       const root = document.documentElement
       if (siteOverride.value) root.dataset.siteTheme = siteOverride.value

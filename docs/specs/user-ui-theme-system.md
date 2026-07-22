@@ -58,10 +58,11 @@
 ### A. 首次访问与启动
 
 1. 应用在 Vue 挂载前读取本地缓存，立即给 `<html>` 设置 `data-ui-theme` 和 `data-theme`，避免明显闪烁。
-2. 无缓存时使用 `ui_theme=magazine`、`color_scheme=system`；`system` 根据 `prefers-color-scheme` 解析为实际 `light` 或 `dark`。
-3. 同时读取 `GET /api/settings/public`：若管理员设置 `site_theme=holiday` 或 `mourning`，添加独立站点覆盖状态，但不改写用户保存的主题偏好。
+2. 无缓存时先使用 `ui_theme=magazine`、`color_scheme=system` 保证挂载前可读；初始化读取公开设置后，未登录且访客缓存仍不存在时应用管理员配置的 `default_guest_ui_theme` 和 `default_guest_color_scheme` 并写入访客缓存。
+3. 同一次 `GET /api/settings/public` 若读取到 `site_theme=holiday` 或 `mourning`，添加独立站点覆盖状态，但不改写用户保存的主题偏好。
 4. 登录用户读取自己的主题偏好，以服务端账号值为准并写入当前用户专属缓存；未登录访客继续使用独立的访客缓存，两者不得互相覆盖。
 5. 当偏好为 `system` 时监听系统明暗变化并即时更新；显式 `light`/`dark` 不跟随系统变化。
+6. 后台默认外观只影响无缓存访客；公开设置响应返回前若访客已选择外观或完成登录，迟到响应不得覆盖新状态。无效后台值归一化为 `magazine + system`。
 
 ### B. 用户预览并确认主题
 
@@ -361,7 +362,7 @@ web/blog/src/
 1. 管理员 `holiday` / `mourning` 特殊覆盖，仅影响最终呈现。
 2. 登录用户服务端偏好。
 3. 当前浏览器本地偏好。
-4. 默认 `magazine + system`。
+4. 账号默认与公开设置不可用时的安全回退仍为 `magazine + system`；无缓存访客可由管理员配置四套已开放主题和 `system|light|dark`。
 
 本地缓存使用两个命名空间：访客键 `inkspace_guest_appearance_v1`，账号键 `inkspace_user_appearance_v1:<userId>`；内容只允许白名单字段。登录只更新对应账号键，不覆盖访客键；登出恢复访客偏好。再次登录时先用账号缓存防闪烁，再由服务端值校正。工作区公开状态更新必须沿用现有缓存失效逻辑，公共读取不得因旧缓存绕过 `is_public` 校验。
 
@@ -455,7 +456,7 @@ web/blog/src/
 
 ## 验收标准
 
-1. 新用户、无缓存访客和未知偏好均默认进入「屿刊 · 极简杂志风」。
+1. 新账号和无效偏好安全回退「屿刊 · 极简杂志风」；无缓存访客使用管理员公开配置，配置缺失或无效时回退 `magazine + system`。
 2. 登录用户的主题与明暗偏好可跨设备同步；预览、取消、确认和失败回滚符合核心流程。
 3. 管理员节日/哀悼模式可临时覆盖呈现，但不破坏个人偏好。
 4. `magazine` 完成页面适配矩阵，桌面和移动端均可正常完成原有业务操作。
