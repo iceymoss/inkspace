@@ -20,6 +20,10 @@ export default defineConfig({
     outDir,
     emptyOutDir: true
   },
+  test: {
+    environment: 'jsdom',
+    clearMocks: true
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

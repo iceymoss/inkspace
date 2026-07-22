@@ -1,11 +1,17 @@
 <template>
   <div class="work-detail">
     <div class="container">
-      <el-card v-if="work" class="detail-card">
+      <el-card
+        v-if="work"
+        class="detail-card"
+      >
         <template #header>
           <div class="card-header">
             <!-- 审核状态提示（仅在非已发布状态时显示） -->
-            <div v-if="work.status !== 1" class="work-status-banner">
+            <div
+              v-if="work.status !== 1"
+              class="work-status-banner"
+            >
               <el-alert
                 :type="getStatusAlertType(work.status)"
                 :closable="false"
@@ -14,7 +20,10 @@
                 <template #title>
                   <div>
                     <div>{{ getStatusText(work.status) }}</div>
-                    <div v-if="work.audit_message" style="margin-top: 8px; font-size: 14px; font-weight: normal;">
+                    <div
+                      v-if="work.audit_message"
+                      style="margin-top: 8px; font-size: 14px; font-weight: normal;"
+                    >
                       {{ work.audit_message }}
                     </div>
                   </div>
@@ -22,12 +31,15 @@
               </el-alert>
             </div>
             <!-- 编辑按钮（仅作者可见） -->
-            <div v-if="isWorkOwner" class="card-header-actions">
+            <div
+              v-if="isWorkOwner"
+              class="card-header-actions"
+            >
               <el-button 
                 type="primary" 
                 :icon="Edit" 
-                @click="handleEdit"
                 size="default"
+                @click="handleEdit"
               >
                 编辑作品
               </el-button>
@@ -48,7 +60,10 @@
                   indicator-position="none"
                   @change="handlePhotoChange"
                 >
-                  <el-carousel-item v-for="(photo, index) in photos" :key="index">
+                  <el-carousel-item
+                    v-for="(photo, index) in photos"
+                    :key="index"
+                  >
                     <el-image 
                       :src="photo.url" 
                       :alt="photo.description || work.title"
@@ -69,7 +84,10 @@
               </div>
 
               <!-- 缩略图导航 -->
-              <div class="thumbnail-nav" v-if="photos.length > 1">
+              <div
+                v-if="photos.length > 1"
+                class="thumbnail-nav"
+              >
                 <div 
                   v-for="(photo, index) in photos" 
                   :key="index"
@@ -77,27 +95,51 @@
                   :class="{ active: index === currentPhotoIndex }"
                   @click="setActivePhoto(index)"
                 >
-                  <el-image :src="photo.url" fit="cover" />
+                  <el-image
+                    :src="photo.url"
+                    fit="cover"
+                  />
                 </div>
               </div>
 
               <!-- 当前照片描述 -->
-              <div class="photo-description" v-if="currentPhoto.description">
+              <div
+                v-if="currentPhoto.description"
+                class="photo-description"
+              >
                 <p>{{ currentPhoto.description }}</p>
               </div>
 
               <!-- 相册信息 -->
               <div class="album-info">
                 <h2>{{ work.title }}</h2>
-                <div id="work-description-preview-photography" v-if="work.description"></div>
-                <p v-else class="album-description-empty">暂无描述</p>
+              <div
+                v-if="work.description"
+                id="work-description-preview-photography"
+                :data-markdown-theme="markdownTheme"
+              />
+                <p
+                  v-else
+                  class="album-description-empty"
+                >
+                  暂无描述
+                </p>
                 
-                <div class="album-meta" v-if="work.metadata">
-                  <div class="meta-item" v-if="work.metadata.location">
+                <div
+                  v-if="work.metadata"
+                  class="album-meta"
+                >
+                  <div
+                    v-if="work.metadata.location"
+                    class="meta-item"
+                  >
                     <el-icon><Location /></el-icon>
                     <span>{{ work.metadata.location }}</span>
                   </div>
-                  <div class="meta-item" v-if="work.metadata.shooting_date">
+                  <div
+                    v-if="work.metadata.shooting_date"
+                    class="meta-item"
+                  >
                     <el-icon><Calendar /></el-icon>
                     <span>{{ work.metadata.shooting_date }}</span>
                   </div>
@@ -112,9 +154,18 @@
             <!-- 右侧：信息栏（30%） -->
             <div class="info-sidebar">
               <!-- 作者信息 -->
-              <div class="author-card" v-if="work.author">
-                <div class="author-header" @click="goToUserProfile(work.author.id)">
-                  <el-avatar :size="60" :src="work.author.avatar" />
+              <div
+                v-if="work.author"
+                class="author-card"
+              >
+                <div
+                  class="author-header"
+                  @click="goToUserProfile(work.author.id)"
+                >
+                  <el-avatar
+                    :size="60"
+                    :src="work.author.avatar"
+                  />
                   <div class="author-info">
                     <h3>{{ work.author.nickname || work.author.username }}</h3>
                     <p>{{ work.author.bio || '这个人很懒，什么都没留下' }}</p>
@@ -137,37 +188,60 @@
                   :loading="followLoading"
                   @click="handleFollow"
                 >
-                  <el-icon v-if="!followLoading"><Plus v-if="!isFollowing" /><Check v-else /></el-icon>
+                  <el-icon v-if="!followLoading">
+                    <Plus v-if="!isFollowing" /><Check v-else />
+                  </el-icon>
                   {{ isFollowing ? '已关注' : '关注' }}
                 </el-button>
                 <!-- 未登录用户不显示按钮 -->
               </div>
 
               <!-- 当前照片参数 -->
-              <div class="photo-params-card" v-if="currentPhoto.metadata">
+              <div
+                v-if="currentPhoto.metadata"
+                class="photo-params-card"
+              >
                 <h3>📷 拍摄参数</h3>
                 <div class="params-list">
-                  <div class="param-item" v-if="currentPhoto.metadata.camera">
+                  <div
+                    v-if="currentPhoto.metadata.camera"
+                    class="param-item"
+                  >
                     <span class="param-label">相机：</span>
                     <span class="param-value">{{ currentPhoto.metadata.camera }}</span>
                   </div>
-                  <div class="param-item" v-if="currentPhoto.metadata.lens">
+                  <div
+                    v-if="currentPhoto.metadata.lens"
+                    class="param-item"
+                  >
                     <span class="param-label">镜头：</span>
                     <span class="param-value">{{ currentPhoto.metadata.lens }}</span>
                   </div>
-                  <div class="param-item" v-if="currentPhoto.metadata.focal_length">
+                  <div
+                    v-if="currentPhoto.metadata.focal_length"
+                    class="param-item"
+                  >
                     <span class="param-label">焦段：</span>
                     <span class="param-value">{{ currentPhoto.metadata.focal_length }}</span>
                   </div>
-                  <div class="param-item" v-if="currentPhoto.metadata.aperture">
+                  <div
+                    v-if="currentPhoto.metadata.aperture"
+                    class="param-item"
+                  >
                     <span class="param-label">光圈：</span>
                     <span class="param-value">{{ currentPhoto.metadata.aperture }}</span>
                   </div>
-                  <div class="param-item" v-if="currentPhoto.metadata.shutter_speed">
+                  <div
+                    v-if="currentPhoto.metadata.shutter_speed"
+                    class="param-item"
+                  >
                     <span class="param-label">快门：</span>
                     <span class="param-value">{{ currentPhoto.metadata.shutter_speed }}</span>
                   </div>
-                  <div class="param-item" v-if="currentPhoto.metadata.iso">
+                  <div
+                    v-if="currentPhoto.metadata.iso"
+                    class="param-item"
+                  >
                     <span class="param-label">ISO：</span>
                     <span class="param-value">{{ currentPhoto.metadata.iso }}</span>
                   </div>
@@ -188,19 +262,22 @@
                   </div>
                 </div>
                 <!-- 只有已发布的作品才显示点赞和收藏按钮 -->
-                <div class="action-buttons" v-if="work && work.is_published">
+                <div
+                  v-if="work && work.is_published"
+                  class="action-buttons"
+                >
                   <el-button 
                     :type="isLiked ? 'primary' : 'default'"
-                    @click="handleLike"
                     :loading="liking"
+                    @click="handleLike"
                   >
                     <el-icon><Star /></el-icon>
                     {{ work.like_count || 0 }} {{ isLiked ? '已点赞' : '点赞' }}
                   </el-button>
                   <el-button 
                     :type="isFavorited ? 'warning' : 'default'"
-                    @click="handleFavorite"
                     :loading="favoriting"
+                    @click="handleFavorite"
                   >
                     <el-icon><Star /></el-icon>
                     {{ work.favorite_count || 0 }} {{ isFavorited ? '已收藏' : '收藏' }}
@@ -222,15 +299,21 @@
                 </el-tag>
               </div>
               
-              <div class="work-author" v-if="work.author">
+              <div
+                v-if="work.author"
+                class="work-author"
+              >
                 <el-avatar 
                   :size="40" 
                   :src="work.author.avatar"
-                  @click="goToUserProfile(work.author.id)"
                   style="cursor: pointer"
+                  @click="goToUserProfile(work.author.id)"
                 />
                 <div class="author-info">
-                  <span class="author-name" @click="goToUserProfile(work.author.id)">
+                  <span
+                    class="author-name"
+                    @click="goToUserProfile(work.author.id)"
+                  >
                     {{ work.author.nickname || work.author.username }}
                   </span>
                   <span class="publish-time">{{ formatDate(work.created_at) }}</span>
@@ -239,15 +322,30 @@
             </div>
 
             <div class="work-content">
-              <div id="work-description-preview-project" v-if="work.description"></div>
-              <p v-else class="work-description-empty">暂无描述</p>
+              <div
+                v-if="work.description"
+                id="work-description-preview-project"
+                :data-markdown-theme="markdownTheme"
+              />
+              <p
+                v-else
+                class="work-description-empty"
+              >
+                暂无描述
+              </p>
               
-              <div class="tech-stack" v-if="work.tech_stack">
+              <div
+                v-if="work.tech_stack"
+                class="tech-stack"
+              >
                 <h3>技术栈</h3>
                 <p>{{ work.tech_stack }}</p>
               </div>
 
-              <div class="work-links" v-if="work.github_url || work.demo_url || work.link">
+              <div
+                v-if="work.github_url || work.demo_url || work.link"
+                class="work-links"
+              >
                 <el-button 
                   v-if="work.github_url" 
                   type="primary"
@@ -286,23 +384,26 @@
               </div>
 
               <!-- 点赞和收藏按钮（只有已发布的作品才显示） -->
-              <div class="work-actions" v-if="work && work.is_published">
+              <div
+                v-if="work && work.is_published"
+                class="work-actions"
+              >
                 <el-button 
                   :type="isLiked ? 'primary' : 'default'"
-                  @click="handleLike"
                   :loading="liking"
                   size="default"
                   class="action-btn"
+                  @click="handleLike"
                 >
                   <el-icon><Star /></el-icon>
                   {{ work.like_count || 0 }} {{ isLiked ? '已点赞' : '点赞' }}
                 </el-button>
                 <el-button 
                   :type="isFavorited ? 'warning' : 'default'"
-                  @click="handleFavorite"
                   :loading="favoriting"
                   size="default"
                   class="action-btn"
+                  @click="handleFavorite"
                 >
                   <el-icon><Star /></el-icon>
                   {{ work.favorite_count || 0 }} {{ isFavorited ? '已收藏' : '收藏' }}
@@ -313,12 +414,15 @@
         </template>
 
         <!-- 编辑按钮（底部） -->
-        <div v-if="isWorkOwner" class="edit-actions-bottom">
+        <div
+          v-if="isWorkOwner"
+          class="edit-actions-bottom"
+        >
           <el-button 
             type="primary" 
             :icon="Edit" 
-            @click="handleEdit"
             size="large"
+            @click="handleEdit"
           >
             <el-icon><Edit /></el-icon>
             编辑作品
@@ -329,11 +433,18 @@
         <!-- 只有已发布的作品（is_published=true）且评论功能开启时才显示评论区 -->
         <el-divider v-if="workCommentEnabled && work && work.is_published" />
         
-        <div v-if="workCommentEnabled && work && work.is_published" class="comment-section">
+        <div
+          v-if="workCommentEnabled && work && work.is_published"
+          class="comment-section"
+        >
           <h3>评论 ({{ work.comment_count }})</h3>
           
           <!-- 发表评论 -->
-          <el-form v-if="userStore.isLoggedIn" @submit.prevent="submitComment" class="comment-form">
+          <el-form
+            v-if="userStore.isLoggedIn"
+            class="comment-form"
+            @submit.prevent="submitComment"
+          >
             <el-input
               v-model="commentContent"
               type="textarea"
@@ -342,15 +453,34 @@
               maxlength="500"
               show-word-limit
             />
-            <el-button type="primary" @click="submitComment" :loading="submittingComment">发表评论</el-button>
+            <el-button
+              type="primary"
+              :loading="submittingComment"
+              @click="submitComment"
+            >
+              发表评论
+            </el-button>
           </el-form>
-          <el-alert v-else type="info" :closable="false">
-            请<el-link type="primary" @click="$router.push('/login')">登录</el-link>后发表评论
+          <el-alert
+            v-else
+            type="info"
+            :closable="false"
+          >
+            请<el-link
+              type="primary"
+              @click="$router.push('/login')"
+            >
+              登录
+            </el-link>后发表评论
           </el-alert>
 
           <!-- 评论列表 -->
           <div class="comment-list">
-            <div v-for="comment in comments" :key="comment.id" class="comment-item">
+            <div
+              v-for="comment in comments"
+              :key="comment.id"
+              class="comment-item"
+            >
               <el-avatar 
                 :src="comment.user?.avatar" 
                 class="clickable-avatar"
@@ -362,7 +492,13 @@
                     <span class="comment-author">
                       {{ comment.user?.nickname || comment.nickname }}
                     </span>
-                    <el-tag v-if="isCommentAuthor(comment)" type="warning" size="small" effect="plain" class="author-tag">
+                    <el-tag
+                      v-if="isCommentAuthor(comment)"
+                      type="warning"
+                      size="small"
+                      effect="plain"
+                      class="author-tag"
+                    >
                       作者
                     </el-tag>
                   </div>
@@ -376,8 +512,8 @@
                     text 
                     size="small" 
                     :type="comment.isLiked ? 'primary' : 'default'"
-                    @click="handleCommentLike(comment)"
                     :loading="comment.likeLoading"
+                    @click="handleCommentLike(comment)"
                   >
                     <el-icon><Star /></el-icon> 
                     {{ comment.like_count || 0 }}
@@ -402,7 +538,10 @@
                 </div>
                 
                 <!-- 回复输入框 -->
-                <div v-if="comment.showReply" class="reply-input">
+                <div
+                  v-if="comment.showReply"
+                  class="reply-input"
+                >
                   <el-input
                     v-model="comment.replyContent"
                     type="textarea"
@@ -412,16 +551,33 @@
                     show-word-limit
                   />
                   <div class="reply-actions">
-                    <el-button size="small" @click="cancelReply(comment)">取消</el-button>
-                    <el-button type="primary" size="small" @click="submitReply(comment)" :loading="comment.replying">
+                    <el-button
+                      size="small"
+                      @click="cancelReply(comment)"
+                    >
+                      取消
+                    </el-button>
+                    <el-button
+                      type="primary"
+                      size="small"
+                      :loading="comment.replying"
+                      @click="submitReply(comment)"
+                    >
                       发表回复
                     </el-button>
                   </div>
                 </div>
                 
                 <!-- 回复列表 -->
-                <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
-                  <div v-for="reply in getDisplayedReplies(comment)" :key="reply.id" class="reply-item">
+                <div
+                  v-if="comment.replies && comment.replies.length > 0"
+                  class="replies-list"
+                >
+                  <div
+                    v-for="reply in getDisplayedReplies(comment)"
+                    :key="reply.id"
+                    class="reply-item"
+                  >
                     <el-avatar 
                       :src="reply.user?.avatar" 
                       size="small"
@@ -432,10 +588,19 @@
                       <div class="reply-header">
                         <span class="reply-author">
                           {{ reply.user?.nickname || reply.nickname }}
-                          <el-tag v-if="isCommentAuthor(reply)" type="warning" size="small" effect="plain" class="author-tag">
+                          <el-tag
+                            v-if="isCommentAuthor(reply)"
+                            type="warning"
+                            size="small"
+                            effect="plain"
+                            class="author-tag"
+                          >
                             作者
                           </el-tag>
-                          <span v-if="reply.parent_id" class="reply-to">
+                          <span
+                            v-if="reply.parent_id"
+                            class="reply-to"
+                          >
                             <template v-if="reply.parent_id === comment.id">
                               回复 @{{ comment.user?.nickname || comment.nickname }}
                             </template>
@@ -452,8 +617,8 @@
                           text 
                           size="small" 
                           :type="reply.isLiked ? 'primary' : 'default'"
-                          @click="handleCommentLike(reply)"
                           :loading="reply.likeLoading"
+                          @click="handleCommentLike(reply)"
                         >
                           <el-icon><Star /></el-icon> 
                           {{ reply.like_count || 0 }}
@@ -478,7 +643,10 @@
                       </div>
                       
                       <!-- 回复的回复输入框 -->
-                      <div v-if="reply.showReply" class="reply-input">
+                      <div
+                        v-if="reply.showReply"
+                        class="reply-input"
+                      >
                         <el-input
                           v-model="reply.replyContent"
                           type="textarea"
@@ -488,8 +656,18 @@
                           show-word-limit
                         />
                         <div class="reply-actions">
-                          <el-button size="small" @click="cancelReplyToReply(reply)">取消</el-button>
-                          <el-button type="primary" size="small" @click="submitReplyToReply(comment, reply)" :loading="reply.replying">
+                          <el-button
+                            size="small"
+                            @click="cancelReplyToReply(reply)"
+                          >
+                            取消
+                          </el-button>
+                          <el-button
+                            type="primary"
+                            size="small"
+                            :loading="reply.replying"
+                            @click="submitReplyToReply(comment, reply)"
+                          >
                             发表回复
                           </el-button>
                         </div>
@@ -498,12 +676,15 @@
                   </div>
                   
                   <!-- 展开更多子评论按钮 -->
-                  <div v-if="hasMoreReplies(comment)" class="load-more-replies">
+                  <div
+                    v-if="hasMoreReplies(comment)"
+                    class="load-more-replies"
+                  >
                     <el-button 
                       text 
                       size="small" 
-                      @click="loadMoreReplies(comment)"
                       :loading="comment.loadingReplies"
+                      @click="loadMoreReplies(comment)"
                     >
                       <el-icon><ArrowDown /></el-icon>
                       {{ comment.loadingReplies ? '加载中...' : `展开更多回复 (${comment.reply_count - getDisplayedReplies(comment).length} 条)` }}
@@ -514,29 +695,45 @@
             </div>
           </div>
 
-          <div class="load-more-container" v-if="hasMoreComments">
+          <div
+            v-if="hasMoreComments"
+            class="load-more-container"
+          >
             <el-button 
-              @click="loadMoreComments"
               :loading="loadingMoreComments"
               class="load-more-btn"
+              @click="loadMoreComments"
             >
-              <el-icon v-if="!loadingMoreComments"><ArrowDown /></el-icon>
+              <el-icon v-if="!loadingMoreComments">
+                <ArrowDown />
+              </el-icon>
               {{ loadingMoreComments ? '加载中...' : '加载更多评论' }}
             </el-button>
             <div class="comment-count-info">
               已显示 {{ comments.length }} / {{ commentsTotal }} 条评论
             </div>
           </div>
-          <div v-else-if="comments.length > 0" class="no-more-comments">
+          <div
+            v-else-if="comments.length > 0"
+            class="no-more-comments"
+          >
             已显示全部 {{ comments.length }} 条评论
           </div>
         </div>
       </el-card>
 
-      <div v-else-if="loading" class="loading-container" v-loading="loading" element-loading-text="加载中...">
-        <div class="loading-placeholder"></div>
+      <div
+        v-else-if="loading"
+        v-loading="loading"
+        class="loading-container"
+        element-loading-text="加载中..."
+      >
+        <div class="loading-placeholder" />
       </div>
-      <el-empty v-else description="作品不存在" />
+      <el-empty
+        v-else
+        description="作品不存在"
+      />
     </div>
   </div>
 </template>
@@ -550,16 +747,21 @@ import {
   Location, Calendar, Picture, ArrowDown, Edit, Plus, Check
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useAppearanceStore } from '@/stores/appearance'
+import { useTerminalStore } from '@/stores/terminal'
 import api from '@/utils/api'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
+import { loadCodeTheme, loadHighlightTheme } from '@/utils/codeTheme'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const appearanceStore = useAppearanceStore()
+const terminalStore = useTerminalStore()
 
 const work = ref(null)
+const markdownTheme = computed(() => appearanceStore.resolvedColorScheme)
 const loading = ref(true) // 添加加载状态
 const comments = ref([])
 const commentsPage = ref(1)
@@ -678,11 +880,9 @@ const renderDescription = async () => {
   
   // 加载代码主题配置
   const codeThemeValue = await loadCodeTheme()
+  const mdTheme = markdownTheme.value
   // 加载 highlight.js 主题样式
   await loadHighlightTheme(codeThemeValue)
-  // 加载 Markdown 主题配置
-  const mdTheme = await getMarkdownTheme()
-  
   // 确保样式表完全加载后再渲染
   await new Promise(resolve => setTimeout(resolve, 150))
   
@@ -706,6 +906,9 @@ const renderDescription = async () => {
     // 使用 Vditor.preview 进行渲染
     Vditor.preview(previewDiv, work.value.description, {
       mode: mdTheme || 'light',
+      theme: {
+        current: mdTheme,
+      },
       markdown: {
         toc: true,
         mark: true,
@@ -1526,6 +1729,25 @@ onMounted(async () => {
   window.addEventListener('resize', updateCarouselHeight)
 })
 
+watch(markdownTheme, () => {
+  if (work.value?.description) renderDescription()
+})
+
+watch(
+  () => terminalStore.refreshSignals[`work:${route.params.id}`],
+  async (signal, previousSignal) => {
+    if (!signal || signal === previousSignal) return
+    await Promise.all([loadWork(true), checkLikedStatus(), checkFavoritedStatus()])
+  }
+)
+
+watch(
+  () => terminalStore.refreshSignals[`user:${work.value?.author?.id}`],
+  (signal, previousSignal) => {
+    if (signal && signal !== previousSignal) checkFollowStatus()
+  }
+)
+
 onUnmounted(() => {
   window.removeEventListener('resize', updateCarouselHeight)
   })
@@ -1891,10 +2113,9 @@ onUnmounted(() => {
 /* 摄影作品的描述区域 - 独立样式 */
 #work-description-preview-photography {
   padding: 30px;
-  background-color: var(--theme-content-bg);
-  border-radius: 8px;
-  border: 1px solid var(--theme-border-light);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 0;
+  border: 1px solid var(--markdown-border);
+  box-shadow: none;
   margin: 20px 0;
 }
 
@@ -1907,10 +2128,8 @@ onUnmounted(() => {
 /* 内联代码样式 */
 #work-description-preview-photography :deep(code:not(pre code)),
 #work-description-preview-project :deep(code:not(pre code)) {
-  background-color: rgba(175, 184, 193, 0.2);
-  color: #24292e;
   padding: 0.2em 0.4em;
-  border-radius: 3px;
+  border-radius: 0;
   font-size: 85%;
 }
 
@@ -2216,6 +2435,54 @@ onUnmounted(() => {
 .clickable-avatar:hover {
   transform: scale(1.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Magazine adaptation */
+.work-detail { padding: 62px 0 80px; background: var(--theme-bg-primary); }
+.work-detail .container { max-width: 1124px; padding: 0 32px; }
+.detail-card { border: 1px solid var(--theme-border) !important; border-radius: 0; box-shadow: none; background: var(--theme-bg-card) !important; }
+.detail-card :deep(.el-card__header) { padding: 22px clamp(24px, 5vw, 52px); border-bottom: 1px solid var(--theme-border); }
+.detail-card :deep(.el-card__body) { padding: clamp(30px, 5vw, 54px); }
+.main-photo-container { border: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
+.photo-counter { bottom: 14px; right: 14px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.4); border-radius: 0; box-shadow: none; font-family: Georgia, serif; font-size: 12px; letter-spacing: .12em; }
+.thumbnail-item { border: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; transition: border-color .25s ease; }
+.thumbnail-item:hover, .thumbnail-item.active { border-color: var(--theme-primary); box-shadow: none; transform: none; }
+.photo-description { padding: 18px 0; background: transparent; border: 0; border-bottom: 1px solid var(--theme-border); border-left: 0; border-radius: 0; color: var(--theme-text-secondary); }
+.album-info h2, .work-title-section h1 { font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: clamp(34px, 5vw, 52px); font-weight: 500; letter-spacing: .04em; }
+.author-card, .photo-params-card, .stats-card { padding: 24px 0; background: transparent; border: 0; border-top: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
+.photo-params-card h3, .stats-card h3 { border-bottom: 1px solid var(--theme-border); color: var(--theme-text-primary); font-family: Georgia, 'Songti SC', serif; font-weight: 500; letter-spacing: .05em; }
+.param-item { border-bottom-color: var(--theme-border); }
+.param-value, .param-label { color: var(--theme-text-secondary); font-weight: 400; }
+.action-buttons .el-button, .action-btn, .work-link-btn { border-radius: 1px; box-shadow: none; transition: border-color .25s ease, background .25s ease; }
+.action-buttons .el-button:hover, .action-btn:hover, .work-link-btn:hover { box-shadow: none; transform: none; }
+.work-content, #work-description-preview-photography { padding: 30px 0; background: transparent; border: 0; border-top: 1px solid var(--theme-border); border-bottom: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
+.work-links { padding-top: 24px; }
+.github-btn, .project-btn, .demo-btn { background: transparent; border: 1px solid var(--theme-border); color: var(--theme-text-primary); }
+.github-btn:hover, .project-btn:hover, .demo-btn:hover { background: var(--theme-primary); border-color: var(--theme-primary); color: var(--theme-bg-primary); }
+.work-actions, .work-stats, .edit-actions-bottom { border-top-color: var(--theme-border); }
+.comment-section { margin-top: 54px; padding-top: 42px; border-top: 1px solid var(--theme-border); }
+.comment-section h3 { font-family: Georgia, 'Songti SC', serif; font-size: 26px; font-weight: 500; }
+.comment-item, .reply-item { border-bottom-color: var(--theme-border); }
+.reply-input, .no-more-comments { background: var(--theme-bg-secondary); border: 1px solid var(--theme-border); border-radius: 0; }
+.replies-list { border-left: 1px solid var(--theme-border); }
+.work-detail :deep(.el-button), .work-detail :deep(.el-tag), .work-detail :deep(.el-alert), .work-detail :deep(.el-textarea__inner) { border-radius: 1px; box-shadow: none; }
+
+@media (max-width: 900px) {
+  .work-detail .container { padding: 0 24px; }
+  .photography-layout { flex-direction: column; }
+  .info-sidebar { display: grid; grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .work-detail { padding: 38px 0 56px; }
+  .work-detail .container { padding: 0 12px; }
+  .detail-card :deep(.el-card__header) { padding: 18px 20px; }
+  .detail-card :deep(.el-card__body) { padding: 24px 20px 32px; }
+  .info-sidebar { display: flex; }
+  .work-title-section { align-items: flex-start; flex-direction: column; }
+  .work-links, .action-buttons, .work-actions { flex-direction: column; }
+  .work-link-btn { width: 100%; }
+  .comment-header, .reply-header { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .replies-list { padding-left: 12px; }
 }
 
 /* ========== 响应式 ========== */

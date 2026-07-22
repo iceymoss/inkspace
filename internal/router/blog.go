@@ -18,6 +18,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 	// Handlers
 	userHandler := handler.NewUserHandler()
+	userAppearanceHandler := handler.NewUserAppearanceHandler()
 	articleHandler := handler.NewArticleHandler()
 	commentHandler := handler.NewCommentHandler()
 	categoryHandler := handler.NewCategoryHandler()
@@ -35,6 +36,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	catalogHandler := handler.NewCatalogHandler()
 	docHandler := handler.NewDocHandler()
 	shareHandler := handler.NewShareHandler()
+	publicWikiHandler := handler.NewPublicWikiHandler()
 
 	// API routes
 	api := r.Group("/api")
@@ -46,6 +48,9 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			public.POST("/register", userHandler.Register)
 			public.POST("/login", userHandler.Login)
 			public.GET("/share/:token", shareHandler.Public)
+			public.GET("/wiki/workspaces", publicWikiHandler.Workspaces)
+			public.GET("/wiki/workspaces/:id/tree", publicWikiHandler.Tree)
+			public.GET("/wiki/docs/:id", publicWikiHandler.Doc)
 
 			// Articles (public read)
 			public.GET("/articles", articleHandler.GetList)
@@ -122,6 +127,8 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			protected.GET("/profile", userHandler.GetProfile)
 			protected.PUT("/profile", userHandler.UpdateProfile)
 			protected.PUT("/profile/password", userHandler.ChangePassword)
+			protected.GET("/profile/appearance", userAppearanceHandler.Get)
+			protected.PUT("/profile/appearance", userAppearanceHandler.Update)
 
 			// Upload
 			protected.POST("/upload/image", uploadHandler.UploadImage)

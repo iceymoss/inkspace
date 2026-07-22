@@ -124,6 +124,10 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				} else if key == models.SettingSiteTheme {
 					group = "theme"
 					isPublic = true // 主题设置需要公开，前端才能使用
+				} else if key == models.SettingHomeCarousel || key == models.SettingHomeHero ||
+					key == models.SettingHomeHeroTerminal {
+					group = "carousel"
+					isPublic = true
 				} else if key == "holiday_type" || key == "holiday_bg_primary" ||
 					key == "holiday_bg_secondary" || key == "holiday_text_primary" ||
 					key == "holiday_primary" {
@@ -131,8 +135,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					isPublic = true // 节假日主题设置需要公开，前端才能使用
 				}
 			} else {
-				// 更新现有记录时，如果是 code_theme 或 site_theme，确保设置正确
-				if key == models.SettingCodeTheme {
+				// 更新现有主题记录时，确保分组和公开状态正确。
+				if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme {
 					group = "markdown"
 					isPublic = true
 				} else if key == models.SettingSiteTheme {
@@ -143,7 +147,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					key == "holiday_primary" {
 					group = "theme"
 					isPublic = true
-				} else if key == "home_carousel" {
+				} else if key == models.SettingHomeCarousel || key == models.SettingHomeHero ||
+					key == models.SettingHomeHeroTerminal {
 					group = "carousel"
 					isPublic = true
 				} else if key == "about_page" {
@@ -168,11 +173,13 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					return err
 				}
 			} else {
-				// 更新现有记录（保留原有的 group 和 is_public，除非是 code_theme 或 site_theme）
+				// 更新现有记录（保留原有的 group 和 is_public，主题设置除外）。
 				updateData := map[string]interface{}{
 					"value": value,
 				}
-				if key == models.SettingCodeTheme || key == models.SettingSiteTheme {
+				if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme || key == models.SettingSiteTheme ||
+					key == models.SettingHomeCarousel || key == models.SettingHomeHero ||
+					key == models.SettingHomeHeroTerminal {
 					updateData["group"] = group
 					updateData["is_public"] = isPublic
 				}

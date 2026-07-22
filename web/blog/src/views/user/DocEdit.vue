@@ -1,29 +1,86 @@
 <template>
-  <section v-loading="initialLoading" class="doc-edit-page">
+  <section
+    v-loading="initialLoading"
+    class="doc-edit-page"
+  >
     <header class="editor-header">
       <div class="header-left">
-        <el-button text circle aria-label="返回空间" @click="goBack"><el-icon><ArrowLeft /></el-icon></el-button>
+        <el-button
+          text
+          circle
+          aria-label="返回空间"
+          @click="goBack"
+        >
+          <el-icon><ArrowLeft /></el-icon>
+        </el-button>
         <div class="doc-location">
-          <span>{{ workspaceName }}</span>
+          <span class="doc-location-title">
+            {{ workspaceName }}
+            <el-tag
+              :type="form.status === 1 ? 'success' : 'info'"
+              size="small"
+              effect="plain"
+            >
+              {{ form.status === 1 ? 'Wiki 已发布' : 'Wiki 草稿' }}
+            </el-tag>
+          </span>
           <small>{{ saveStateText }}</small>
         </div>
       </div>
       <div class="header-actions">
         <div class="desktop-secondary-actions">
-          <el-button @click="openVersions"><el-icon><Clock /></el-icon>版本</el-button>
-          <el-button @click="openShares"><el-icon><Share /></el-icon>分享</el-button>
+          <el-button @click="openVersions">
+            <el-icon><Clock /></el-icon>版本
+          </el-button>
+          <el-button @click="openShares">
+            <el-icon><Share /></el-icon>分享
+          </el-button>
         </div>
-        <el-dropdown class="mobile-more" trigger="click" @command="handleMoreCommand">
-          <el-button aria-label="更多文档操作"><el-icon><MoreFilled /></el-icon></el-button>
+        <el-dropdown
+          class="mobile-more"
+          trigger="click"
+          @command="handleMoreCommand"
+        >
+          <el-button aria-label="更多文档操作">
+            <el-icon><MoreFilled /></el-icon>
+          </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="versions"><el-icon><Clock /></el-icon>版本历史</el-dropdown-item>
-              <el-dropdown-item command="shares"><el-icon><Share /></el-icon>分享文档</el-dropdown-item>
+              <el-dropdown-item command="versions">
+                <el-icon><Clock /></el-icon>版本历史
+              </el-dropdown-item>
+              <el-dropdown-item command="shares">
+                <el-icon><Share /></el-icon>分享文档
+              </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-button :loading="publishing" @click="openBlogPublish">发布到博客</el-button>
-        <el-button type="primary" :loading="saving" @click="manualSave">保存</el-button>
+        <el-button
+          :loading="wikiPublishing"
+          @click="publishToWiki(1)"
+        >
+          {{ form.status === 1 ? '重新发布 Wiki' : '发布 Wiki' }}
+        </el-button>
+        <el-button
+          v-if="form.status === 1"
+          :loading="wikiPublishing"
+          @click="publishToWiki(0)"
+        >
+          取消发布
+        </el-button>
+        <el-button
+          :loading="publishing"
+          @click="openBlogPublish"
+        >
+          发布到博客
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="manualSave"
+        >
+          保存
+        </el-button>
       </div>
     </header>
 
@@ -35,11 +92,24 @@
         placeholder="无标题文档"
         @input="markTitleDirty"
       />
-      <VditorEditor v-if="editorReady" v-model="form.content" height="calc(100vh - 245px)" @update:model-value="markContentDirty" />
+      <VditorEditor
+        v-if="editorReady"
+        v-model="form.content"
+        height="calc(100vh - 245px)"
+        @update:model-value="markContentDirty"
+      />
     </div>
 
-    <el-drawer v-model="versionDrawer" title="版本历史" size="min(520px, 92vw)" @open="fetchVersions">
-      <div v-loading="versionsLoading" class="version-list">
+    <el-drawer
+      v-model="versionDrawer"
+      title="版本历史"
+      size="min(520px, 92vw)"
+      @open="fetchVersions"
+    >
+      <div
+        v-loading="versionsLoading"
+        class="version-list"
+      >
         <article
           v-for="version in versions"
           :key="version.id || version.version"
@@ -48,26 +118,54 @@
         >
           <div>
             <strong>v{{ version.version }}</strong>
-            <el-tag v-if="version.remark" size="small" effect="plain">{{ version.remark }}</el-tag>
+            <el-tag
+              v-if="version.remark"
+              size="small"
+              effect="plain"
+            >
+              {{ version.remark }}
+            </el-tag>
           </div>
           <span>{{ formatDate(version.created_at) }}</span>
         </article>
-        <el-empty v-if="!versionsLoading && versions.length === 0" description="还没有版本快照" />
+        <el-empty
+          v-if="!versionsLoading && versions.length === 0"
+          description="还没有版本快照"
+        />
       </div>
-      <section v-if="selectedVersion" class="version-detail">
+      <section
+        v-if="selectedVersion"
+        class="version-detail"
+      >
         <div class="version-detail-header">
           <div><strong>v{{ selectedVersion.version }} · {{ selectedVersion.title || '无标题文档' }}</strong></div>
-          <el-button type="primary" plain :loading="rollingBack" @click="rollbackVersion(selectedVersion.version)">回滚到此版本</el-button>
+          <el-button
+            type="primary"
+            plain
+            :loading="rollingBack"
+            @click="rollbackVersion(selectedVersion.version)"
+          >
+            回滚到此版本
+          </el-button>
         </div>
         <pre>{{ selectedVersion.content || '此版本没有内容' }}</pre>
       </section>
     </el-drawer>
 
-    <el-dialog v-model="shareDialog" title="分享文档" width="min(720px, 94vw)" @open="fetchShares">
+    <el-dialog
+      v-model="shareDialog"
+      title="分享文档"
+      width="min(720px, 94vw)"
+      @open="fetchShares"
+    >
       <div class="share-create">
         <el-radio-group v-model="shareMode">
-          <el-radio-button label="permanent">永久有效</el-radio-button>
-          <el-radio-button label="expiry">设置有效期</el-radio-button>
+          <el-radio-button label="permanent">
+            永久有效
+          </el-radio-button>
+          <el-radio-button label="expiry">
+            设置有效期
+          </el-radio-button>
         </el-radio-group>
         <el-date-picker
           v-if="shareMode === 'expiry'"
@@ -77,14 +175,32 @@
           :disabled-date="disablePastDate"
           style="width: 220px"
         />
-        <el-button type="primary" :loading="creatingShare" @click="createShare">创建并复制</el-button>
+        <el-button
+          type="primary"
+          :loading="creatingShare"
+          @click="createShare"
+        >
+          创建并复制
+        </el-button>
       </div>
       <el-divider />
-      <div v-loading="sharesLoading" class="share-list">
-        <article v-for="link in shares" :key="link.id" class="share-row">
+      <div
+        v-loading="sharesLoading"
+        class="share-list"
+      >
+        <article
+          v-for="link in shares"
+          :key="link.id"
+          class="share-row"
+        >
           <div class="share-main">
             <div class="share-url">
-              <el-tag :type="shareStatus(link).type" size="small">{{ shareStatus(link).label }}</el-tag>
+              <el-tag
+                :type="shareStatus(link).type"
+                size="small"
+              >
+                {{ shareStatus(link).label }}
+              </el-tag>
               <span>{{ shareUrl(link.token) }}</span>
             </div>
             <small>
@@ -93,43 +209,113 @@
             </small>
           </div>
           <div class="share-actions">
-            <el-button text type="primary" @click="copyShare(link.token)">复制</el-button>
-            <el-button text @click="toggleShare(link)">{{ link.enabled ? '禁用' : '启用' }}</el-button>
-            <el-button text type="danger" @click="deleteShare(link)">删除</el-button>
+            <el-button
+              text
+              type="primary"
+              @click="copyShare(link.token)"
+            >
+              复制
+            </el-button>
+            <el-button
+              text
+              @click="toggleShare(link)"
+            >
+              {{ link.enabled ? '禁用' : '启用' }}
+            </el-button>
+            <el-button
+              text
+              type="danger"
+              @click="deleteShare(link)"
+            >
+              删除
+            </el-button>
           </div>
         </article>
-        <el-empty v-if="!sharesLoading && shares.length === 0" description="还没有分享链接" :image-size="70" />
+        <el-empty
+          v-if="!sharesLoading && shares.length === 0"
+          description="还没有分享链接"
+          :image-size="70"
+        />
       </div>
     </el-dialog>
 
-    <el-dialog v-model="blogDialog" :title="form.article_id ? '更新博客文章' : '发布到博客'" width="min(620px, 94vw)">
+    <el-dialog
+      v-model="blogDialog"
+      :title="form.article_id ? '更新博客文章' : '发布到博客'"
+      width="min(620px, 94vw)"
+    >
       <el-alert
         :title="form.article_id ? '再次发布会用当前知识库文档覆盖关联文章的标题和正文。' : '将以当前文档的标题和正文创建一篇公开博客文章。'"
         type="info"
         :closable="false"
         show-icon
       />
-      <el-form label-position="top" class="blog-publish-form">
-        <el-form-item label="博客分类" required>
-          <el-select v-model="blogForm.category_id" placeholder="请选择分类" style="width: 100%">
-            <el-option v-for="category in categories" :key="category.id" :label="category.name" :value="category.id" />
+      <el-form
+        label-position="top"
+        class="blog-publish-form"
+      >
+        <el-form-item
+          label="博客分类"
+          required
+        >
+          <el-select
+            v-model="blogForm.category_id"
+            placeholder="请选择分类"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="category in categories"
+              :key="category.id"
+              :label="category.name"
+              :value="category.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="标签">
-          <el-select v-model="blogForm.tag_ids" multiple filterable placeholder="可选标签" style="width: 100%">
-            <el-option v-for="tag in tags" :key="tag.id" :label="tag.name" :value="tag.id" />
+          <el-select
+            v-model="blogForm.tag_ids"
+            multiple
+            filterable
+            placeholder="可选标签"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="tag in tags"
+              :key="tag.id"
+              :label="tag.name"
+              :value="tag.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="摘要">
-          <el-input v-model="blogForm.summary" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="可选，留空则不显示摘要" />
+          <el-input
+            v-model="blogForm.summary"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+            placeholder="可选，留空则不显示摘要"
+          />
         </el-form-item>
         <el-form-item label="博客封面">
-          <ImageCropUpload v-model="blogForm.cover" preview-size="180px" placeholder="上传博客封面" tip="可选，最大 5MB" :aspect-ratio="16 / 9" />
+          <ImageCropUpload
+            v-model="blogForm.cover"
+            preview-size="180px"
+            placeholder="上传博客封面"
+            tip="可选，最大 5MB"
+            :aspect-ratio="16 / 9"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="blogDialog = false">取消</el-button>
-        <el-button type="primary" :loading="publishing" @click="publishToBlog">
+        <el-button @click="blogDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="publishing"
+          @click="publishToBlog"
+        >
           {{ form.article_id ? '更新文章' : '确认发布' }}
         </el-button>
       </template>
@@ -150,12 +336,13 @@ import ImageCropUpload from '@/components/ImageCropUpload.vue'
 const route = useRoute()
 const router = useRouter()
 const docId = Number(route.params.id)
-const form = reactive({ title: '', content: '', workspace_id: null, catalog_id: null, article_id: null })
+const form = reactive({ title: '', content: '', workspace_id: null, catalog_id: null, article_id: null, status: 0 })
 const workspaceName = ref('知识库文档')
 const initialLoading = ref(true)
 const editorReady = ref(false)
 const saving = ref(false)
 const publishing = ref(false)
+const wikiPublishing = ref(false)
 const dirty = ref(false)
 const titleDirty = ref(false)
 const contentDirty = ref(false)
@@ -216,7 +403,8 @@ async function fetchDoc() {
     content: doc.content || '',
     workspace_id: doc.workspace_id,
     catalog_id: doc.catalog_id ?? null,
-    article_id: doc.article_id ?? null
+    article_id: doc.article_id ?? null,
+    status: doc.status === 1 ? 1 : 0
   })
   workspaceName.value = doc.workspace?.name || doc.workspace_name || '知识库文档'
   lastSavedAt.value = doc.updated_at || new Date()
@@ -225,10 +413,11 @@ async function fetchDoc() {
 }
 
 async function autosave() {
-  if (!contentDirty.value || saving.value || publishing.value || !docId) return
+  if (!contentDirty.value || saving.value || publishing.value || wikiPublishing.value || !docId) return
   const savedContent = form.content
   try {
     await api.put(`/docs/${docId}/autosave`, { content: savedContent })
+    form.status = 0
     if (form.content === savedContent) contentDirty.value = false
     dirty.value = titleDirty.value
     if (contentDirty.value) dirty.value = true
@@ -242,11 +431,15 @@ async function autosave() {
 
 async function manualSave(showMessage = true) {
   const title = form.title.trim()
-  if (!title) return ElMessage.warning('请输入文档标题')
+  if (!title) {
+    ElMessage.warning('请输入文档标题')
+    return false
+  }
   const savedContent = form.content
   saving.value = true
   try {
-    const response = await api.put(`/docs/${docId}`, { title, content: savedContent })
+    await api.put(`/docs/${docId}`, { title, content: savedContent })
+    form.status = 0
     if (form.title.trim() === title) {
       form.title = title
       titleDirty.value = false
@@ -260,6 +453,36 @@ async function manualSave(showMessage = true) {
     return true
   } finally {
     saving.value = false
+  }
+}
+
+async function publishToWiki(status) {
+  const publishingToWiki = status === 1
+  const republishing = publishingToWiki && form.status === 1
+  const message = publishingToWiki
+    ? `${republishing ? '重新发布会更新 Wiki 中的内容。' : '发布后，'}所属工作空间公开时，任何人都可以访问这篇文档。`
+    : '取消发布后，这篇文档将从公开 Wiki 中隐藏；博客文章和分享链接不受影响。'
+  try {
+    await ElMessageBox.confirm(message, publishingToWiki ? (republishing ? '重新发布到 Wiki' : '发布到 Wiki') : '取消 Wiki 发布', {
+      type: 'warning',
+      confirmButtonText: publishingToWiki ? '确认发布' : '确认取消',
+      cancelButtonText: '取消'
+    })
+  } catch {
+    return
+  }
+
+  wikiPublishing.value = true
+  try {
+    if (publishingToWiki && (dirty.value || !form.title.trim())) {
+      const saved = await manualSave(false)
+      if (!saved) return
+    }
+    const response = await api.post(`/docs/${docId}/publish`, { status })
+    form.status = response.data?.status === 1 ? 1 : 0
+    ElMessage.success(publishingToWiki ? (republishing ? 'Wiki 内容已更新' : '文档已发布到 Wiki') : '已取消 Wiki 发布')
+  } finally {
+    wikiPublishing.value = false
   }
 }
 
@@ -339,6 +562,7 @@ async function rollbackVersion(version) {
     dirty.value = false
     titleDirty.value = false
     contentDirty.value = false
+    form.status = 0
     selectedVersion.value = null
     await fetchVersions()
     ElMessage.success(`已回滚到 v${version}`)
@@ -442,6 +666,7 @@ onMounted(async () => {
   try {
     await fetchDoc()
     if (route.query.action === 'publish') await openBlogPublish()
+    if (route.query.action === 'wiki-publish') await publishToWiki(1)
     if (route.query.action === 'share') openShares()
     autosaveTimer = window.setInterval(autosave, 120000)
     window.addEventListener('beforeunload', beforeUnload)
@@ -461,6 +686,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .doc-edit-page { min-height: calc(100vh - 100px); color: var(--theme-text-primary); }
+.wiki-visibility-alert { margin-bottom: 18px; }
+.wiki-visibility-alert :deep(.el-alert__content) { width: 100%; }
+.wiki-visibility-alert :deep(.el-alert__description) { display: flex; justify-content: flex-end; margin-top: 10px; }
 .editor-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
 .header-left, .header-actions { display: flex; align-items: center; gap: 9px; }
 .desktop-secondary-actions { display: flex; align-items: center; gap: 9px; }
@@ -468,13 +696,14 @@ onBeforeUnmount(() => {
 .mobile-more { display: none; }
 .doc-location { display: flex; flex-direction: column; }
 .doc-location span { font-weight: 600; }
+.doc-location-title { display: flex; align-items: center; gap: 8px; }
 .doc-location small { color: var(--theme-text-tertiary); }
-.editor-surface { padding: 22px; background: var(--theme-bg-card); border: 1px solid var(--theme-border); border-radius: 13px; box-shadow: 0 8px 30px var(--theme-shadow); }
+.editor-surface { padding: 28px; background: var(--theme-bg-card); border: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
 .title-input { margin-bottom: 16px; }
 .title-input :deep(.el-input__wrapper) { padding: 5px 2px; background: transparent; box-shadow: none !important; }
 .title-input :deep(.el-input__inner) { height: 48px; background: transparent !important; font-size: clamp(24px, 3vw, 34px); font-weight: 700; }
 .version-list { display: flex; flex-direction: column; gap: 8px; }
-.version-item { padding: 13px; border: 1px solid var(--theme-border); border-radius: 9px; cursor: pointer; }
+.version-item { padding: 16px 2px; border: 0; border-bottom: 1px solid var(--theme-border); border-radius: 0; cursor: pointer; }
 .version-item:hover, .version-item.selected { border-color: var(--theme-primary); background: color-mix(in srgb, var(--theme-primary) 7%, var(--theme-bg-card)); }
 .version-item > div { display: flex; align-items: center; gap: 8px; }
 .version-item > span { display: block; margin-top: 5px; color: var(--theme-text-tertiary); font-size: 12px; }

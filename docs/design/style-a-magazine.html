@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>屿刊 · 极简杂志风</title>
+<style>
+  :root { color-scheme: light; }
+  [data-theme="light"] {
+    --bg: #FAF9F6;
+    --bg-soft: #F2F0EA;
+    --ink: #1B1A18;
+    --sub: #6E6A62;
+    --hairline: #E2DFD6;
+    --accent: #33544A;
+    --accent-soft: #E4EBE7;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #171614;
+    --bg-soft: #201F1C;
+    --ink: #EAE7E0;
+    --sub: #98938A;
+    --hairline: #2D2B27;
+    --accent: #8FB3A5;
+    --accent-soft: #24312C;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Source Han Sans SC', sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    transition: background .35s ease, color .35s ease;
+  }
+  .serif { font-family: Georgia, 'Songti SC', 'Noto Serif SC', 'SimSun', serif; }
+  .label {
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--sub);
+  }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 32px; }
+
+  /* ===== Nav ===== */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .brand { font-size: 22px; letter-spacing: .1em; font-weight: 600; }
+  .brand em { font-style: normal; color: var(--accent); }
+  .nav-links { display: flex; gap: 36px; align-items: center; }
+  .nav-links a {
+    font-size: 14px; color: var(--sub);
+    padding: 4px 0; border-bottom: 1px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--ink); border-color: var(--accent); }
+  .theme-btn {
+    background: none; border: 1px solid var(--hairline); border-radius: 50%;
+    width: 34px; height: 34px; cursor: pointer; color: var(--ink);
+    font-size: 15px; line-height: 1; display: grid; place-items: center;
+    transition: border-color .2s, transform .2s;
+  }
+  .theme-btn:hover { border-color: var(--accent); transform: rotate(15deg); }
+
+  /* ===== Hero ===== */
+  .hero { padding: 96px 0 88px; position: relative; }
+  .hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: start; }
+  .issue { display: flex; align-items: baseline; gap: 16px; margin-bottom: 36px; }
+  .issue .no { font-size: 13px; color: var(--accent); letter-spacing: .3em; }
+  .issue .line { flex: 0 0 64px; height: 1px; background: var(--hairline); align-self: center; }
+  .hero h1 {
+    font-size: clamp(40px, 6.5vw, 72px);
+    line-height: 1.25; font-weight: 500; letter-spacing: .02em;
+  }
+  .hero h1 .accent { color: var(--accent); }
+  .hero p.intro {
+    margin-top: 32px; max-width: 34em; color: var(--sub); font-size: 16px;
+  }
+  .hero .cta { margin-top: 44px; display: flex; gap: 20px; align-items: center; }
+  .btn-primary {
+    display: inline-block; padding: 12px 32px;
+    background: var(--ink); color: var(--bg); font-size: 14px; letter-spacing: .12em;
+    transition: background .2s;
+  }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-ghost { font-size: 14px; color: var(--sub); border-bottom: 1px solid var(--hairline); padding-bottom: 2px; }
+  .btn-ghost:hover { color: var(--accent); border-color: var(--accent); }
+  /* signature: vertical text */
+  .vertical {
+    writing-mode: vertical-rl;
+    font-size: 15px; letter-spacing: .55em; color: var(--sub);
+    border-left: 1px solid var(--hairline);
+    padding-left: 22px; height: 300px; margin-top: 8px;
+  }
+  .vertical b { color: var(--accent); font-weight: 500; }
+
+  /* ===== Sections ===== */
+  section { padding: 76px 0; border-top: 1px solid var(--hairline); }
+  .sec-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 44px; }
+  .sec-head h2 { font-size: 26px; font-weight: 500; letter-spacing: .06em; }
+  .sec-head h2 span { font-size: 12px; color: var(--sub); letter-spacing: .2em; margin-left: 14px; }
+  .more { font-size: 13px; color: var(--sub); letter-spacing: .1em; }
+  .more:hover { color: var(--accent); }
+
+  /* ===== Essays ===== */
+  .essay { display: grid; grid-template-columns: 120px 1fr auto; gap: 32px; align-items: baseline; padding: 26px 0; border-top: 1px solid var(--hairline); transition: padding-left .25s; }
+  .essay:first-of-type { border-top: none; padding-top: 0; }
+  .essay:hover { padding-left: 10px; }
+  .essay time { font-size: 13px; color: var(--sub); letter-spacing: .05em; }
+  .essay h3 { font-size: 19px; font-weight: 500; line-height: 1.5; }
+  .essay:hover h3 { color: var(--accent); }
+  .essay .tag { font-size: 12px; color: var(--sub); border: 1px solid var(--hairline); padding: 3px 12px; border-radius: 99px; white-space: nowrap; }
+  .essay p { grid-column: 2; font-size: 14px; color: var(--sub); max-width: 40em; margin-top: -14px; }
+
+  /* ===== Photography ===== */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .photo { position: relative; overflow: hidden; aspect-ratio: 4/5; cursor: pointer; }
+  .photo:nth-child(2) { aspect-ratio: 4/6.2; }
+  .photo:nth-child(5) { margin-top: -38px; }
+  .photo .ph { position: absolute; inset: 0; transition: transform .6s cubic-bezier(.2,.6,.2,1); }
+  .photo:hover .ph { transform: scale(1.045); }
+  .photo figcaption {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 40px 18px 14px;
+    background: linear-gradient(transparent, rgba(10,12,10,.55));
+    color: #F3F2ED; font-size: 12px; letter-spacing: .18em;
+    opacity: 0; transform: translateY(6px); transition: all .35s;
+  }
+  .photo:hover figcaption { opacity: 1; transform: none; }
+  /* photo placeholders */
+  .p1 { background: linear-gradient(160deg, #93A9B8 0%, #5E7485 55%, #33414E 100%); }
+  .p2 { background: linear-gradient(200deg, #D8C6A8 0%, #A98F68 50%, #55442E 100%); }
+  .p3 { background: linear-gradient(170deg, #6E8878 0%, #3E5A4C 60%, #22332B 100%); }
+  .p4 { background: linear-gradient(150deg, #C4C9D4 0%, #8A93A8 55%, #4C556B 100%); }
+  .p5 { background: linear-gradient(190deg, #C9A6A0 0%, #8D6560 55%, #4A3230 100%); }
+  .p6 { background: linear-gradient(165deg, #46586B 0%, #23303F 60%, #101823 100%); }
+  .grain { position: absolute; inset: 0; opacity: .35; mix-blend-mode: overlay;
+    background-image: radial-gradient(rgba(255,255,255,.14) 1px, transparent 1px);
+    background-size: 5px 5px; }
+
+  /* ===== Projects ===== */
+  .proj { display: grid; grid-template-columns: 56px 1fr auto; gap: 28px; align-items: center; padding: 30px 0; border-top: 1px solid var(--hairline); }
+  .proj:first-of-type { border-top: none; padding-top: 0; }
+  .proj .idx { font-size: 26px; color: var(--hairline); font-weight: 400; transition: color .25s; }
+  .proj:hover .idx { color: var(--accent); }
+  .proj h3 { font-size: 19px; font-weight: 500; }
+  .proj h3 small { font-size: 13px; color: var(--sub); font-weight: 400; margin-left: 12px; letter-spacing: .05em; }
+  .proj p { font-size: 14px; color: var(--sub); max-width: 44em; }
+  .proj .arrow { font-size: 20px; color: var(--sub); transition: transform .25s, color .25s; }
+  .proj:hover .arrow { transform: translateX(6px); color: var(--accent); }
+
+  /* ===== Garden / KB ===== */
+  .kb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .kb-card {
+    border: 1px solid var(--hairline); padding: 34px 30px;
+    background: var(--bg); transition: border-color .25s, background .25s, transform .25s;
+  }
+  .kb-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .kb-card .k-label { font-size: 11px; letter-spacing: .25em; color: var(--accent); }
+  .kb-card h3 { font-size: 18px; font-weight: 500; margin: 16px 0 10px; }
+  .kb-card p { font-size: 14px; color: var(--sub); }
+  .kb-card .count { margin-top: 26px; font-size: 12px; color: var(--sub); letter-spacing: .1em; }
+
+  /* ===== Footer ===== */
+  footer { border-top: 1px solid var(--hairline); padding: 56px 0 64px; }
+  .foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+  .foot .big { font-size: 30px; letter-spacing: .12em; font-weight: 500; }
+  .foot .links { display: flex; gap: 24px; font-size: 13px; color: var(--sub); }
+  .foot .links a:hover { color: var(--accent); }
+  .foot .tiny { font-size: 12px; color: var(--sub); margin-top: 12px; }
+
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .vertical { display: none; }
+    .nav-links a:not(.keep) { display: none; }
+    .photo-grid, .kb-grid { grid-template-columns: 1fr 1fr; }
+    .photo:nth-child(5) { margin-top: 0; }
+    .essay { grid-template-columns: 1fr; gap: 8px; }
+    .essay p { grid-column: 1; margin-top: 0; }
+  }
+  @media (max-width: 560px) {
+    .photo-grid, .kb-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand serif" href="#">屿<em>刊</em></a>
+      <div class="nav-links">
+        <a href="#" class="active">首页</a>
+        <a href="#essays">文章</a>
+        <a href="#works">作品</a>
+        <a href="#photos">摄影</a>
+        <a href="#garden">知识库</a>
+        <button class="theme-btn keep" id="themeToggle" aria-label="切换深浅色模式">◐</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div class="issue">
+      <span class="no serif">VOL.24</span>
+      <span class="line"></span>
+      <span class="label">夏 · 二〇二六</span>
+    </div>
+    <div class="hero-grid">
+      <div>
+        <h1 class="serif">把日常的观察，<br>写成可以<span class="accent">停留</span>的文字。</h1>
+        <p class="intro">我是陈屿，前端工程师，业余摄影师。这里收录我关于代码与设计的长文、正在生长的知识库，以及在城市与山野间按下的快门。</p>
+        <div class="cta">
+          <a class="btn-primary" href="#essays">开始阅读</a>
+          <a class="btn-ghost" href="#photos">或先看看照片 →</a>
+        </div>
+      </div>
+      <aside class="vertical serif" aria-hidden="true">记录 · 观察 · <b>创造</b> · 分享</aside>
+    </div>
+  </div>
+
+  <section id="essays">
+    <div class="sec-head">
+      <h2 class="serif">近期文章<span>ESSAYS</span></h2>
+      <a class="more" href="#">全部 42 篇 →</a>
+    </div>
+    <article class="essay">
+      <time>07 / 14</time>
+      <h3><a href="#">给个人网站做减法：我删掉了三分之二的功能</a></h3>
+      <span class="tag">设计思考</span>
+      <p>重构第三版个人站时，我意识到问题不是「还能加什么」，而是「哪些东西在阻碍阅读」。</p>
+    </article>
+    <article class="essay">
+      <time>06 / 28</time>
+      <h3><a href="#">View Transitions API 实战：丝滑的无刷新页面切换</a></h3>
+      <span class="tag">前端工程</span>
+      <p>不依赖任何框架，用原生 API 为多页应用做出单页应用般的转场体验。</p>
+    </article>
+    <article class="essay">
+      <time>06 / 09</time>
+      <h3><a href="#">胶片模拟不是滤镜：谈谈数码时代的影调审美</a></h3>
+      <span class="tag">摄影</span>
+      <p>为什么同样的预设，别人的照片有「氛围」而你的没有——问题往往出在拍摄之前。</p>
+    </article>
+  </section>
+
+  <section id="works">
+    <div class="sec-head">
+      <h2 class="serif">作品与项目<span>WORKS</span></h2>
+      <a class="more" href="#">GitHub →</a>
+    </div>
+    <div class="proj">
+      <span class="idx serif">一</span>
+      <div>
+        <h3>Lumo<small>开源 · 图片管理工具</small></h3>
+        <p>为摄影师设计的本地图库，支持 RAW 预览、EXIF 检索与胶片风格标签体系。</p>
+      </div>
+      <span class="arrow">→</span>
+    </div>
+    <div class="proj">
+      <span class="idx serif">二</span>
+      <div>
+        <h3>Inkwell<small>开源 · 博客引擎</small></h3>
+        <p>专注排版的 Markdown 博客引擎，内置中文排版优化与阅读进度记忆。</p>
+      </div>
+      <span class="arrow">→</span>
+    </div>
+    <div class="proj">
+      <span class="idx serif">三</span>
+      <div>
+        <h3>Gridfolio<small>模板 · 作品集</small></h3>
+        <p>一套面向创作者的作品集模板，三种布局体系，深浅色自适应。</p>
+      </div>
+      <span class="arrow">→</span>
+    </div>
+  </section>
+
+  <section id="photos">
+    <div class="sec-head">
+      <h2 class="serif">摄影集<span>PHOTOGRAPHY</span></h2>
+      <a class="more" href="#">全部相册 →</a>
+    </div>
+    <div class="photo-grid">
+      <figure class="photo"><div class="ph p1"><div class="grain"></div></div><figcaption>雾晨 · 外滩 2026</figcaption></figure>
+      <figure class="photo"><div class="ph p2"><div class="grain"></div></div><figcaption>暮色 · 敦煌 2025</figcaption></figure>
+      <figure class="photo"><div class="ph p3"><div class="grain"></div></div><figcaption>苔径 · 莫干山 2026</figcaption></figure>
+      <figure class="photo"><div class="ph p4"><div class="grain"></div></div><figcaption>初雪 · 北海道 2025</figcaption></figure>
+      <figure class="photo"><div class="ph p5"><div class="grain"></div></div><figcaption>旧巷 · 泉州 2026</figcaption></figure>
+      <figure class="photo"><div class="ph p6"><div class="grain"></div></div><figcaption>夜航 · 维港 2025</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="garden">
+    <div class="sec-head">
+      <h2 class="serif">知识库<span>GARDEN</span></h2>
+      <a class="more" href="#">进入花园 →</a>
+    </div>
+    <div class="kb-grid">
+      <a class="kb-card" href="#">
+        <div class="k-label">FRONTEND</div>
+        <h3>前端工程笔记</h3>
+        <p>从渲染原理到工程化实践，持续整理的体系化笔记。</p>
+        <div class="count">128 则 · 上周更新</div>
+      </a>
+      <a class="kb-card" href="#">
+        <div class="k-label">DESIGN</div>
+        <h3>设计的常识</h3>
+        <p>排版、配色、栅格——写给工程师的设计基础。</p>
+        <div class="count">54 则 · 三天前更新</div>
+      </a>
+      <a class="kb-card" href="#">
+        <div class="k-label">READING</div>
+        <h3>阅读与摘录</h3>
+        <p>读过的书、划过的线，以及它们如何改变了我的想法。</p>
+        <div class="count">76 则 · 昨天更新</div>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <div class="big serif">屿刊</div>
+      <div class="tiny">以慢打快，把时间留给值得的事。© 2026 陈屿</div>
+    </div>
+    <div class="links">
+      <a href="#">RSS</a><a href="#">GitHub</a><a href="#">邮件</a><a href="#">关于</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  const saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  root.dataset.theme = saved;
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+  });
+</script>
+</body>
+</html>

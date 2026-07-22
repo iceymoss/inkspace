@@ -88,6 +88,12 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* 全局页面背景使用主题变量 */
 body {
   background-color: var(--theme-bg-primary);

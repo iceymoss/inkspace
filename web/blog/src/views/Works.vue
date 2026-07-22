@@ -3,15 +3,41 @@
     <div class="container">
       <!-- 筛选栏 -->
       <div class="works-filters">
-        <h1 class="works-title">作品分享</h1>
+        <h1 class="works-title">
+          作品分享 <small>PORTFOLIO</small>
+        </h1>
         <div class="works-filters-controls">
-          <el-segmented v-model="filterType" :options="typeOptions" @change="handleFilterChange" />
-          <el-select v-model="sortBy" placeholder="排序方式" @change="handleFilterChange" style="width: 150px; margin-left: 15px;">
-            <el-option label="默认排序" value="" />
-            <el-option label="🔥 热度排序" value="hot" />
-            <el-option label="⏰ 最新发布" value="time" />
-            <el-option label="👁️ 最多浏览" value="view" />
-            <el-option label="❤️ 最多点赞" value="like" />
+          <el-segmented
+            v-model="filterType"
+            :options="typeOptions"
+            @change="handleFilterChange"
+          />
+          <el-select
+            v-model="sortBy"
+            placeholder="排序方式"
+            style="width: 150px; margin-left: 15px;"
+            @change="handleFilterChange"
+          >
+            <el-option
+              label="默认排序"
+              value=""
+            />
+            <el-option
+              label="🔥 热度排序"
+              value="hot"
+            />
+            <el-option
+              label="⏰ 最新发布"
+              value="time"
+            />
+            <el-option
+              label="👁️ 最多浏览"
+              value="view"
+            />
+            <el-option
+              label="❤️ 最多点赞"
+              value="like"
+            />
           </el-select>
           <el-input
             v-model="searchKeyword"
@@ -21,7 +47,12 @@
             @keyup.enter="handleSearch"
           >
             <template #suffix>
-              <el-icon class="search-icon" @click.stop="handleSearch"><Search /></el-icon>
+              <el-icon
+                class="search-icon"
+                @click.stop="handleSearch"
+              >
+                <Search />
+              </el-icon>
             </template>
           </el-input>
         </div>
@@ -33,7 +64,9 @@
           v-for="work in works" 
           :key="work.id" 
           class="masonry-item"
+          tabindex="0"
           @click="handleWorkClick(work.id)"
+          @keyup.enter="handleWorkClick(work.id)"
         >
           <div class="work-image-container">
             <el-image 
@@ -46,7 +79,10 @@
             <div class="work-overlay">
               <div class="overlay-content">
                 <div class="work-type-badge">
-                  <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
+                  <el-tag
+                    :type="work.type === 'photography' ? 'warning' : 'primary'"
+                    size="small"
+                  >
                     {{ work.type === 'photography' ? '📷' : '💻' }}
                   </el-tag>
                 </div>
@@ -55,10 +91,15 @@
           </div>
           
           <div class="work-info">
-            <h3 class="work-title">{{ work.title }}</h3>
+            <h3 class="work-title">
+              {{ work.title }}
+            </h3>
             <div class="work-meta">
               <div class="work-author">
-                <el-avatar :size="20" :src="work.author?.avatar" />
+                <el-avatar
+                  :size="20"
+                  :src="work.author?.avatar"
+                />
                 <span>{{ work.author?.nickname || work.author?.username }}</span>
               </div>
               <div class="work-stats">
@@ -78,29 +119,36 @@
         </div>
       </div>
 
-      <div class="pagination" v-if="total > 0">
+      <div
+        v-if="total > 0"
+        class="pagination"
+      >
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :total="total"
           layout="prev, pager, next"
-          @current-change="loadWorks"
+          @current-change="handlePageChange"
         />
       </div>
 
-      <el-empty v-if="works.length === 0" description="暂无作品" />
+      <el-empty
+        v-if="works.length === 0"
+        description="暂无作品"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { View, Star, ChatDotRound, Collection, Search } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
 
 const router = useRouter()
+const route = useRoute()
 const works = ref([])
 const currentPage = ref(1)
 const pageSize = ref(12)
@@ -108,6 +156,31 @@ const total = ref(0)
 const filterType = ref('all')
 const sortBy = ref('time') // 默认最新发布
 const searchKeyword = ref('')
+let workRequestId = 0
+
+const workTypes = new Set(['all', 'project', 'photography'])
+const sortTypes = new Set(['', 'hot', 'time', 'view', 'like'])
+const queryString = value => typeof value === 'string' ? value : ''
+const positiveInt = value => {
+  const number = Number(queryString(value))
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
+const updateQuery = () => {
+  const query = {
+    ...route.query,
+    keyword: searchKeyword.value.trim() || undefined,
+    type: filterType.value === 'all' ? undefined : filterType.value,
+    sort: sortBy.value || undefined,
+    page: String(currentPage.value)
+  }
+  const target = { path: route.path, query }
+  if (router.resolve(target).fullPath === route.fullPath) {
+    loadWorks()
+    return
+  }
+  router.push(target)
+}
 
 const typeOptions = [
   { label: '全部', value: 'all' },
@@ -116,6 +189,7 @@ const typeOptions = [
 ]
 
 const loadWorks = async () => {
+  const activeRequest = ++workRequestId
   try {
     const params = {
       page: currentPage.value,
@@ -136,21 +210,27 @@ const loadWorks = async () => {
     }
     
     const response = await api.get('/works', { params })
+    if (activeRequest !== workRequestId) return
     works.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
+    if (activeRequest !== workRequestId) return
     console.error('Failed to load works:', error)
   }
 }
 
 const handleFilterChange = () => {
   currentPage.value = 1
-  loadWorks()
+  updateQuery()
 }
 
 const handleSearch = () => {
   currentPage.value = 1
-  loadWorks()
+  updateQuery()
+}
+
+const handlePageChange = () => {
+  updateQuery()
 }
 
 // 处理作品点击，预加载数据后跳转
@@ -158,9 +238,15 @@ const handleWorkClick = (workId) => {
   navigateToWorkDetail(workId, router)
 }
 
-onMounted(() => {
+watch(() => route.query, query => {
+  const nextType = queryString(query.type)
+  const nextSort = queryString(query.sort)
+  searchKeyword.value = queryString(query.keyword)
+  filterType.value = workTypes.has(nextType) ? nextType : 'all'
+  sortBy.value = sortTypes.has(nextSort) ? nextSort : 'time'
+  currentPage.value = positiveInt(query.page) || 1
   loadWorks()
-})
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -387,6 +473,77 @@ onMounted(() => {
   .work-stats span {
     gap: 2px;
   }
+}
+
+/* Magazine adaptation */
+.works {
+  padding: 54px 0 76px;
+  background: var(--theme-bg-primary);
+}
+
+.works .container { max-width: 1060px; padding: 0 32px; }
+
+.works-filters {
+  align-items: flex-end;
+  padding: 0 0 24px;
+  margin-bottom: 36px;
+  background: transparent;
+  border-bottom: 1px solid var(--theme-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.works-title {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.works-title small {
+  display: block;
+  color: var(--theme-primary);
+  font-size: 11px;
+  letter-spacing: .28em;
+}
+
+.masonry-grid { grid-template-columns: repeat(3, 1fr); gap: 28px 20px; }
+
+.masonry-item {
+  background: transparent;
+  border: 1px solid var(--theme-border);
+  border-radius: 0;
+  box-shadow: none;
+  transition: border-color .25s ease, transform .25s ease;
+}
+
+.masonry-item:hover {
+  border-color: var(--theme-primary);
+  box-shadow: none;
+  transform: translateY(-4px);
+}
+
+.work-image { filter: saturate(.82) contrast(.96); transition: transform .6s cubic-bezier(.2,.6,.2,1); }
+.masonry-item:hover .work-image { transform: scale(1.045); }
+.work-info { padding: 24px 24px 26px; }
+.work-title { font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: 19px; letter-spacing: .03em; }
+.work-meta { margin-top: 16px; padding-top: 13px; border-top-color: var(--theme-border); }
+.works :deep(.el-input__wrapper), .works :deep(.el-select__wrapper), .works :deep(.el-segmented), .works :deep(.el-tag) { border-radius: 1px; box-shadow: none; }
+.masonry-item:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .works .container { padding: 0 24px; }
+  .works-filters { align-items: stretch; flex-direction: column; gap: 20px; }
+  .works-filters-controls { flex-wrap: wrap; gap: 12px; }
+  .masonry-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .works { padding: 36px 0 52px; }
+  .works .container { padding: 0 18px; }
+  .works-title { text-align: left; }
+  .masonry-grid { grid-template-columns: 1fr; }
+  .work-info { padding: 22px 20px 24px; }
 }
 </style>
 

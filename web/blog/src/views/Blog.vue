@@ -6,16 +6,35 @@
           <h1>博客文章</h1>
           
           <!-- 榜单选择器 -->
-          <el-radio-group v-model="rankType" @change="handleRankChange" size="default" class="rank-selector">
-            <el-radio-button label="">全部</el-radio-button>
-            <el-radio-button label="hot">热门</el-radio-button>
-            <el-radio-button label="week">周榜</el-radio-button>
-            <el-radio-button label="month">月榜</el-radio-button>
-            <el-radio-button label="year">年榜</el-radio-button>
+          <el-radio-group
+            v-model="rankType"
+            size="default"
+            class="rank-selector"
+            @change="handleRankChange"
+          >
+            <el-radio-button label="">
+              全部
+            </el-radio-button>
+            <el-radio-button label="hot">
+              热门
+            </el-radio-button>
+            <el-radio-button label="week">
+              周榜
+            </el-radio-button>
+            <el-radio-button label="month">
+              月榜
+            </el-radio-button>
+            <el-radio-button label="year">
+              年榜
+            </el-radio-button>
           </el-radio-group>
           
           <!-- 分类选择器 -->
-          <el-dropdown trigger="click" @command="handleCategorySelect" class="category-dropdown">
+          <el-dropdown
+            trigger="click"
+            class="category-dropdown"
+            @command="handleCategorySelect"
+          >
             <el-button>
               <el-image 
                 v-if="selectedCategoryData?.logo" 
@@ -24,7 +43,9 @@
                 fit="cover"
               />
               <span>{{ selectedCategoryData?.name || '全部分类' }}</span>
-              <el-icon class="el-icon--right"><arrow-down /></el-icon>
+              <el-icon class="el-icon--right">
+                <arrow-down />
+              </el-icon>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -44,7 +65,10 @@
                       fit="cover"
                     />
                     <span>{{ cat.name }}</span>
-                    <el-badge :value="cat.article_count" class="category-badge" />
+                    <el-badge
+                      :value="cat.article_count"
+                      class="category-badge"
+                    />
                   </div>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -54,12 +78,33 @@
         
         <div class="header-right">
           <!-- 排序选择器 -->
-          <el-select v-model="sortBy" @change="handleSortChange" placeholder="排序方式" class="sort-select" size="default">
-            <el-option label="最热排序" value="hot" />
-            <el-option label="最新发布" value="time" />
-            <el-option label="最多浏览" value="view_count" />
-            <el-option label="最多点赞" value="like_count" />
-            <el-option label="最多评论" value="comment_count" />
+          <el-select
+            v-model="sortBy"
+            placeholder="排序方式"
+            class="sort-select"
+            size="default"
+            @change="handleSortChange"
+          >
+            <el-option
+              label="最热排序"
+              value="hot"
+            />
+            <el-option
+              label="最新发布"
+              value="time"
+            />
+            <el-option
+              label="最多浏览"
+              value="view_count"
+            />
+            <el-option
+              label="最多点赞"
+              value="like_count"
+            />
+            <el-option
+              label="最多评论"
+              value="comment_count"
+            />
           </el-select>
           
           <el-input
@@ -69,14 +114,20 @@
             @keyup.enter="handleSearch"
           >
             <template #append>
-              <el-button :icon="Search" @click="handleSearch" />
+              <el-button
+                :icon="Search"
+                @click="handleSearch"
+              />
             </template>
           </el-input>
         </div>
       </div>
 
       <el-row :gutter="20">
-        <el-col :xs="24" :md="18">
+        <el-col
+          :xs="24"
+          :md="20"
+        >
           <div class="article-list">
             <el-card
               v-for="article in articles"
@@ -85,33 +136,65 @@
               shadow="hover"
               @click="$router.push(`/blog/${article.id}`)"
             >
-              <div class="article-content">
-                <img v-if="article.cover" :src="article.cover" class="article-cover" />
+              <div class="article-content" :class="{ 'has-cover': article.cover }">
+                <div class="terminal-log-meta">
+                  <span :class="`level-${getArticleLogLevel(article).toLowerCase()}`">{{ getArticleLogLevel(article) }}</span>
+                  <time :datetime="article.created_at">{{ formatDate(article.created_at) }}</time>
+                </div>
+                <img
+                  v-if="article.cover"
+                  :src="article.cover"
+                  class="article-cover"
+                >
                 <div class="article-info">
                   <div class="article-header">
                     <h2>{{ article.title }}</h2>
-                    <el-tag v-if="article.is_top" type="danger" size="small">置顶</el-tag>
+                    <el-tag
+                      v-if="article.is_top"
+                      type="danger"
+                      size="small"
+                    >
+                      置顶
+                    </el-tag>
                   </div>
-                  <p class="article-summary">{{ article.summary }}</p>
+                  <p class="article-summary">
+                    {{ article.summary }}
+                  </p>
                   <div class="article-meta">
-                    <el-tag v-if="article.category" size="small">{{ article.category.name }}</el-tag>
-                    <span class="author-info">
-                      <el-avatar :size="20" :src="article.author?.avatar" />
-                      <span>{{ article.author?.nickname || article.author?.username }}</span>
-                    </span>
-                    <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
-                    <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
-                    <span v-if="article.like_count">
-                      <el-icon><Star /></el-icon> {{ article.like_count }}
-                    </span>
-                    <span v-if="article.comment_count">
-                      <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
-                    </span>
-                    <span v-if="article.favorite_count">
-                      <el-icon><Collection /></el-icon> {{ article.favorite_count }}
-                    </span>
+                    <div class="article-byline">
+                      <el-tag
+                        v-if="article.category"
+                        size="small"
+                        class="category-chip"
+                      >
+                        {{ article.category.name }}
+                      </el-tag>
+                      <span class="author-info">
+                        <el-avatar
+                          :size="20"
+                          :src="article.author?.avatar"
+                        />
+                        <span>{{ article.author?.nickname || article.author?.username }}</span>
+                      </span>
+                      <span class="article-date"><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
+                    </div>
+                    <div class="article-counts">
+                      <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
+                      <span v-if="article.like_count">
+                        <el-icon><Star /></el-icon> {{ article.like_count }}
+                      </span>
+                      <span v-if="article.comment_count">
+                        <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
+                      </span>
+                      <span v-if="article.favorite_count">
+                        <el-icon><Collection /></el-icon> {{ article.favorite_count }}
+                      </span>
+                    </div>
                     <!-- 书签样式的标签 -->
-                    <div class="article-bookmarks" v-if="article.tags && article.tags.length > 0">
+                    <div
+                      v-if="article.tags && article.tags.length > 0"
+                      class="article-bookmarks"
+                    >
                       <span 
                         v-for="tag in article.tags.slice(0, 3)" 
                         :key="tag.id" 
@@ -134,12 +217,15 @@
               v-model:page-size="pageSize"
               :total="total"
               layout="prev, pager, next"
-              @current-change="loadArticles"
+              @current-change="handlePageChange"
             />
           </div>
         </el-col>
 
-        <el-col :xs="24" :md="6">
+        <el-col
+          :xs="24"
+          :md="4"
+        >
           <el-card class="sidebar-card">
             <h3>热门标签</h3>
             <div class="tag-list">
@@ -157,7 +243,10 @@
           </el-card>
 
           <!-- 广告位 -->
-          <div class="ad-slots" v-if="ads.length > 0">
+          <div
+            v-if="ads.length > 0"
+            class="ad-slots"
+          >
             <div
               v-for="(ad, index) in ads"
               :key="`ad-${ad.id || index}`"
@@ -165,8 +254,17 @@
               @click="handleAdClick(ad)"
             >
               <div class="ad-content">
-                <img :src="ad.image" :alt="ad.title" @load="recordAdView(ad.id)" />
-                <div v-if="ad.title" class="ad-title">{{ ad.title }}</div>
+                <img
+                  :src="ad.image"
+                  :alt="ad.title"
+                  @load="recordAdView(ad.id)"
+                >
+                <div
+                  v-if="ad.title"
+                  class="ad-title"
+                >
+                  {{ ad.title }}
+                </div>
               </div>
             </div>
           </div>
@@ -178,12 +276,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { Search, User, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Search, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
 
 const route = useRoute()
+const router = useRouter()
 
 const articles = ref([])
 const categories = ref([])
@@ -197,6 +297,34 @@ const selectedCategory = ref(null)
 const selectedTag = ref(null)
 const rankType = ref('') // 默认全部
 const sortBy = ref('time') // 默认最新发布
+let articleRequestId = 0
+
+const rankTypes = new Set(['', 'hot', 'week', 'month', 'year'])
+const sortTypes = new Set(['hot', 'time', 'view_count', 'like_count', 'comment_count'])
+
+const queryString = value => typeof value === 'string' ? value : ''
+const positiveInt = value => {
+  const number = Number(queryString(value))
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
+const updateQuery = () => {
+  const query = {
+    ...route.query,
+    keyword: searchKeyword.value.trim() || undefined,
+    category_id: selectedCategory.value ? String(selectedCategory.value) : undefined,
+    tag_id: selectedTag.value ? String(selectedTag.value) : undefined,
+    rank_type: rankType.value || undefined,
+    sort_by: sortBy.value,
+    page: String(currentPage.value)
+  }
+  const target = { path: route.path, query }
+  if (router.resolve(target).fullPath === route.fullPath) {
+    loadArticles()
+    return
+  }
+  router.push(target)
+}
 
 // 当前选中的分类数据
 const selectedCategoryData = computed(() => {
@@ -207,6 +335,7 @@ const selectedCategoryData = computed(() => {
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
 const loadArticles = async () => {
+  const activeRequest = ++articleRequestId
   try {
     const params = {
       page: currentPage.value,
@@ -228,9 +357,11 @@ const loadArticles = async () => {
     }
 
     const response = await api.get('/articles', { params })
+    if (activeRequest !== articleRequestId) return
     articles.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
+    if (activeRequest !== articleRequestId) return
     console.error('Failed to load articles:', error)
   }
 }
@@ -282,38 +413,42 @@ const recordAdView = (adId) => {
 
 const handleSearch = () => {
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleCategorySelect = (categoryId) => {
   selectedCategory.value = categoryId
   selectedTag.value = null
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const filterByTag = (tagId) => {
   selectedTag.value = selectedTag.value === tagId ? null : tagId
   selectedCategory.value = null
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleRankChange = () => {
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleSortChange = () => {
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleTagClick = (tagId) => {
   selectedTag.value = tagId
   selectedCategory.value = null
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
+}
+
+const handlePageChange = () => {
+  updateQuery()
 }
 
 // 根据标签名称生成颜色（用于书签样式）
@@ -330,32 +465,25 @@ const getTagColor = (tagName) => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-// 监听 URL 参数变化，自动更新筛选条件
-watch(() => route.query, (newQuery) => {
-  if (newQuery.category_id) {
-    selectedCategory.value = parseInt(newQuery.category_id)
-    selectedTag.value = null
-  } else if (newQuery.tag_id) {
-    selectedTag.value = parseInt(newQuery.tag_id)
-    selectedCategory.value = null
-  }
-  currentPage.value = 1
+watch(() => route.query, query => {
+  const categoryId = positiveInt(query.category_id)
+  const tagId = positiveInt(query.tag_id)
+  const nextRankType = queryString(query.rank_type)
+  const nextSortBy = queryString(query.sort_by)
+
+  searchKeyword.value = queryString(query.keyword)
+  selectedCategory.value = categoryId
+  selectedTag.value = categoryId ? null : tagId
+  rankType.value = rankTypes.has(nextRankType) ? nextRankType : ''
+  sortBy.value = sortTypes.has(nextSortBy) ? nextSortBy : 'time'
+  currentPage.value = positiveInt(query.page) || 1
   loadArticles()
-}, { immediate: false })
+}, { immediate: true })
 
 onMounted(() => {
   loadCategories()
   loadTags()
   loadAds()
-  
-  // 从 URL 参数初始化筛选条件
-  if (route.query.category_id) {
-    selectedCategory.value = parseInt(route.query.category_id)
-  } else if (route.query.tag_id) {
-    selectedTag.value = parseInt(route.query.tag_id)
-  }
-  
-  loadArticles()
 })
 </script>
 
@@ -480,8 +608,8 @@ onMounted(() => {
 }
 
 .article-cover {
-  width: 140px;
-  height: 112px;
+  width: 112px;
+  height: 78px;
   object-fit: cover;
   border-radius: 4px;
   flex-shrink: 0;
@@ -725,6 +853,186 @@ onMounted(() => {
     width: 100%; /* 占满整行 */
     margin-top: 8px; /* 添加顶部间距 */
   }
+}
+
+.terminal-log-meta {
+  display: none;
+}
+
+/* Magazine adaptation */
+.blog {
+  padding: 54px 0 76px;
+  background: var(--theme-bg-primary);
+}
+
+.blog .container {
+  max-width: 1060px;
+  padding: 0 32px;
+}
+
+.blog-header {
+  align-items: flex-end;
+  margin-bottom: 36px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.header-left {
+  flex-wrap: wrap;
+}
+
+.blog-header h1 {
+  margin-right: 18px;
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.blog-header h1 small {
+  display: block;
+  margin-top: 3px;
+  color: var(--theme-primary);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: .28em;
+}
+
+.article-list {
+  gap: 0 !important;
+  padding: 10px 34px;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-bg-card);
+}
+
+.article-item {
+  height: auto;
+  min-height: 110px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--theme-border) !important;
+  border-radius: 0;
+  box-shadow: none;
+  transition: padding-left .25s ease;
+}
+
+.article-item:hover {
+  padding-left: 10px;
+}
+
+.article-item:hover h2 {
+  color: var(--theme-primary);
+}
+
+.article-item :deep(.el-card__body) {
+  padding: 16px 8px;
+}
+
+.article-meta {
+  align-items: center;
+  row-gap: 12px;
+}
+
+.article-byline,
+.article-counts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.article-counts {
+  color: var(--theme-text-tertiary);
+}
+
+.article-header h2,
+.sidebar-card h3 {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-weight: 500;
+  letter-spacing: .03em;
+}
+
+.article-cover,
+.category-logo-small,
+.category-logo-dropdown,
+.ad-slot {
+  border-radius: 0;
+}
+
+.article-cover {
+  align-self: center;
+  border-radius: 8px;
+  filter: saturate(.82) contrast(.96);
+}
+
+.sidebar-card {
+  padding-top: 22px;
+  border: 0 !important;
+  border-top: 1px solid var(--theme-border) !important;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent !important;
+}
+
+.sidebar-card :deep(.el-card__body) {
+  padding: 0 2px 28px;
+}
+
+.bookmark-tag {
+  padding: 3px 7px;
+  background: transparent !important;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-secondary);
+  clip-path: none;
+  box-shadow: none;
+}
+
+.bookmark-tag:hover {
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+  box-shadow: none;
+}
+
+.ad-slot:hover {
+  border-color: var(--theme-primary);
+  box-shadow: none;
+  transform: translateY(-3px);
+}
+
+.blog :deep(.el-button),
+.blog :deep(.el-input__wrapper),
+.blog :deep(.el-select__wrapper),
+.blog :deep(.el-tag),
+.blog :deep(.el-radio-button__inner) {
+  border-radius: 1px;
+  box-shadow: none;
+}
+
+.article-item:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .blog .container { padding: 0 24px; }
+  .blog-header { align-items: stretch; flex-direction: column; }
+  .header-right { width: 100%; }
+  .search-input { max-width: none; }
+  .article-list { padding: 8px 24px; }
+}
+
+@media (max-width: 560px) {
+  .blog { padding: 36px 0 52px; }
+  .blog .container { padding: 0 18px; }
+  .header-left, .header-right { align-items: stretch; flex-direction: column; }
+  .rank-selector { margin-left: 0; overflow-x: auto; }
+  .sort-select { width: 100%; }
+  .article-item { min-height: 0; }
+  .article-content { align-items: stretch; }
+  .article-cover { height: 180px; }
+  .article-meta { margin-top: 12px; }
+  .article-item :deep(.el-card__body) { padding: 24px 2px; }
+  .article-byline, .article-counts { gap: 8px 12px; }
+  .article-list { padding: 4px 16px; }
 }
 </style>
 

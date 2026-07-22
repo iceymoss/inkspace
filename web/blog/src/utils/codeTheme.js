@@ -2,10 +2,9 @@
 import api from './api'
 
 let codeTheme = 'github' // 默认代码主题
-let markdownTheme = 'light' // 默认 Markdown 主题
 let themeLoaded = false
 
-// 加载代码主题和 Markdown 主题配置
+// 加载代码主题配置
 export const loadCodeTheme = async () => {
   if (themeLoaded) {
     return codeTheme
@@ -18,10 +17,6 @@ export const loadCodeTheme = async () => {
       codeTheme = settings.code_theme
       console.log('加载代码主题配置:', codeTheme)
     }
-    if (settings.markdown_theme) {
-      markdownTheme = settings.markdown_theme
-      console.log('加载Markdown主题配置:', markdownTheme)
-    }
     themeLoaded = true
     return codeTheme
   } catch (error) {
@@ -29,14 +24,6 @@ export const loadCodeTheme = async () => {
     themeLoaded = true // 即使失败也标记为已加载，避免重复请求
     return codeTheme
   }
-}
-
-// 获取 Markdown 主题
-export const getMarkdownTheme = async () => {
-  if (!themeLoaded) {
-    await loadCodeTheme()
-  }
-  return markdownTheme
 }
 
 // 获取当前代码主题
@@ -47,12 +34,6 @@ export const getCodeTheme = () => {
 // 设置代码主题（用于管理后台保存后刷新）
 export const setCodeTheme = (theme) => {
   codeTheme = theme
-  themeLoaded = true
-}
-
-// 设置 Markdown 主题（用于管理后台保存后刷新）
-export const setMarkdownTheme = (theme) => {
-  markdownTheme = theme
   themeLoaded = true
 }
 

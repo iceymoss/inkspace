@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint .. --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+    "lint": "eslint src --ext .vue,.js,.jsx,.cjs,.mjs",
+    "test": "vitest"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -21,9 +22,12 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.2",
+    "@vue/test-utils": "^2.4.11",
     "eslint": "^8.56.0",
     "eslint-plugin-vue": "^9.19.2",
+    "jsdom": "^25.0.1",
     "sass": "^1.69.5",
-    "vite": "^5.0.10"
+    "vite": "^5.0.10",
+    "vitest": "^2.1.9"
   }
 }

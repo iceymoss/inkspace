@@ -32,6 +32,26 @@ const routes = [
         component: () => import('@/views/WorkDetail.vue')
       },
       {
+        path: 'photos',
+        name: 'Photos',
+        component: () => import('@/views/Photos.vue')
+      },
+      {
+        path: 'wiki',
+        name: 'WikiIndex',
+        component: () => import('@/views/wiki/WikiIndex.vue')
+      },
+      {
+        path: 'wiki/:workspaceId',
+        name: 'WikiWorkspace',
+        component: () => import('@/views/wiki/WikiWorkspace.vue')
+      },
+      {
+        path: 'wiki/docs/:id',
+        name: 'WikiDoc',
+        component: () => import('@/views/wiki/WikiDoc.vue')
+      },
+      {
         path: 'user-search',
         name: 'UserSearch',
         component: () => import('@/views/UserSearch.vue')
@@ -112,6 +132,11 @@ const routes = [
         path: 'comments',
         name: 'MyComments',
         component: () => import('@/views/user/MyComments.vue')
+      },
+      {
+        path: 'appearance',
+        name: 'Appearance',
+        component: () => import('@/views/user/Appearance.vue')
       },
       {
         path: 'workspaces',

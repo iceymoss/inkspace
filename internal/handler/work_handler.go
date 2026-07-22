@@ -219,21 +219,7 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort", "") // 排序方式：hot, time, view, like
 	keyword := c.Query("keyword")        // 标题或描述关键字
 
-	var status *int
-	if statusStr := c.Query("status"); statusStr != "" {
-		s, _ := strconv.Atoi(statusStr)
-		status = &s
-	} else {
-		// 如果未指定状态，根据路由判断：
-		// - 管理后台（/admin/works）：显示所有状态（status = nil）
-		// - 用户端（/api/works）：只显示已发布的作品（status = 1）
-		if !strings.Contains(c.Request.URL.Path, "/admin/") {
-			// 用户端，默认只显示已发布的作品
-			s := 1
-			status = &s
-		}
-		// 管理后台，status 保持为 nil，显示所有状态
-	}
+	status := workListStatus(c)
 
 	works, total, err := h.service.GetList(page, pageSize, workType, status, sortBy, keyword)
 	if err != nil {
@@ -247,6 +233,20 @@ func (h *WorkHandler) GetList(c *gin.Context) {
 	}
 
 	utils.PageResponse(c, workResponses, total, page, pageSize)
+}
+
+func workListStatus(c *gin.Context) *int {
+	if !strings.Contains(c.Request.URL.Path, "/admin/") {
+		status := 1
+		return &status
+	}
+
+	if statusStr := c.Query("status"); statusStr != "" {
+		status, _ := strconv.Atoi(statusStr)
+		return &status
+	}
+
+	return nil
 }
 
 // GetRecommended 获取推荐作品

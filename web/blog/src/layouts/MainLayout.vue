@@ -1,24 +1,90 @@
 <template>
-  <div class="main-layout">
+  <div
+    class="main-layout"
+    :class="{ 'nav-is-open': navOpen }"
+  >
     <header class="header">
       <div class="container">
         <div class="header-content">
-          <div class="logo">
-            <router-link to="/">InkSpace</router-link>
+          <div class="masthead">
+            <div class="logo">
+              <router-link to="/">
+                <template v-if="isTerminal"><span class="terminal-dollar">$</span>inkspace.log<i class="brand-caret" /></template>
+                <template v-else>Ink<span>Space</span></template>
+              </router-link>
+            </div>
+            <span
+              v-if="!isTerminal"
+              class="issue-mark serif"
+              aria-hidden="true"
+            >{{ issueMark }}</span>
           </div>
-          <nav class="nav">
-            <router-link to="/">首页</router-link>
-            <router-link to="/blog">博客</router-link>
-            <router-link to="/works">作品</router-link>
-            <router-link to="/links">友链</router-link>
-            <router-link to="/about">关于</router-link>
+          <nav
+            id="public-navigation"
+            class="nav"
+            :class="{ 'is-open': navOpen }"
+            aria-label="主导航"
+          >
+            <router-link to="/">
+              {{ navLabel('首页', 'home') }}
+            </router-link>
+            <router-link to="/blog">
+              {{ navLabel('博客', 'blog') }}
+            </router-link>
+            <router-link to="/works">
+              {{ navLabel('作品', 'projects') }}
+            </router-link>
+            <router-link to="/photos">
+              {{ navLabel('摄影', 'photos') }}
+            </router-link>
+            <router-link to="/wiki">
+              {{ navLabel('知识库', 'wiki') }}
+            </router-link>
+            <router-link to="/links">
+              {{ navLabel('友链', 'links') }}
+            </router-link>
+            <router-link to="/about">
+              {{ navLabel('关于', 'about') }}
+            </router-link>
           </nav>
           <div class="header-actions">
+            <el-dropdown
+              v-if="!userStore.isLoggedIn"
+              trigger="click"
+              @command="setGuestScheme"
+            >
+              <button
+                class="scheme-toggle"
+                type="button"
+                aria-label="切换明暗模式"
+                title="切换明暗模式"
+              >
+                <Monitor v-if="appearance.savedPreference.color_scheme === 'system'" />
+                <Sunny v-else-if="appearance.savedPreference.color_scheme === 'light'" />
+                <Moon v-else />
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="system">
+                    跟随系统
+                  </el-dropdown-item>
+                  <el-dropdown-item command="light">
+                    浅色模式
+                  </el-dropdown-item>
+                  <el-dropdown-item command="dark">
+                    深色模式
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <template v-if="userStore.isLoggedIn">
               <NotificationDropdown />
               <el-dropdown @command="handleCommand">
                 <span class="user-info">
-                  <el-avatar :size="32" :src="userStore.user?.avatar" />
+                  <el-avatar
+                    :size="32"
+                    :src="userStore.user?.avatar"
+                  />
                   <span class="username">{{ userStore.user?.nickname || userStore.user?.username }}</span>
                 </span>
                 <template #dropdown>
@@ -38,7 +104,10 @@
                     <el-dropdown-item command="searchUser">
                       <el-icon><User /></el-icon> 搜索用户
                     </el-dropdown-item>
-                    <el-dropdown-item command="logout" divided>
+                    <el-dropdown-item
+                      command="logout"
+                      divided
+                    >
                       <el-icon><SwitchButton /></el-icon> 退出登录
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -46,42 +115,91 @@
               </el-dropdown>
             </template>
             <template v-else>
-              <el-button type="primary" @click="$router.push('/login')">登录</el-button>
+              <el-button
+                type="primary"
+                @click="$router.push('/login')"
+              >
+                登录
+              </el-button>
             </template>
+            <button
+              class="nav-toggle"
+              type="button"
+              :aria-expanded="navOpen"
+              aria-controls="public-navigation"
+              :aria-label="navOpen ? '关闭导航' : '打开导航'"
+              @click="navOpen = !navOpen"
+            >
+              <Close v-if="navOpen" />
+              <Menu v-else />
+            </button>
           </div>
         </div>
       </div>
     </header>
 
     <main class="main-content">
+      <div
+        v-if="!isTerminal"
+        class="publication-signature serif"
+        aria-hidden="true"
+      >
+        记录 · 观察 · <b>创造</b> · 分享
+      </div>
       <RouterView />
     </main>
 
     <footer class="footer">
       <div class="container">
-        <p>{{ siteSettings.site_copyright || '© 2024 InkSpace. All rights reserved.' }}</p>
-        <p>{{ siteSettings.site_description || 'Powered by Go + Gin + Vue' }}</p>
-        <p v-if="siteSettings.site_icp">
-          <a :href="`https://beian.miit.gov.cn/`" target="_blank" rel="noopener">
-            {{ siteSettings.site_icp }}
-          </a>
-        </p>
+        <div class="footer-identity">
+          <strong :class="{ serif: !isTerminal }">{{ isTerminal ? '$inkspace.log' : 'InkSpace' }}</strong>
+          <p>{{ siteSettings.site_description || '以文字收存观察，让思想缓慢生长。' }}</p>
+        </div>
+        <div class="footer-meta">
+          <p v-if="isTerminal" class="system-status"><i /> all systems normal</p>
+          <p>{{ siteSettings.site_copyright || '© 2024 InkSpace. All rights reserved.' }}</p>
+          <p v-if="siteSettings.site_icp">
+            <a
+              :href="`https://beian.miit.gov.cn/`"
+              target="_blank"
+              rel="noopener"
+            >
+              {{ siteSettings.site_icp }}
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { useAppearanceStore } from '@/stores/appearance'
 import { useRouter } from 'vue-router'
-import { User, Edit, Collection, SwitchButton, Odometer } from '@element-plus/icons-vue'
+import { User, Edit, Collection, SwitchButton, Odometer, Monitor, Moon, Sunny, Menu, Close } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
 import api from '@/utils/api'
 
 const userStore = useUserStore()
+const appearance = useAppearanceStore()
 const router = useRouter()
 const siteSettings = ref({})
+const navOpen = ref(false)
+const issueMark = computed(() => {
+  try {
+    return JSON.parse(siteSettings.value.home_hero || '{}').issue || 'VOL. 01'
+  } catch {
+    return 'VOL. 01'
+  }
+})
+const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
+const navLabel = (fallback, terminal) => isTerminal.value ? terminal : fallback
+
+watch(() => router.currentRoute.value.fullPath, () => {
+  navOpen.value = false
+})
 
 // Load user profile if logged in
 if (userStore.isLoggedIn && !userStore.user) {
@@ -161,6 +279,13 @@ const handleCommand = (command) => {
   }
 }
 
+const setGuestScheme = (colorScheme) => {
+  appearance.saveGuestPreference({
+    ui_theme: appearance.savedPreference.ui_theme,
+    color_scheme: colorScheme
+  })
+}
+
 onMounted(() => {
   loadSiteSettings()
 })
@@ -174,8 +299,8 @@ onMounted(() => {
 }
 
 .header {
-  background: var(--theme-bg-card);
-  box-shadow: 0 2px 8px var(--theme-shadow);
+  background: color-mix(in srgb, var(--theme-bg-primary) 88%, transparent);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--theme-border);
   position: sticky;
   top: 0;
@@ -190,60 +315,103 @@ onMounted(() => {
   height: 64px;
 }
 
+.masthead {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  flex: 0 0 auto;
+}
+
 .logo a {
-  font-size: 28px;
+  color: var(--theme-text-primary);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: 22px;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   text-decoration: none;
-  letter-spacing: 2px;
-  position: relative;
+  letter-spacing: .1em;
   display: inline-block;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  font-style: italic;
-  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
-  animation: gradientShift 3s ease infinite;
+  white-space: nowrap;
 }
 
-.logo a:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.15);
-  letter-spacing: 3px;
+.logo a span {
+  color: var(--theme-primary);
 }
 
-@keyframes gradientShift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+.issue-mark {
+  padding-left: 18px;
+  border-left: 1px solid var(--theme-border);
+  color: var(--theme-primary);
+  font-size: 10px;
+  letter-spacing: .2em;
 }
 
 .nav {
   display: flex;
-  gap: 30px;
+  align-items: center;
+  gap: clamp(16px, 2vw, 30px);
 }
 
 .nav a {
   color: var(--theme-text-secondary);
-  font-size: 16px;
-  transition: color 0.3s;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  font-size: 14px;
+  transition: color .2s ease, border-color .2s ease;
   text-decoration: none;
 }
 
 .nav a:hover,
-.nav a.router-link-active {
-  color: var(--theme-primary);
+.nav a.router-link-exact-active {
+  border-color: var(--theme-primary);
+  color: var(--theme-text-primary);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.scheme-toggle {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  color: var(--theme-text-secondary);
+  cursor: pointer;
+  border: 1px solid var(--theme-border);
+  border-radius: 50%;
+  background: transparent;
+  transition: color .25s ease, border-color .25s ease, transform .25s ease;
+}
+
+.scheme-toggle:hover {
+  color: var(--theme-primary);
+  border-color: var(--theme-primary);
+  transform: rotate(15deg);
+}
+
+.nav-toggle {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid var(--theme-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--theme-text-primary);
+  cursor: pointer;
+}
+
+.nav-toggle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.scheme-toggle svg {
+  width: 100%;
+  height: 100%;
 }
 
 .user-info {
@@ -258,68 +426,147 @@ onMounted(() => {
 }
 
 .main-content {
+  position: relative;
   flex: 1;
-  padding: 12px 0 40px;
+  padding: 24px 0 56px;
+}
+
+.publication-signature {
+  position: fixed;
+  z-index: 2;
+  top: 144px;
+  right: max(18px, calc((100vw - 1200px) / 2 - 62px));
+  height: 284px;
+  padding-left: 18px;
+  border-left: 1px solid var(--theme-border);
+  color: var(--theme-text-secondary);
+  font-size: 13px;
+  letter-spacing: .5em;
+  writing-mode: vertical-rl;
+  pointer-events: none;
+}
+
+.publication-signature b {
+  color: var(--theme-primary);
+  font-weight: 500;
 }
 
 .footer {
-  background: #2c3e50; /* 默认灰黑色背景 */
-  border-top: 1px solid #34495e;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 30px 0;
-  text-align: center;
+  background: var(--theme-bg-primary);
+  border-top: 1px solid var(--theme-border);
+  color: var(--theme-text-secondary);
+  padding: 48px 0 56px;
   margin-top: auto;
 }
 
-/* 哀悼日主题 - 底部栏使用哀悼主题 */
-body.theme-mourning .footer {
-  background: var(--theme-bg-card) !important;
-  border-top: 1px solid var(--theme-border) !important;
-  color: var(--theme-text-primary) !important;
+.footer .container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
 }
 
-body.theme-mourning .footer p {
-  color: var(--theme-text-secondary) !important;
+.footer-identity strong {
+  color: var(--theme-text-primary);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: .1em;
 }
 
-body.theme-mourning .footer a {
-  color: var(--theme-text-primary) !important;
+.footer-identity strong span {
+  color: var(--theme-primary);
 }
 
-body.theme-mourning .footer a:hover {
-  color: var(--theme-primary) !important;
+.footer p {
+  margin: 8px 0 0;
+  color: var(--theme-text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
-/* 其他主题保持灰黑色 */
-body:not(.theme-mourning) .footer {
-  background: #2c3e50 !important;
-  border-top: 1px solid #34495e !important;
-  color: rgba(255, 255, 255, 0.8) !important;
+.footer-meta {
+  text-align: right;
 }
 
-body:not(.theme-mourning) .footer p {
-  color: rgba(255, 255, 255, 0.8) !important;
+.footer a {
+  color: inherit;
 }
 
-body:not(.theme-mourning) .footer a {
-  color: rgba(255, 255, 255, 0.9) !important;
+.footer a:hover {
+  color: var(--theme-primary);
 }
 
-body:not(.theme-mourning) .footer a:hover {
-  color: #ffffff !important;
-}
-
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .nav {
-    gap: 15px;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    padding: 16px max(24px, calc((100vw - 1060px) / 2 + 32px)) 24px;
+    border-bottom: 1px solid var(--theme-border);
+    background: var(--theme-bg-primary);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity .2s ease, transform .2s ease, visibility .2s;
   }
 
   .nav a {
-    font-size: 14px;
+    padding: 11px 0;
+    border-bottom-color: var(--theme-border);
   }
 
-  .logo a {
-    font-size: 20px;
+  .nav.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+
+  .nav-toggle {
+    display: grid;
+  }
+
+  .publication-signature {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .header-content {
+    height: 58px;
+  }
+
+  .issue-mark,
+  .username {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .nav {
+    top: 58px;
+    grid-template-columns: 1fr;
+    padding-inline: 20px;
+  }
+
+  .main-content {
+    padding-top: 12px;
+  }
+
+  .footer .container {
+    display: block;
+  }
+
+  .footer-meta {
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--theme-border);
+    text-align: left;
   }
 }
 </style>

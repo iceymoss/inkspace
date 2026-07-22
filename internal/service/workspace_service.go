@@ -18,6 +18,9 @@ func (s *WorkspaceService) Create(req *models.WorkspaceRequest, ownerID uint) (*
 	workspace := &models.Workspace{
 		OwnerID: ownerID, Name: req.Name, Description: req.Description, Icon: req.Icon, Sort: req.Sort,
 	}
+	if req.IsPublic != nil {
+		workspace.IsPublic = *req.IsPublic
+	}
 	if err := database.DB.Create(workspace).Error; err != nil {
 		return nil, err
 	}
@@ -48,9 +51,13 @@ func (s *WorkspaceService) Get(id, ownerID uint) (*models.Workspace, error) {
 }
 
 func (s *WorkspaceService) Update(id, ownerID uint, req *models.WorkspaceRequest) (*models.Workspace, error) {
-	result := database.DB.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", id, ownerID).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"name": req.Name, "description": req.Description, "icon": req.Icon, "sort": req.Sort,
-	})
+	}
+	if req.IsPublic != nil {
+		updates["is_public"] = *req.IsPublic
+	}
+	result := database.DB.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", id, ownerID).Updates(updates)
 	if result.Error != nil {
 		return nil, result.Error
 	}

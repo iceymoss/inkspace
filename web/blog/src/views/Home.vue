@@ -3,14 +3,26 @@
     <!-- Hero Carousel Section -->
     <section class="hero-carousel">
       <div class="container">
+        <TerminalHero
+          v-if="isTerminal"
+          :settings="terminalHeroSettings"
+          :title="terminalHeroTitle"
+          :stats="stats"
+          :active="terminal.isOpen"
+          @navigate="handleHeroLink"
+          @activate="activateTerminal"
+        />
         <el-carousel 
-          v-if="carouselItems.length > 0"
+          v-else-if="carouselItems.length > 0"
           :height="carouselHeight"
           :interval="5000"
           :arrow="carouselItems.length > 1 ? 'always' : 'never'"
           indicator-position="inside"
         >
-          <el-carousel-item v-for="(item, index) in carouselItems" :key="index">
+          <el-carousel-item
+            v-for="(item, index) in carouselItems"
+            :key="index"
+          >
             <div 
               class="hero-slide" 
               :class="{ 'hero-slide-clickable': item.link }"
@@ -20,19 +32,51 @@
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
               }"
-              @click="handleHeroSlideClick(item)"
+              @click="handleCarouselClick(item)"
             >
               <div class="hero-content">
-                <h1 class="hero-title" v-if="item.title">{{ item.title }}</h1>
-                <p class="hero-subtitle" v-if="item.subtitle">{{ item.subtitle }}</p>
+                <h1
+                  v-if="item.title"
+                  class="hero-title"
+                >
+                  {{ item.title }}
+                </h1>
+                <p
+                  v-if="item.subtitle"
+                  class="hero-subtitle"
+                >
+                  {{ item.subtitle }}
+                </p>
               </div>
             </div>
           </el-carousel-item>
         </el-carousel>
         <!-- 默认内容（当没有配置轮播图时） -->
-        <div v-else class="hero-default">
-          <h1 class="hero-title">欢迎来到我的个人网站</h1>
-          <p class="hero-subtitle">分享技术、记录生活、展示作品</p>
+        <div
+          v-else
+          class="editorial-hero"
+        >
+          <div class="issue-line">
+            <span class="issue-number">{{ heroSettings.issue }}</span>
+            <span class="issue-rule" />
+            <span>{{ heroSettings.eyebrow }}</span>
+          </div>
+          <h1>
+            {{ heroTitle.before }}<span v-if="heroTitle.accent">{{ heroTitle.accent }}</span>{{ heroTitle.after }}
+          </h1>
+          <p>{{ heroSettings.description }}</p>
+          <div class="hero-actions">
+            <a
+              class="hero-primary"
+              :href="safeHeroLink(heroSettings.primary_link)"
+              @click="handleHeroLink($event, heroSettings.primary_link)"
+            >{{ heroSettings.primary_text }}</a>
+            <a
+              class="hero-secondary"
+              :href="safeHeroLink(heroSettings.secondary_link)"
+              @click="handleHeroLink($event, heroSettings.secondary_link)"
+            >{{ heroSettings.secondary_text }} <span aria-hidden="true">→</span></a>
+          </div>
         </div>
       </div>
     </section>
@@ -42,11 +86,17 @@
       <div class="container">
         <el-row :gutter="30">
           <!-- Left: Articles List -->
-          <el-col :xs="24" :lg="17">
+          <el-col
+            :xs="24"
+            :lg="19"
+          >
             <div class="content-section">
               <div class="section-header">
                 <h2>热门文章</h2>
-                <el-link type="primary" @click="$router.push('/blog')">
+                <el-link
+                  type="primary"
+                  @click="$router.push('/blog')"
+                >
                   查看全部 <el-icon><ArrowRight /></el-icon>
                 </el-link>
               </div>
@@ -59,17 +109,40 @@
                   shadow="hover"
                   @click="$router.push(`/blog/${article.id}`)"
                 >
-                  <div class="article-content">
+                  <div class="article-content" :class="{ 'has-cover': article.cover }">
+                    <div class="terminal-log-meta">
+                      <span :class="`level-${getArticleLogLevel(article).toLowerCase()}`">{{ getArticleLogLevel(article) }}</span>
+                      <time :datetime="article.created_at">{{ formatDate(article.created_at) }}</time>
+                    </div>
                     <div class="article-main">
                       <div class="article-header-info">
-                        <el-tag v-if="article.is_top" type="danger" size="small" effect="dark">置顶</el-tag>
-                        <el-tag v-if="article.category" size="small">{{ article.category.name }}</el-tag>
+                        <el-tag
+                          v-if="article.is_top"
+                          type="danger"
+                          size="small"
+                          effect="dark"
+                        >
+                          置顶
+                        </el-tag>
+                        <el-tag
+                          v-if="article.category"
+                          size="small"
+                        >
+                          {{ article.category.name }}
+                        </el-tag>
                       </div>
-                      <h3 class="article-title">{{ article.title }}</h3>
-                      <p class="article-summary">{{ article.summary }}</p>
+                      <h3 class="article-title">
+                        {{ article.title }}
+                      </h3>
+                      <p class="article-summary">
+                        {{ article.summary }}
+                      </p>
                       <div class="article-meta">
-                        <span class="meta-item">
-                          <el-avatar :size="20" :src="article.author?.avatar" />
+                        <span class="meta-item article-date">
+                          <el-avatar
+                            :size="20"
+                            :src="article.author?.avatar"
+                          />
                           {{ article.author?.nickname || article.author?.username }}
                         </span>
                         <span class="meta-item">
@@ -80,29 +153,48 @@
                           <el-icon><View /></el-icon>
                           {{ article.view_count }}
                         </span>
-                        <span class="meta-item" v-if="article.like_count">
+                        <span
+                          v-if="article.like_count"
+                          class="meta-item"
+                        >
                           <el-icon><Star /></el-icon>
                           {{ article.like_count }}
                         </span>
-                        <span class="meta-item" v-if="article.comment_count">
+                        <span
+                          v-if="article.comment_count"
+                          class="meta-item"
+                        >
                           <el-icon><ChatDotRound /></el-icon>
                           {{ article.comment_count }}
                         </span>
-                        <span class="meta-item" v-if="article.favorite_count">
+                        <span
+                          v-if="article.favorite_count"
+                          class="meta-item"
+                        >
                           <el-icon><Collection /></el-icon>
                           {{ article.favorite_count }}
                         </span>
                       </div>
                     </div>
-                    <div class="article-cover" v-if="article.cover">
-                      <el-image :src="article.cover" fit="cover" />
+                    <div
+                      v-if="article.cover"
+                      class="article-cover"
+                    >
+                      <el-image
+                        :src="article.cover"
+                        fit="cover"
+                      />
                     </div>
                   </div>
                 </el-card>
               </div>
 
               <div class="view-more">
-                <el-button type="primary" plain @click="$router.push('/blog')">
+                <el-button
+                  type="primary"
+                  plain
+                  @click="$router.push('/blog')"
+                >
                   查看更多文章
                 </el-button>
               </div>
@@ -112,29 +204,50 @@
             <div class="content-section works-section">
               <div class="section-header">
                 <h2>精选作品</h2>
-                <el-link type="primary" @click="$router.push('/works')">
+                <el-link
+                  type="primary"
+                  @click="$router.push('/works')"
+                >
                   查看全部 <el-icon><ArrowRight /></el-icon>
                 </el-link>
               </div>
 
               <el-row :gutter="20">
-                <el-col :xs="24" :sm="12" :md="12" v-for="work in works" :key="work.id">
+                <el-col
+                  v-for="work in works"
+                  :key="work.id"
+                  :xs="24"
+                  :sm="12"
+                  :md="12"
+                >
                   <el-card 
                     class="work-card work-card-clickable"
                     shadow="hover" 
                     @click="navigateToWorkDetail(work.id, router)"
                   >
                     <div class="work-type-badge">
-                      <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
+                      <el-tag
+                        :type="work.type === 'photography' ? 'warning' : 'primary'"
+                        size="small"
+                      >
                         {{ work.type === 'photography' ? '📷' : '💻' }}
                       </el-tag>
                     </div>
-                    <el-image :src="work.cover" class="work-cover" fit="cover" />
+                    <el-image
+                      :src="work.cover"
+                      class="work-cover"
+                      fit="cover"
+                    />
                     <div class="work-info">
                       <h4>{{ work.title }}</h4>
-                      <p class="work-desc">{{ work.description }}</p>
+                      <p class="work-desc">
+                        {{ work.description }}
+                      </p>
                       <!-- 开源项目显示技术栈 -->
-                      <div class="work-tech-stack" v-if="work.type === 'project' && work.tech_stack">
+                      <div
+                        v-if="work.type === 'project' && work.tech_stack"
+                        class="work-tech-stack"
+                      >
                         <el-tag
                           v-for="(tech, index) in getTechStack(work.tech_stack)"
                           :key="index"
@@ -168,13 +281,55 @@
                 </el-col>
               </el-row>
             </div>
+
+            <div v-if="isTerminal" class="content-section terminal-captures">
+              <div class="section-header">
+                <h2>photos <small>— captures</small></h2>
+                <router-link class="terminal-more" to="/photos">open gallery <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="photos.length" class="terminal-photo-grid">
+                <router-link v-for="photo in photos" :key="photo.id" :to="`/works/${photo.id}`" class="terminal-photo">
+                  <img v-if="getWorkImage(photo)" :src="getWorkImage(photo)" :alt="photo.title" loading="lazy">
+                  <span v-else class="terminal-photo-fallback">NO IMAGE</span>
+                  <i aria-hidden="true" />
+                  <div><strong>{{ photo.title }}</strong><span>{{ photo.metadata?.location || 'capture' }}</span></div>
+                </router-link>
+              </div>
+              <div v-else-if="terminalSectionErrors.photos" class="terminal-empty terminal-error">
+                [ captures unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              </div>
+              <div v-else class="terminal-empty">[ no published captures ]</div>
+            </div>
+
+            <div v-if="isTerminal" class="content-section terminal-wiki">
+              <div class="section-header">
+                <h2>wiki <small>— public workspaces</small></h2>
+                <router-link class="terminal-more" to="/wiki">open wiki/ <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="wikiWorkspaces.length" class="terminal-wiki-panel">
+                <router-link v-for="workspace in wikiWorkspaces" :key="workspace.id" :to="`/wiki/${workspace.id}`">
+                  <span>▸ {{ workspace.name }}/</span>
+                  <small>{{ workspace.doc_count }} docs · {{ workspace.author_name || 'anonymous' }}</small>
+                </router-link>
+              </div>
+              <div v-else-if="terminalSectionErrors.wiki" class="terminal-empty terminal-error">
+                [ wiki unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              </div>
+              <div v-else class="terminal-empty">[ no public workspaces ]</div>
+            </div>
           </el-col>
 
           <!-- Right: Sidebar -->
-          <el-col :xs="24" :lg="7">
+          <el-col
+            :xs="24"
+            :lg="5"
+          >
             <div class="sidebar">
               <!-- Stats Card -->
-              <el-card class="sidebar-card stats-card" shadow="hover">
+              <el-card
+                class="sidebar-card stats-card"
+                shadow="hover"
+              >
                 <template #header>
                   <div class="card-header">
                     <el-icon><DataAnalysis /></el-icon>
@@ -183,26 +338,46 @@
                 </template>
                 <div class="stats-grid">
                   <div class="stat-item">
-                    <div class="stat-value">{{ stats.articleCount }}</div>
-                    <div class="stat-label">文章</div>
+                    <div class="stat-value">
+                      {{ stats.articleCount }}
+                    </div>
+                    <div class="stat-label">
+                      文章
+                    </div>
                   </div>
                   <div class="stat-item">
-                    <div class="stat-value">{{ stats.workCount }}</div>
-                    <div class="stat-label">作品</div>
+                    <div class="stat-value">
+                      {{ stats.workCount }}
+                    </div>
+                    <div class="stat-label">
+                      作品
+                    </div>
                   </div>
                   <div class="stat-item">
-                    <div class="stat-value">{{ stats.categoryCount }}</div>
-                    <div class="stat-label">分类</div>
+                    <div class="stat-value">
+                      {{ stats.categoryCount }}
+                    </div>
+                    <div class="stat-label">
+                      分类
+                    </div>
                   </div>
                   <div class="stat-item">
-                    <div class="stat-value">{{ tags.length }}</div>
-                    <div class="stat-label">标签</div>
+                    <div class="stat-value">
+                      {{ tags.length }}
+                    </div>
+                    <div class="stat-label">
+                      标签
+                    </div>
                   </div>
                 </div>
               </el-card>
 
               <!-- Recommended Articles -->
-              <el-card class="sidebar-card" shadow="hover" v-if="recommendedArticles.length > 0">
+              <el-card
+                v-if="recommendedArticles.length > 0"
+                class="sidebar-card"
+                shadow="hover"
+              >
                 <template #header>
                   <div class="card-header">
                     <el-icon><Star /></el-icon>
@@ -228,7 +403,11 @@
               </el-card>
 
               <!-- Recommended Works -->
-              <el-card class="sidebar-card" shadow="hover" v-if="recommendedWorks.length > 0">
+              <el-card
+                v-if="recommendedWorks.length > 0"
+                class="sidebar-card"
+                shadow="hover"
+              >
                 <template #header>
                   <div class="card-header">
                     <el-icon><Picture /></el-icon>
@@ -242,14 +421,23 @@
                     class="recommended-work-item"
                     @click="navigateToWorkDetail(work.id, router)"
                   >
-                    <el-image :src="work.cover" class="work-thumb" fit="cover" />
-                    <div class="work-title">{{ work.title }}</div>
+                    <el-image
+                      :src="work.cover"
+                      class="work-thumb"
+                      fit="cover"
+                    />
+                    <div class="work-title">
+                      {{ work.title }}
+                    </div>
                   </div>
                 </div>
               </el-card>
 
               <!-- Tags Card -->
-              <el-card class="sidebar-card" shadow="hover">
+              <el-card
+                class="sidebar-card"
+                shadow="hover"
+              >
                 <template #header>
                   <div class="card-header">
                     <el-icon><PriceTag /></el-icon>
@@ -269,7 +457,10 @@
               </el-card>
 
               <!-- About Card -->
-              <el-card class="sidebar-card about-card" shadow="hover">
+              <el-card
+                class="sidebar-card about-card"
+                shadow="hover"
+              >
                 <template #header>
                   <div class="card-header">
                     <el-icon><User /></el-icon>
@@ -278,7 +469,12 @@
                 </template>
                 <div class="about-content">
                   <p>分享技术文章、记录学习心得、展示个人作品。</p>
-                  <el-button type="primary" plain size="small" @click="$router.push('/about')">
+                  <el-button
+                    type="primary"
+                    plain
+                    size="small"
+                    @click="$router.push('/about')"
+                  >
                     了解更多
                   </el-button>
                 </div>
@@ -292,7 +488,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
 import { 
@@ -310,13 +506,24 @@ import {
 } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import TerminalHero from '@/components/theme/TerminalHero.vue'
+import { useAppearanceStore } from '@/stores/appearance'
+import { useTerminalStore } from '@/stores/terminal'
+import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
 
 const router = useRouter()
+const appearance = useAppearanceStore()
+const terminal = useTerminalStore()
+const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
 const articles = ref([])
 const works = ref([])
 const tags = ref([])
 const recommendedArticles = ref([])
 const recommendedWorks = ref([])
+const photos = ref([])
+const wikiWorkspaces = ref([])
+const terminalSectionsLoaded = ref(false)
+const terminalSectionErrors = reactive({ photos: false, wiki: false })
 const stats = ref({
   articleCount: 0,
   workCount: 0,
@@ -324,6 +531,41 @@ const stats = ref({
 })
 const carouselItems = ref([])
 const carouselHeight = ref('320px')
+const heroSettings = reactive({
+  issue: `VOL. ${String(new Date().getFullYear()).slice(-2)}`,
+  eyebrow: '持续记录 · 自由生长',
+  title: '把日常的观察，写成可以停留的文字。',
+  accent: '停留',
+  description: '这里收录关于技术与设计的长文、正在生长的知识库，以及在生活与远方之间留下的作品。',
+  primary_text: '开始阅读',
+  primary_link: '/blog',
+  secondary_text: '或先看看照片',
+  secondary_link: '/photos'
+})
+const terminalHeroSettings = reactive({
+  status: 'system online',
+  eyebrow: '持续构建 · 持续记录',
+  title: '在代码与生活之间，持续记录。',
+  accent: '持续记录',
+  description: '这里保存技术实践、正在构建的作品，以及偶尔偏离主线的生活片段。',
+  primary_text: 'tail -f blog',
+  primary_link: '/blog',
+  secondary_text: 'ls projects/',
+  secondary_link: '/works'
+})
+const splitHeroTitle = settings => {
+  const title = settings.title
+  const accent = settings.accent
+  const index = accent ? title.indexOf(accent) : -1
+  if (index < 0) return { before: title, accent: '', after: '' }
+  return {
+    before: title.slice(0, index),
+    accent,
+    after: title.slice(index + accent.length)
+  }
+}
+const heroTitle = computed(() => splitHeroTitle(heroSettings))
+const terminalHeroTitle = computed(() => splitHeroTitle(terminalHeroSettings))
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -337,9 +579,36 @@ const loadCarousel = async () => {
   try {
     const response = await api.get('/settings/public')
     const carouselData = response.data?.home_carousel
+    const heroData = response.data?.home_hero
+    const terminalHeroData = response.data?.home_hero_terminal
+    if (heroData) {
+      try {
+        const parsed = JSON.parse(heroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(heroSettings).forEach((key) => {
+            if (typeof parsed[key] === 'string' && parsed[key].trim()) heroSettings[key] = parsed[key].trim()
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse home hero data:', e)
+      }
+    }
+    if (terminalHeroData) {
+      try {
+        const parsed = JSON.parse(terminalHeroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(terminalHeroSettings).forEach((key) => {
+            if (typeof parsed[key] === 'string' && parsed[key].trim()) terminalHeroSettings[key] = parsed[key].trim()
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse terminal home hero data:', e)
+      }
+    }
     if (carouselData) {
       try {
-        carouselItems.value = JSON.parse(carouselData)
+        const parsed = JSON.parse(carouselData)
+        carouselItems.value = Array.isArray(parsed) ? parsed : []
       } catch (e) {
         console.error('Failed to parse carousel data:', e)
         carouselItems.value = []
@@ -353,12 +622,23 @@ const loadCarousel = async () => {
 const handleCarouselClick = (item) => {
   if (item.link) {
     if (item.link.startsWith('http')) {
-      window.open(item.link, '_blank')
+      window.open(item.link, '_blank', 'noopener,noreferrer')
     } else {
       router.push(item.link)
     }
   }
 }
+const getWorkImage = work => work.cover || (typeof work.images?.[0] === 'string' ? work.images[0] : work.images?.[0]?.url) || ''
+
+const handleHeroLink = (event, link) => {
+  if (/^https?:\/\//.test(link)) return
+  event.preventDefault()
+  if (link?.startsWith('/')) router.push(link)
+}
+
+const safeHeroLink = link => /^https?:\/\//.test(link) || link?.startsWith('/') ? link : '#'
+
+const activateTerminal = sourceRect => terminal.open(sourceRect)
 
 const loadData = async () => {
   try {
@@ -388,9 +668,28 @@ const loadData = async () => {
   }
 }
 
+const loadTerminalSections = async () => {
+  terminalSectionErrors.photos = false
+  terminalSectionErrors.wiki = false
+  const [photosResult, wikiResult] = await Promise.allSettled([
+    api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
+    api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
+  ])
+  terminalSectionErrors.photos = photosResult.status === 'rejected'
+  terminalSectionErrors.wiki = wikiResult.status === 'rejected'
+  photos.value = photosResult.status === 'fulfilled' ? photosResult.value.data?.list || [] : []
+  wikiWorkspaces.value = wikiResult.status === 'fulfilled' ? wikiResult.value.data?.list || [] : []
+  terminalSectionsLoaded.value = true
+}
+
 onMounted(() => {
   loadCarousel()
   loadData()
+  if (isTerminal.value) loadTerminalSections()
+})
+
+watch(isTerminal, (terminal) => {
+  if (terminal && !terminalSectionsLoaded.value) loadTerminalSections()
 })
 </script>
 
@@ -623,8 +922,8 @@ onMounted(() => {
 }
 
 .article-cover {
-  width: 160px;
-  height: 120px;
+  width: 124px;
+  height: 84px;
   flex-shrink: 0;
   border-radius: 8px;
   overflow: hidden;
@@ -920,6 +1219,28 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+.terminal-log-meta {
+  display: none;
+}
+
+.terminal-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.terminal-photo { position: relative; display: block; aspect-ratio: 3 / 2; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: #afc4de; }
+.terminal-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s cubic-bezier(.2, .6, .2, 1); }
+.terminal-photo:hover img { transform: scale(1.05); }
+.terminal-photo > i { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, .025) 3px 4px); }
+.terminal-photo > div { position: absolute; inset: auto 0 0; display: flex; justify-content: space-between; gap: 12px; padding: 30px 13px 10px; background: linear-gradient(transparent, rgba(5, 8, 15, .85)); font: 11px var(--terminal-mono); }
+.terminal-photo > div strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terminal-photo > div span { flex: none; }
+.terminal-photo-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--sub); font: 11px var(--terminal-mono); }
+.terminal-wiki-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line); box-shadow: var(--terminal-shadow); }
+.terminal-wiki-panel a { display: grid; gap: 8px; padding: 22px; background: var(--panel); color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
+.terminal-wiki-panel a:hover { background: var(--panel-2); }
+.terminal-wiki-panel small { color: var(--sub); }
+.terminal-empty { padding: 34px; border: 1px dashed var(--line); border-radius: 14px; color: var(--sub); font-family: var(--terminal-mono); text-align: center; }
+.terminal-more { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
+.terminal-error { color: var(--amber); }
+.terminal-error button { margin-left: 8px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--accent); font: inherit; cursor: pointer; }
+
 /* Responsive */
 @media (max-width: 1200px) {
   .sidebar {
@@ -976,5 +1297,448 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
   }
+}
+
+@media (max-width: 900px) {
+  .terminal-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .terminal-wiki-panel { grid-template-columns: 1fr; }
+}
+
+/* Magazine adaptation */
+.home {
+  background: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+}
+
+.home .container,
+.hero-carousel .container {
+  max-width: 1060px;
+  padding-right: 32px;
+  padding-left: 32px;
+}
+
+.issue-line {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 42px 0 22px;
+  color: var(--theme-text-secondary);
+  font-size: 11px;
+  letter-spacing: .24em;
+}
+
+.issue-number {
+  color: var(--theme-primary);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: 13px;
+  letter-spacing: .12em;
+}
+
+.issue-rule {
+  width: 64px;
+  border-top: 1px solid var(--theme-border);
+}
+
+.issue-directory {
+  display: flex;
+  gap: 18px;
+  margin-left: auto;
+}
+
+.issue-directory a {
+  color: var(--theme-text-secondary);
+  letter-spacing: .12em;
+}
+
+.issue-directory a:hover {
+  color: var(--theme-primary);
+}
+
+.hero-carousel :deep(.el-carousel) {
+  border: 1px solid var(--theme-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.hero-slide-clickable {
+  transition: filter .25s ease;
+}
+
+.hero-slide-clickable:hover {
+  filter: saturate(.88);
+  transform: none;
+}
+
+.hero-title {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: clamp(34px, 5vw, 62px);
+  font-weight: 500;
+  letter-spacing: .04em;
+  line-height: 1.25;
+}
+
+.hero-subtitle {
+  letter-spacing: .08em;
+}
+
+.hero-default {
+  align-items: flex-start;
+  height: 320px;
+  padding: 56px 8%;
+  border: 1px solid var(--theme-border);
+  border-radius: 0;
+  text-align: left;
+}
+
+.editorial-hero {
+  min-height: 390px;
+  padding: 48px 0 58px;
+  border-bottom: 3px double var(--theme-text-primary);
+}
+
+.editorial-hero .issue-line {
+  padding: 0 0 32px;
+}
+
+.editorial-hero h1 {
+  max-width: 800px;
+  margin: 0;
+  color: var(--theme-text-primary);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: clamp(42px, 6.5vw, 72px);
+  font-weight: 500;
+  letter-spacing: .02em;
+  line-height: 1.25;
+}
+
+.editorial-hero h1 span {
+  color: var(--theme-primary);
+}
+
+.editorial-hero > p {
+  max-width: 38em;
+  margin: 24px 0 0;
+  color: var(--theme-text-secondary);
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 32px;
+}
+
+.hero-primary {
+  padding: 11px 24px;
+  background: var(--theme-text-primary);
+  color: var(--theme-bg-primary);
+  font-size: 13px;
+  text-decoration: none;
+  transition: background .25s ease;
+}
+
+.hero-primary:hover {
+  background: var(--theme-primary);
+}
+
+.hero-secondary {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--theme-text-primary);
+  color: var(--theme-text-primary);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.hero-primary:focus-visible,
+.hero-secondary:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 3px;
+}
+
+.main-content {
+  padding: 68px 0 76px;
+}
+
+.content-section,
+.sidebar-card {
+  margin-bottom: 52px;
+}
+
+.section-header {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.section-header h2 {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: .06em;
+}
+
+.section-header h2::before {
+  display: none;
+}
+
+.section-header small {
+  margin-left: 10px;
+  color: var(--theme-text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: .2em;
+}
+
+.article-list {
+  gap: 0 !important;
+  padding: 10px 32px;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-bg-card);
+}
+
+.article-item,
+.sidebar-card {
+  border: 0 !important;
+  border-bottom: 1px solid var(--theme-border) !important;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent !important;
+}
+
+.work-card {
+  border: 1px solid var(--theme-border) !important;
+  border-radius: 0;
+  background: var(--theme-bg-card) !important;
+  box-shadow: none;
+}
+
+.article-item {
+  height: auto;
+  min-height: 116px;
+  transition: padding-left .25s ease;
+}
+
+.article-item:hover {
+  padding-left: 10px;
+  box-shadow: none;
+  transform: none;
+}
+
+.article-item:hover .article-title,
+.work-card-clickable:hover h4,
+.recommended-item:hover h4 {
+  color: var(--theme-primary);
+}
+
+.article-item :deep(.el-card__body) {
+  padding: 16px 8px;
+}
+
+.article-title,
+.work-info h4,
+.recommended-item h4,
+.work-title {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-weight: 500;
+  letter-spacing: .03em;
+}
+
+.work-cover {
+  border-radius: 0;
+  filter: saturate(.82) contrast(.96);
+}
+
+.article-cover {
+  align-self: center;
+  border-radius: 8px;
+  filter: saturate(.82) contrast(.96);
+}
+
+.work-card-clickable:hover {
+  border-color: var(--theme-primary);
+  box-shadow: none;
+  transform: translateY(-4px);
+}
+
+.work-info {
+  padding: 22px 24px 24px;
+}
+
+.sidebar-card :deep(.el-card__header),
+.sidebar-card :deep(.el-card__body) {
+  padding-right: 2px;
+  padding-left: 2px;
+}
+
+.sidebar-card :deep(.el-card__header) {
+  padding-top: 22px;
+  padding-bottom: 16px;
+  border-top: 1px solid var(--theme-border);
+}
+
+.card-header {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-weight: 500;
+  letter-spacing: .06em;
+}
+
+.stat-item,
+.recommended-item {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.stats-grid {
+  gap: 0;
+  border-top: 1px solid var(--theme-border);
+  border-left: 1px solid var(--theme-border);
+}
+
+.stat-item {
+  padding: 18px 12px;
+  border-right: 1px solid var(--theme-border);
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.recommended-list {
+  gap: 0;
+}
+
+.recommended-item {
+  padding: 16px 2px;
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.stat-value {
+  color: var(--theme-primary);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-weight: 500;
+}
+
+.recommended-item:hover {
+  padding-left: 8px;
+  background: var(--theme-bg-hover);
+  transform: none;
+}
+
+.recommended-work-item {
+  border-radius: 0;
+}
+
+.recommended-work-item:hover {
+  box-shadow: none;
+  transform: translateX(4px);
+}
+
+.home :deep(.el-button),
+.home :deep(.el-tag) {
+  border-radius: 1px;
+}
+
+.home :deep(.el-card:focus-visible),
+.issue-directory a:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .home .container,
+  .hero-carousel .container {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .sidebar {
+    position: static;
+    margin-top: 42px;
+  }
+}
+
+@media (max-width: 560px) {
+  .article-item :deep(.el-card__body) { padding: 24px 2px; }
+  .work-info { padding: 20px 20px 22px; }
+  .article-list { padding: 4px 16px; }
+}
+
+@media (max-width: 560px) {
+  .home .container,
+  .hero-carousel .container {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .issue-line {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 28px;
+  }
+
+  .issue-rule {
+    width: 32px;
+  }
+
+  .issue-directory {
+    width: 100%;
+    margin: 8px 0 0;
+  }
+
+  .hero-carousel {
+    padding-top: 0;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .editorial-hero {
+    min-height: 0;
+    padding: 34px 0 42px;
+  }
+
+  .editorial-hero .issue-line {
+    padding-top: 0;
+    padding-bottom: 24px;
+  }
+
+  .editorial-hero h1 {
+    font-size: 40px;
+  }
+
+  .editorial-hero > p {
+    font-size: 15px;
+  }
+
+  .hero-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .main-content {
+    padding: 48px 0;
+  }
+
+  .section-header {
+    align-items: flex-end;
+  }
+
+  .section-header small {
+    display: block;
+    margin: 5px 0 0;
+  }
+
+  .article-content {
+    align-items: stretch;
+  }
+
+  .article-item :deep(.el-card__body) {
+    padding: 24px 0;
+  }
+
+  .terminal-photo-grid { grid-template-columns: 1fr; }
 }
 </style>

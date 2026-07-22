@@ -1,9 +1,17 @@
 <template>
   <div class="login-page">
     <el-card class="login-card">
+      <div class="login-kicker">
+        INKSPACE · MEMBER
+      </div>
       <h2>{{ isRegister ? '注册账号' : '用户登录' }}</h2>
       
-      <el-form :model="form" :rules="rules" ref="formRef" @submit.prevent="handleSubmit">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        @submit.prevent="handleSubmit"
+      >
         <el-form-item prop="username">
           <el-input
             v-model="form.username"
@@ -12,7 +20,10 @@
           />
         </el-form-item>
 
-        <el-form-item v-if="isRegister" prop="email">
+        <el-form-item
+          v-if="isRegister"
+          prop="email"
+        >
           <el-input
             v-model="form.email"
             placeholder="邮箱"
@@ -20,7 +31,10 @@
           />
         </el-form-item>
 
-        <el-form-item v-if="isRegister" prop="nickname">
+        <el-form-item
+          v-if="isRegister"
+          prop="nickname"
+        >
           <el-input
             v-model="form.nickname"
             placeholder="昵称（选填）"
@@ -38,7 +52,10 @@
           />
         </el-form-item>
 
-        <el-form-item v-if="isRegister" prop="confirmPassword">
+        <el-form-item
+          v-if="isRegister"
+          prop="confirmPassword"
+        >
           <el-input
             v-model="form.confirmPassword"
             type="password"
@@ -49,13 +66,21 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" style="width: 100%" @click="handleSubmit" :loading="loading">
+          <el-button
+            type="primary"
+            style="width: 100%"
+            :loading="loading"
+            @click="handleSubmit"
+          >
             {{ isRegister ? '注册' : '登录' }}
           </el-button>
         </el-form-item>
 
         <div class="form-footer">
-          <el-link type="primary" @click="isRegister = !isRegister">
+          <el-link
+            type="primary"
+            @click="isRegister = !isRegister"
+          >
             {{ isRegister ? '已有账号？去登录' : '没有账号？去注册' }}
           </el-link>
         </div>
@@ -65,12 +90,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Message } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { loadTheme } from '@/utils/theme'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -149,10 +173,6 @@ const handleSubmit = async () => {
   })
 }
 
-// 加载主题配置
-onMounted(() => {
-  loadTheme()
-})
 </script>
 
 <style scoped>
@@ -180,27 +200,17 @@ onMounted(() => {
   text-align: center;
   margin-top: 10px;
 }
-</style>
 
-<style>
-/* 白天主题使用更灰的背景，突出登录卡片 */
-body.theme-day .login-page {
-  background: linear-gradient(135deg, #dde0e4 0%, #e8eaed 50%, #d9dce0 100%);
-}
-
-/* 黑夜主题使用渐变背景 */
-body.theme-night .login-page {
-  background: var(--theme-hero-gradient);
-}
-
-/* 节假日主题下使用背景次色 */
-body.theme-holiday .login-page {
-  background: var(--theme-bg-secondary) !important;
-}
-
-/* 哀悼日主题使用渐变背景 */
-body.theme-mourning .login-page {
-  background: var(--theme-hero-gradient);
-}
+/* Magazine adaptation */
+.login-page { min-height: calc(100vh - 64px); padding: 64px 24px; background: var(--theme-bg-primary); }
+.login-card { max-width: 430px; margin: 0; border: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; background: transparent; }
+.login-card :deep(.el-card__body) { padding: 48px 46px; }
+.login-kicker { margin-bottom: 12px; color: var(--theme-primary); font-family: Georgia, 'Songti SC', serif; font-size: 11px; letter-spacing: .24em; text-align: center; }
+.login-card h2 { margin-bottom: 38px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: 34px; font-weight: 500; letter-spacing: .05em; }
+.login-card :deep(.el-input__wrapper), .login-card :deep(.el-button) { border-radius: 1px; box-shadow: none; }
+.login-card :deep(.el-input__wrapper) { background: transparent; border-bottom: 1px solid var(--theme-border); }
+.form-footer :deep(.el-link) { color: var(--theme-text-secondary); }
+.form-footer :deep(.el-link:hover) { color: var(--theme-primary); }
+@media (max-width: 560px) { .login-page { align-items: flex-start; padding: 32px 18px; } .login-card { border-right: 0; border-left: 0; } .login-card :deep(.el-card__body) { padding: 38px 18px; } }
 </style>
 

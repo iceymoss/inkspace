@@ -1,16 +1,32 @@
 <template>
   <RouterView />
+  <FloatingTerminal @submit="handleTerminalSubmit" @confirm="handleTerminalConfirm" />
 </template>
 
 <script setup>
 import { onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { initTheme } from '@/utils/theme'
+import { useTerminalStore } from '@/stores/terminal'
+import { useAppearanceStore } from '@/stores/appearance'
+import { createTerminalExecutor } from '@/utils/terminal/executor'
+import api from '@/utils/api'
+import FloatingTerminal from '@/components/terminal/FloatingTerminal.vue'
 
 const userStore = useUserStore()
+const terminalStore = useTerminalStore()
+const appearanceStore = useAppearanceStore()
+const router = useRouter()
+const route = useRoute()
+const terminalExecutor = createTerminalExecutor({ router, route, api, userStore, appearanceStore, terminalStore })
 
-// 初始化主题
-initTheme()
+function handleTerminalSubmit(command) {
+  terminalExecutor.execute(command)
+}
+
+function handleTerminalConfirm(confirmation) {
+  terminalExecutor.confirm(confirmation)
+}
 
 // 如果有token，尝试获取用户信息
 onMounted(() => {
@@ -24,8 +40,6 @@ onMounted(() => {
 </script>
 
 <style>
-@import '@/assets/main.css';
-
 * {
   margin: 0;
   padding: 0;
