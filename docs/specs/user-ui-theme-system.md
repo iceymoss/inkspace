@@ -4,9 +4,10 @@
 - 创建日期: 2026-07-22
 - 状态: Phase 1「屿刊」及附加功能已完成，并于 2026-07-22 通过用户验收
 - 首期主题: A · 极简杂志风「屿刊」
-- 当前阶段: Phase 2「yu.log」实现与自动化验证完成，人工视觉矩阵待验收
-- 后续顺序: B · `yu.log` -> C ·「小屿的角落」-> D · `CHEN YU®`
+- 当前阶段: Phase 3「InkSpace · 温暖手作感」已于 2026-07-22 通过用户审核；进入 Phase 4 `CHEN YU®` 规格阶段
+- 后续顺序: B · `yu.log` -> C · `inkspace` -> D · `CHEN YU®`
 - Phase 2 规范: [`terminal-ui-theme.md`](./terminal-ui-theme.md)
+- Phase 3 规范: [`cozy-ui-theme.md`](./cozy-ui-theme.md)
 
 ## 设计关联
 
@@ -15,8 +16,8 @@
 | 主题 ID | 展示名称 | 规范 | 高保真原型 | 实现阶段 |
 |---|---|---|---|---|
 | `magazine` | 屿刊 · 极简杂志风 | [`style-a-magazine.md`](../design/style-a-magazine.md) | [`style-a-magazine.html`](../design/style-a-magazine.html) | Phase 1 已完成，默认主题 |
-| `terminal` | yu.log · 暗色科技感 | [`style-b-terminal.md`](../design/style-b-terminal.md) | [`style-b-terminal.html`](../design/style-b-terminal.html) | Phase 2 已开放，人工视觉矩阵待验收 |
-| `cozy` | 小屿的角落 · 温暖手作感 | [`style-c-cozy.md`](../design/style-c-cozy.md) | [`style-c-cozy.html`](../design/style-c-cozy.html) | 第三阶段 |
+| `terminal` | yu.log · 暗色科技感 | [`style-b-terminal.md`](../design/style-b-terminal.md) | [`style-b-terminal.html`](../design/style-b-terminal.html) | Phase 2 已完成并通过用户审核 |
+| `cozy` | InkSpace · 温暖手作感 | [`style-c-cozy.md`](../design/style-c-cozy.md) | [`style-c-cozy.html`](../design/style-c-cozy.html) | Phase 3 已完成并通过用户审核 |
 | `swiss` | CHEN YU® · 瑞士网格风 | [`style-d-swiss.md`](../design/style-d-swiss.md) | [`style-d-swiss.html`](../design/style-d-swiss.html) | 第四阶段 |
 
 共同基线：
@@ -382,8 +383,8 @@ web/blog/src/
 8. [x] **公共知识库模型与 API**：增加 `Workspace.IsPublic`、公开 DTO/查询、草稿回退规则、净化和基础权限测试。
 9. [x] **公共知识库前端**：新增 `/wiki`、工作区树和文档详情；管理界面增加公开开关、风险说明、文档状态及发布/取消发布/重新发布操作。
 10. [x] **屿刊全矩阵验收**：桌面/平板/手机、浅色/深色、访客/用户、空态/错误态、节日/哀悼、无障碍和构建验证；2026-07-22 用户验收通过。
-11. [ ] **B · yu.log**：实现、自动化验证、注册表与后端白名单已完成并开放；三视口全路由人工视觉矩阵待验收。
-12. [ ] **C · 小屿的角落**：关联 C 设计规范完成全矩阵适配，验收后开放白名单。
+11. [x] **B · yu.log**：实现、自动化验证、注册表与后端白名单及三视口全路由审核均已完成并开放。
+12. [x] **C · InkSpace 温暖手作感**：实现、自动化验证、前后端白名单和用户审核均已完成并开放。
 13. [ ] **D · CHEN YU®**：关联 D 设计规范完成全矩阵适配，验收后开放白名单。
 
 ### 参考的现有模式
@@ -484,7 +485,6 @@ web/blog/src/
 
 **后续阶段：**
 
-1. B · `yu.log` 按 [`terminal-ui-theme.md`](./terminal-ui-theme.md) 完整适配并开放选择。
-2. C ·「小屿的角落」完整适配并开放选择。
-3. D · `CHEN YU®` 完整适配并开放选择。
-4. 公共知识库全文搜索、双向链接、目录独立公开策略或发布快照，如后续另行立项。
+1. C · `inkspace` 温暖手作主题按 [`cozy-ui-theme.md`](./cozy-ui-theme.md) 完整适配并开放选择。
+2. D · `CHEN YU®` 完整适配并开放选择。
+3. 公共知识库全文搜索、双向链接、目录独立公开策略或发布快照，如后续另行立项。

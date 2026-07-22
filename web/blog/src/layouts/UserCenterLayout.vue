@@ -19,9 +19,10 @@
         <div class="logo">
           <router-link to="/">
             <template v-if="isTerminal"><span>$</span>inkspace.log</template>
+            <template v-else-if="isCozy"><span class="cozy-brand-mark">Ink</span>InkSpace</template>
             <template v-else>Ink<span>Space</span></template>
           </router-link>
-          <small :class="{ serif: !isTerminal }">{{ isTerminal ? '~/dashboard' : 'MEMBER · 01' }}</small>
+          <small :class="{ serif: !isTerminal && !isCozy }">{{ isTerminal ? '~/dashboard' : isCozy ? '我的笔记本' : 'MEMBER · 01' }}</small>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -86,7 +87,7 @@
                 <Menu />
               </button>
               <div class="page-marker">
-                <span class="page-label">{{ isTerminal ? 'USER / CONTROL PANEL' : 'PERSONAL EDITION' }}</span>
+                <span class="page-label">{{ isTerminal ? 'USER / CONTROL PANEL' : isCozy ? 'MY CORNER' : 'PERSONAL EDITION' }}</span>
                 <el-breadcrumb separator="/">
                   <el-breadcrumb-item :to="{ path: '/' }">
                     首页
@@ -162,6 +163,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const appearance = useAppearanceStore()
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
+const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
 const unreadCount = ref(0)
 const adminBackendUrl = ref('')
 const sidebarOpen = ref(false)

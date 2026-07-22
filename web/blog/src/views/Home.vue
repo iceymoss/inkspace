@@ -12,6 +12,16 @@
           @navigate="handleHeroLink"
           @activate="activateTerminal"
         />
+        <CozyHero
+          v-else-if="isCozy"
+          :settings="cozyHeroSettings"
+          :title="cozyHeroTitle"
+          :photos="photos"
+          :loading="showcaseSectionsLoading"
+          :error="showcaseSectionErrors.photos"
+          @navigate="handleHeroLink"
+          @retry="loadShowcaseSections({ force: true })"
+        />
         <el-carousel 
           v-else-if="carouselItems.length > 0"
           :height="carouselHeight"
@@ -81,6 +91,10 @@
       </div>
     </section>
 
+    <svg v-if="isCozy" class="cozy-wavy-divider" viewBox="0 0 240 26" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 13 Q 30 0 60 13 T 120 13 T 180 13 T 240 13" />
+    </svg>
+
     <!-- Main Content -->
     <section class="main-content">
       <div class="container">
@@ -88,7 +102,7 @@
           <!-- Left: Articles List -->
           <el-col
             :xs="24"
-            :lg="19"
+            :lg="isCozy ? 24 : 19"
           >
             <div class="content-section">
               <div class="section-header">
@@ -106,6 +120,7 @@
                   v-for="article in articles" 
                   :key="article.id" 
                   class="article-item"
+                  :class="isCozy ? `cozy-tone-${getCozyContentTone(article)}` : null"
                   shadow="hover"
                   @click="$router.push(`/blog/${article.id}`)"
                 >
@@ -222,6 +237,7 @@
                 >
                   <el-card 
                     class="work-card work-card-clickable"
+                    :class="isCozy ? `cozy-tone-${getCozyContentTone(work)}` : null"
                     shadow="hover" 
                     @click="navigateToWorkDetail(work.id, router)"
                   >
@@ -282,6 +298,77 @@
               </el-row>
             </div>
 
+            <div v-if="isCozy" class="content-section cozy-photos">
+              <div class="section-header">
+                <h2>照片墙 <small>最近留下的光影</small></h2>
+                <router-link class="cozy-more" to="/photos">整面墙都在这 <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="photos.length" class="cozy-photo-grid">
+                <router-link
+                  v-for="(photo, index) in photos"
+                  :key="photo.id"
+                  :to="`/works/${photo.id}`"
+                  class="cozy-photo"
+                  :style="{ '--cozy-rotation': `${getCozyRotation(photo, index)}deg` }"
+                >
+                  <div class="cozy-photo-media">
+                    <img
+                      v-if="getWorkImage(photo) && !failedPhotoImages.has(photo.id)"
+                      :src="getWorkImage(photo)"
+                      :alt="photo.title"
+                      loading="lazy"
+                      @error="failedPhotoImages.add(photo.id)"
+                    >
+                    <span v-else aria-hidden="true">{{ photo.title?.slice(0, 1) || '照' }}</span>
+                  </div>
+                  <strong>{{ photo.title }}</strong>
+                  <small v-if="photo.metadata?.location">{{ photo.metadata.location }}</small>
+                </router-link>
+              </div>
+              <div v-else-if="showcaseSectionsLoading" class="cozy-paper-state">正在整理照片…</div>
+              <div v-else-if="showcaseSectionErrors.photos" class="cozy-paper-state is-error">
+                照片暂时没有挂好。<button type="button" @click="loadShowcaseSections({ force: true })">重新试试</button>
+              </div>
+              <div v-else class="cozy-paper-state">照片墙还空着。</div>
+            </div>
+
+            <div v-if="isCozy" class="content-section cozy-wiki">
+              <div class="section-header">
+                <h2>摊开的笔记本 <small>持续整理中的知识</small></h2>
+                <router-link class="cozy-more" to="/wiki">全部翻开 <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="wikiWorkspaces.length" class="cozy-wiki-grid">
+                <router-link
+                  v-for="workspace in wikiWorkspaces"
+                  :key="workspace.id"
+                  :to="`/wiki/${workspace.id}`"
+                  class="cozy-notebook"
+                  :class="`cozy-tone-${getCozyContentTone(workspace)}`"
+                >
+                  <div class="cozy-notebook-cover">
+                    <img
+                      v-if="isWorkspaceCover(workspace.icon) && !failedWorkspaceCovers.has(workspace.id)"
+                      :src="workspace.icon"
+                      :alt="`${workspace.name}封面`"
+                      loading="lazy"
+                      @error="failedWorkspaceCovers.add(workspace.id)"
+                    >
+                    <span v-else aria-hidden="true">{{ workspace.icon || workspace.name?.slice(0, 1) || '知' }}</span>
+                  </div>
+                  <div class="cozy-notebook-copy">
+                    <h3>{{ workspace.name }}</h3>
+                    <p>{{ workspace.description || '一本持续生长的公开笔记。' }}</p>
+                    <small>{{ workspace.doc_count }} 篇<span v-if="workspace.author_name"> · {{ workspace.author_name }}</span></small>
+                  </div>
+                </router-link>
+              </div>
+              <div v-else-if="showcaseSectionsLoading" class="cozy-paper-state">正在整理笔记本…</div>
+              <div v-else-if="showcaseSectionErrors.wiki" class="cozy-paper-state is-error">
+                笔记本暂时打不开。<button type="button" @click="loadShowcaseSections({ force: true })">重新试试</button>
+              </div>
+              <div v-else class="cozy-paper-state">公开笔记本还没有内容。</div>
+            </div>
+
             <div v-if="isTerminal" class="content-section terminal-captures">
               <div class="section-header">
                 <h2>photos <small>— captures</small></h2>
@@ -295,8 +382,8 @@
                   <div><strong>{{ photo.title }}</strong><span>{{ photo.metadata?.location || 'capture' }}</span></div>
                 </router-link>
               </div>
-              <div v-else-if="terminalSectionErrors.photos" class="terminal-empty terminal-error">
-                [ captures unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              <div v-else-if="showcaseSectionErrors.photos" class="terminal-empty terminal-error">
+                [ captures unavailable ] <button type="button" @click="loadShowcaseSections({ force: true })">retry</button>
               </div>
               <div v-else class="terminal-empty">[ no published captures ]</div>
             </div>
@@ -326,8 +413,8 @@
                   </div>
                 </router-link>
               </div>
-              <div v-else-if="terminalSectionErrors.wiki" class="terminal-empty terminal-error">
-                [ wiki unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              <div v-else-if="showcaseSectionErrors.wiki" class="terminal-empty terminal-error">
+                [ wiki unavailable ] <button type="button" @click="loadShowcaseSections({ force: true })">retry</button>
               </div>
               <div v-else class="terminal-empty">[ no public workspaces ]</div>
             </div>
@@ -335,6 +422,7 @@
 
           <!-- Right: Sidebar -->
           <el-col
+            v-if="!isCozy"
             :xs="24"
             :lg="5"
           >
@@ -521,14 +609,18 @@ import {
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 import TerminalHero from '@/components/theme/TerminalHero.vue'
+import CozyHero from '@/components/theme/CozyHero.vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useTerminalStore } from '@/stores/terminal'
 import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
+import { getCozyContentTone, getCozyRotation } from '@/utils/cozyContentTone'
 
 const router = useRouter()
 const appearance = useAppearanceStore()
 const terminal = useTerminalStore()
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
+const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
+const usesShowcaseSections = computed(() => isTerminal.value || isCozy.value)
 const articles = ref([])
 const works = ref([])
 const tags = ref([])
@@ -536,8 +628,11 @@ const recommendedArticles = ref([])
 const recommendedWorks = ref([])
 const photos = ref([])
 const wikiWorkspaces = ref([])
-const terminalSectionsLoaded = ref(false)
-const terminalSectionErrors = reactive({ photos: false, wiki: false })
+const failedPhotoImages = reactive(new Set())
+const failedWorkspaceCovers = reactive(new Set())
+const showcaseSectionsLoaded = ref(false)
+const showcaseSectionsLoading = ref(false)
+const showcaseSectionErrors = reactive({ photos: false, wiki: false })
 const stats = ref({
   articleCount: 0,
   workCount: 0,
@@ -567,6 +662,16 @@ const terminalHeroSettings = reactive({
   secondary_text: 'ls projects/',
   secondary_link: '/works'
 })
+const cozyHeroSettings = reactive({
+  eyebrow: '你好呀，欢迎来坐坐',
+  title: '把喜欢的事，慢慢做成日常。',
+  accent: '慢慢',
+  description: '这里收录文章、作品、照片，以及持续整理中的知识。',
+  primary_text: '读读随笔',
+  primary_link: '/blog',
+  secondary_text: '看看照片',
+  secondary_link: '/photos'
+})
 const splitHeroTitle = settings => {
   const title = settings.title
   const accent = settings.accent
@@ -580,6 +685,7 @@ const splitHeroTitle = settings => {
 }
 const heroTitle = computed(() => splitHeroTitle(heroSettings))
 const terminalHeroTitle = computed(() => splitHeroTitle(terminalHeroSettings))
+const cozyHeroTitle = computed(() => splitHeroTitle(cozyHeroSettings))
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -595,6 +701,7 @@ const loadCarousel = async () => {
     const carouselData = response.data?.home_carousel
     const heroData = response.data?.home_hero
     const terminalHeroData = response.data?.home_hero_terminal
+    const cozyHeroData = response.data?.home_hero_cozy
     if (heroData) {
       try {
         const parsed = JSON.parse(heroData)
@@ -617,6 +724,18 @@ const loadCarousel = async () => {
         }
       } catch (e) {
         console.error('Failed to parse terminal home hero data:', e)
+      }
+    }
+    if (cozyHeroData) {
+      try {
+        const parsed = JSON.parse(cozyHeroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(cozyHeroSettings).forEach((key) => {
+            if (typeof parsed[key] === 'string' && parsed[key].trim()) cozyHeroSettings[key] = parsed[key].trim()
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse cozy home hero data:', e)
       }
     }
     if (carouselData) {
@@ -683,28 +802,34 @@ const loadData = async () => {
   }
 }
 
-const loadTerminalSections = async () => {
-  terminalSectionErrors.photos = false
-  terminalSectionErrors.wiki = false
-  const [photosResult, wikiResult] = await Promise.allSettled([
-    api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
-    api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
-  ])
-  terminalSectionErrors.photos = photosResult.status === 'rejected'
-  terminalSectionErrors.wiki = wikiResult.status === 'rejected'
-  photos.value = photosResult.status === 'fulfilled' ? photosResult.value.data?.list || [] : []
-  wikiWorkspaces.value = wikiResult.status === 'fulfilled' ? wikiResult.value.data?.list || [] : []
-  terminalSectionsLoaded.value = true
+const loadShowcaseSections = async ({ force = false } = {}) => {
+  if (showcaseSectionsLoading.value || (showcaseSectionsLoaded.value && !force)) return
+  showcaseSectionsLoading.value = true
+  showcaseSectionErrors.photos = false
+  showcaseSectionErrors.wiki = false
+  try {
+    const [photosResult, wikiResult] = await Promise.allSettled([
+      api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
+      api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
+    ])
+    showcaseSectionErrors.photos = photosResult.status === 'rejected'
+    showcaseSectionErrors.wiki = wikiResult.status === 'rejected'
+    photos.value = photosResult.status === 'fulfilled' ? photosResult.value.data?.list || [] : []
+    wikiWorkspaces.value = wikiResult.status === 'fulfilled' ? wikiResult.value.data?.list || [] : []
+    showcaseSectionsLoaded.value = true
+  } finally {
+    showcaseSectionsLoading.value = false
+  }
 }
 
 onMounted(() => {
   loadCarousel()
   loadData()
-  if (isTerminal.value) loadTerminalSections()
+  if (usesShowcaseSections.value) loadShowcaseSections()
 })
 
-watch(isTerminal, (terminal) => {
-  if (terminal && !terminalSectionsLoaded.value) loadTerminalSections()
+watch(usesShowcaseSections, (enabled) => {
+  if (enabled) loadShowcaseSections()
 })
 </script>
 

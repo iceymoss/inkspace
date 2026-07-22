@@ -52,6 +52,7 @@ const (
 	SettingHomeCarousel          = "home_carousel"           // 首页轮播配置
 	SettingHomeHero              = "home_hero"               // 首页无轮播时的 Hero 文案
 	SettingHomeHeroTerminal      = "home_hero_terminal"      // Terminal 主题首页 Hero 文案
+	SettingHomeHeroCozy          = "home_hero_cozy"          // Cozy 主题首页 Hero 文案
 	SettingCommentAudit          = "comment_audit"           // 评论是否需要审核
 	SettingArticleCommentEnabled = "article_comment_enabled" // 是否开放文章评论
 	SettingWorkCommentEnabled    = "work_comment_enabled"    // 是否开放作品评论

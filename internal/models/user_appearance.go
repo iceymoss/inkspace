@@ -8,6 +8,7 @@ import (
 const (
 	DefaultUITheme     = "magazine"
 	TerminalUITheme    = "terminal"
+	CozyUITheme        = "cozy"
 	DefaultColorScheme = "system"
 )
 
@@ -39,7 +40,7 @@ func DefaultUserAppearanceResponse() *UserAppearanceResponse {
 
 func (r *UserAppearanceRequest) Validate() error {
 	switch r.UITheme {
-	case DefaultUITheme, TerminalUITheme:
+	case DefaultUITheme, TerminalUITheme, CozyUITheme:
 	default:
 		return errors.New("无效或尚未开放的界面主题")
 	}

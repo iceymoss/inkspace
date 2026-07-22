@@ -10,11 +10,12 @@
             <div class="logo">
               <router-link to="/">
                 <template v-if="isTerminal"><span class="terminal-dollar">$</span>inkspace.log<i class="brand-caret" /></template>
+                <template v-else-if="isCozy"><span class="cozy-brand-mark">Ink</span>InkSpace</template>
                 <template v-else>Ink<span>Space</span></template>
               </router-link>
             </div>
             <span
-              v-if="!isTerminal"
+              v-if="!isTerminal && !isCozy"
               class="issue-mark serif"
               aria-hidden="true"
             >{{ issueMark }}</span>
@@ -26,25 +27,25 @@
             aria-label="主导航"
           >
             <router-link to="/">
-              {{ navLabel('首页', 'home') }}
+              {{ navLabel('首页', 'home', '家') }}
             </router-link>
             <router-link to="/blog">
-              {{ navLabel('博客', 'blog') }}
+              {{ navLabel('博客', 'blog', '随笔') }}
             </router-link>
             <router-link to="/works">
-              {{ navLabel('作品', 'projects') }}
+              {{ navLabel('作品', 'projects', '手作') }}
             </router-link>
             <router-link to="/photos">
-              {{ navLabel('摄影', 'photos') }}
+              {{ navLabel('摄影', 'photos', '照片墙') }}
             </router-link>
             <router-link to="/wiki">
-              {{ navLabel('知识库', 'wiki') }}
+              {{ navLabel('知识库', 'wiki', '笔记本') }}
             </router-link>
             <router-link to="/links">
-              {{ navLabel('友链', 'links') }}
+              {{ navLabel('友链', 'links', '邻居') }}
             </router-link>
             <router-link to="/about">
-              {{ navLabel('关于', 'about') }}
+              {{ navLabel('关于', 'about', '关于') }}
             </router-link>
           </nav>
           <div class="header-actions">
@@ -140,7 +141,7 @@
 
     <main class="main-content">
       <div
-        v-if="!isTerminal"
+        v-if="!isTerminal && !isCozy"
         class="publication-signature serif"
         aria-hidden="true"
       >
@@ -152,7 +153,7 @@
     <footer class="footer">
       <div class="container">
         <div class="footer-identity">
-          <strong :class="{ serif: !isTerminal }">{{ isTerminal ? '$inkspace.log' : 'InkSpace' }}</strong>
+          <strong :class="{ serif: !isTerminal && !isCozy }">{{ isTerminal ? '$inkspace.log' : 'InkSpace' }}</strong>
           <p>{{ siteSettings.site_description || '以文字收存观察，让思想缓慢生长。' }}</p>
         </div>
         <div class="footer-meta">
@@ -195,7 +196,8 @@ const issueMark = computed(() => {
   }
 })
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
-const navLabel = (fallback, terminal) => isTerminal.value ? terminal : fallback
+const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
+const navLabel = (fallback, terminal, cozy) => isTerminal.value ? terminal : isCozy.value ? cozy : fallback
 
 watch(() => router.currentRoute.value.fullPath, () => {
   navOpen.value = false
@@ -570,4 +572,3 @@ onMounted(() => {
   }
 }
 </style>
-

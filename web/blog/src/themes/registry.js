@@ -21,13 +21,13 @@ export const themeRegistry = Object.freeze([
   },
   {
     id: 'cozy',
-    name: '小屿的角落',
+    name: 'InkSpace',
     subtitle: '温暖手作感',
     description: '拍立得、手绘线和温暖纸张组成的一间内容小屋。',
-    status: 'coming_soon',
+    status: 'available',
     defaultColorScheme: 'light',
     design: 'style-c-cozy',
-    stylesheet: null
+    stylesheet: 'cozy.css'
   },
   {
     id: 'swiss',

@@ -68,6 +68,15 @@ describe('appearance store', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
+  it('bootstraps a cached cozy preference', () => {
+    window.localStorage.setItem('inkspace_guest_appearance_v1', JSON.stringify({ ui_theme: 'cozy', color_scheme: 'light' }))
+
+    bootstrapCachedAppearance()
+
+    expect(document.documentElement.dataset.uiTheme).toBe('cozy')
+    expect(document.documentElement.dataset.theme).toBe('light')
+  })
+
   it('previews a preference without saving and restores it on cancel', () => {
     const store = useAppearanceStore()
 
@@ -111,6 +120,21 @@ describe('appearance store', () => {
     expect(JSON.parse(window.localStorage.getItem('inkspace_user_appearance_v1:7'))).toEqual({
       ui_theme: 'terminal', color_scheme: 'dark'
     })
+  })
+
+  it('saves cozy and rejects unavailable themes without sending a request', async () => {
+    const userStore = useUserStore()
+    userStore.token = 'token-without-readable-payload'
+    userStore.user = { id: 7 }
+    const store = useAppearanceStore()
+    api.put.mockResolvedValue({ data: { ui_theme: 'cozy', color_scheme: 'light' } })
+
+    await store.save({ ui_theme: 'cozy', color_scheme: 'light' })
+
+    expect(store.savedPreference).toEqual({ ui_theme: 'cozy', color_scheme: 'light' })
+    expect(store.preview({ ui_theme: 'swiss', color_scheme: 'light' })).toBe(false)
+    await expect(store.save({ ui_theme: 'swiss', color_scheme: 'light' })).rejects.toThrow('当前主题不可保存')
+    expect(api.put).toHaveBeenCalledTimes(1)
   })
 
   it('keeps a site override independent from terminal preference', async () => {

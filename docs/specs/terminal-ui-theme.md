@@ -2,7 +2,7 @@
 
 ## 状态
 - 创建日期: 2026-07-22
-- 状态: 实现与自动化验证完成，人工视觉矩阵待验收
+- 状态: 已完成，并于 2026-07-22 通过用户审核
 - 阶段: Phase 2
 - 主题 ID: `terminal`
 - 设计规范: [`style-b-terminal.md`](../design/style-b-terminal.md)
@@ -58,7 +58,7 @@
 2. 注册表记录 `stylesheet: terminal.css`，开发阶段仍可保持 `coming_soon`。
 3. 完成自动化和视觉矩阵后，将注册表状态改为 `available`。
 4. 同一提交将后端 `UserAppearance` 白名单扩展为 `magazine|terminal`。
-5. `cozy`、`swiss` 和未知值继续返回 400。
+5. Phase 2 验收时 `cozy`、`swiss` 和未知值继续返回 400；Phase 3 开放 Cozy 后仅 `swiss` 和未知值继续返回 400。
 
 ### B. 预览与保存
 
@@ -269,7 +269,7 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 6. [x] **公共详情页**：通过主题作用域令牌适配 BlogDetail、WorkDetail 两分支、WikiWorkspace、WikiDoc、ShareDoc、About 和 Login。
 7. [x] **用户中心页面**：适配内容管理、资料、收藏、通知、评论、知识库和三个编辑器页面。
 8. [x] **外观页与运行时测试**：完成 terminal 预览证明、取消、保存、失败回滚、缓存、system 和特殊覆盖测试。
-9. [ ] **完整矩阵验收并开放**：注册表、样式和后端白名单已开放；三视口全路由人工视觉矩阵待执行。
+9. [x] **完整矩阵验收并开放**：注册表、样式和后端白名单已开放；三视口全路由视觉与功能审核通过。
 10. [x] **规范同步**：已更新总规范状态、自动化测试记录和剩余风险。
 
 ## 测试计划
@@ -278,7 +278,7 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 
 - [x] `terminal + system|light|dark` 均通过模型校验；MySQL PUT/GET 集成断言已补充，需在提供测试库环境变量时执行。
 - [x] `magazine` 继续合法并保持默认。
-- [x] `cozy`、`swiss`、未知值和空值继续返回 400 业务码。
+- [x] Phase 2 验收时 `cozy`、`swiss`、未知值和空值返回 400；Phase 3 已按独立规范开放 Cozy，Swiss 与未知值仍返回 400。
 - [ ] 两个用户偏好互不污染，并发 upsert 每用户仍只有一行。
 - [ ] 未登录调用偏好接口返回 401。
 
@@ -291,7 +291,7 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 - [ ] 登录/登出恢复对应账号或访客上下文。
 - [x] holiday/mourning 与 terminal 并存且不改写保存值。
 - [x] TerminalHero 在 reduced-motion 下静态显示，卸载后无残留计时器。
-- [ ] 外观页 terminal 可选，cozy/swiss 仍禁用，LIVE PROOF 与当前主题一致。
+- [x] 外观页 terminal 可选且 LIVE PROOF 与当前主题一致；Phase 3 已开放 Cozy，Swiss 仍禁用。
 
 ### 验证命令
 
@@ -303,7 +303,7 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 - [x] `web/blog: pnpm build`（通过，保留既有大 chunk 警告）
 - [x] `git diff --check`
 
-### 人工视觉矩阵
+### 人工视觉矩阵（已通过）
 
 视口：
 
@@ -331,11 +331,11 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 7. `900px` 和 `560px` 下导航、Wiki 树、表格、弹窗、表单和编辑器均可操作。
 8. 键盘焦点、对比度、alt、状态文字和 reduced-motion 达标。
 9. holiday/mourning 不破坏 terminal 可读性，也不改写账号偏好。
-10. 完整自动化与人工矩阵通过后才将 terminal 标记为 `available`。
+10. 完整自动化与人工矩阵已通过，terminal 已标记为 `available`。
 
 ## 待定事项
 
-- 是否在视觉验收时保存完整截图矩阵；不影响功能实现，但建议为后续 C/D 主题提供对照基线。
+- 本次审核未要求保存完整截图矩阵；C/D 主题继续以设计规范、HTML 原型和实际用户审核作为验收基线。
 - 首页 Terminal Hero 的命令输出只能使用现有站点设置和真实统计；若未来需要城市、技能或年限，应另行扩展公共设置，不在本阶段伪造。
 - 当前管理后台 `pnpm lint` 脚本引用缺失的 `.gitignore` 且无独立 ESLint 配置；如 Phase 2 修改管理后台，应另行修复工具配置。本阶段原则上不改管理后台。
 

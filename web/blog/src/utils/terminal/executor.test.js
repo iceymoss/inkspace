@@ -32,6 +32,7 @@ function setup(path = '/') {
   const appearanceStore = {
     activePreference: { ui_theme: 'terminal', color_scheme: 'system' },
     resolvedColorScheme: 'dark',
+    preview: vi.fn(),
     saveGuestPreference: vi.fn(),
     save: vi.fn()
   }
@@ -163,5 +164,16 @@ describe('terminal executor', () => {
 
     expect(context.api.post).toHaveBeenCalledWith('/articles/12/favorite', undefined, { silentError: true })
     expect(context.terminalStore.signalRefresh).toHaveBeenCalledWith('article:12')
+  })
+
+  it('applies cozy for guests and rejects unavailable themes', async () => {
+    const context = setup('/')
+
+    await context.executor.execute('theme cozy')
+    expect(context.appearanceStore.preview).toHaveBeenCalledWith({ ui_theme: 'cozy', color_scheme: 'system' })
+
+    await context.executor.execute('theme swiss')
+    expect(context.appearanceStore.preview).toHaveBeenCalledTimes(1)
+    expect(context.terminalStore.output.at(-1).text).toContain('theme must be one of')
   })
 })

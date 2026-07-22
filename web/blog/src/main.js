@@ -9,6 +9,7 @@ import './assets/main.css'
 import './themes/base.css'
 import './themes/magazine.css'
 import './themes/terminal.css'
+import './themes/cozy.css'
 import { bootstrapCachedAppearance, useAppearanceStore } from './stores/appearance'
 
 bootstrapCachedAppearance()
@@ -27,4 +28,3 @@ app.use(ElementPlus)
 useAppearanceStore(pinia).initialize()
 
 app.mount('#app')
-

@@ -167,8 +167,8 @@ export const useAppearanceStore = defineStore('appearance', () => {
   }
 
   function preview(preference) {
+    if (!availableThemeIds.has(preference?.ui_theme)) return false
     const normalized = normalizePreference(preference)
-    if (!availableThemeIds.has(normalized.ui_theme)) return false
     previewPreference.value = normalized
     apply(normalized)
     return true
@@ -181,10 +181,10 @@ export const useAppearanceStore = defineStore('appearance', () => {
 
   async function save(preference = activePreference.value) {
     const userStore = useUserStore()
-    const candidate = normalizePreference(preference)
-    if (!userStore.token || !availableThemeIds.has(candidate.ui_theme)) {
+    if (!userStore.token || !availableThemeIds.has(preference?.ui_theme)) {
       throw new Error('当前主题不可保存')
     }
+    const candidate = normalizePreference(preference)
 
     const rollback = { ...savedPreference.value }
     const sessionToken = userStore.token
@@ -215,12 +215,13 @@ export const useAppearanceStore = defineStore('appearance', () => {
   }
 
   function saveGuestPreference(preference) {
+    if (!availableThemeIds.has(preference?.ui_theme)) return false
     const normalized = normalizePreference(preference)
-    if (!availableThemeIds.has(normalized.ui_theme)) return
     savedPreference.value = normalized
     previewPreference.value = null
     writeCache(GUEST_CACHE_KEY, normalized)
     apply(normalized)
+    return true
   }
 
   async function refreshSiteOverride(force = false) {

@@ -66,6 +66,33 @@
           </el-form-item>
           <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 inkspace.log 主题，不影响屿刊 Hero 和轮播图。</div>
 
+          <el-divider content-position="left">InkSpace 温暖手作主题首页</el-divider>
+          <el-form-item label="问候语">
+            <el-input v-model="cozyHeroSettings.eyebrow" placeholder="例如：你好呀，欢迎来坐坐" />
+          </el-form-item>
+          <el-form-item label="主标题">
+            <el-input v-model="cozyHeroSettings.title" placeholder="例如：把喜欢的事，慢慢做成日常。" />
+          </el-form-item>
+          <el-form-item label="标题强调词">
+            <el-input v-model="cozyHeroSettings.accent" placeholder="例如：慢慢" />
+          </el-form-item>
+          <el-form-item label="简介">
+            <el-input v-model="cozyHeroSettings.description" type="textarea" :rows="3" maxlength="300" show-word-limit />
+          </el-form-item>
+          <el-form-item label="主按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="cozyHeroSettings.primary_text" placeholder="文案，例如：读读随笔" />
+              <el-input v-model="cozyHeroSettings.primary_link" placeholder="链接，例如：/blog" />
+            </div>
+          </el-form-item>
+          <el-form-item label="次按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="cozyHeroSettings.secondary_text" placeholder="文案，例如：看看照片" />
+              <el-input v-model="cozyHeroSettings.secondary_link" placeholder="链接，例如：/photos" />
+            </div>
+          </el-form-item>
+          <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 InkSpace 温暖手作主题；未保存时使用以上默认文案。</div>
+
           <el-divider content-position="left">轮播图</el-divider>
           <el-form-item>
             <el-button type="primary" @click="addCarouselItem">添加轮播项</el-button>
@@ -603,6 +630,17 @@ const terminalHeroSettings = reactive({
   secondary_link: '/works'
 })
 
+const cozyHeroSettings = reactive({
+  eyebrow: '你好呀，欢迎来坐坐',
+  title: '把喜欢的事，慢慢做成日常。',
+  accent: '慢慢',
+  description: '这里收录文章、作品、照片，以及持续整理中的知识。',
+  primary_text: '读读随笔',
+  primary_link: '/blog',
+  secondary_text: '看看照片',
+  secondary_link: '/photos'
+})
+
 const aboutSettings = reactive({
   title: '关于我',
   avatar: '',
@@ -668,7 +706,7 @@ const loadAllSettings = async () => {
         }
       } else if (setting.group === 'markdown') {
         markdownSettings[setting.key] = setting.value
-      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal') {
+      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal' || setting.key === 'home_hero_cozy') {
         if (setting.key === 'home_carousel' && setting.value) {
           try {
             carouselSettings.items = JSON.parse(setting.value)
@@ -686,6 +724,12 @@ const loadAllSettings = async () => {
             Object.assign(terminalHeroSettings, JSON.parse(setting.value))
           } catch (e) {
             console.error('Failed to parse terminal home hero data:', e)
+          }
+        } else if (setting.key === 'home_hero_cozy' && setting.value) {
+          try {
+            Object.assign(cozyHeroSettings, JSON.parse(setting.value))
+          } catch (e) {
+            console.error('Failed to parse cozy home hero data:', e)
           }
         }
       } else if (setting.group === 'about' || setting.key === 'about_page') {
@@ -893,7 +937,8 @@ const saveCarouselSettings = async () => {
     const settings = {
       home_carousel: JSON.stringify(carouselSettings.items),
       home_hero: JSON.stringify(carouselSettings.hero),
-      home_hero_terminal: JSON.stringify(terminalHeroSettings)
+      home_hero_terminal: JSON.stringify(terminalHeroSettings),
+      home_hero_cozy: JSON.stringify(cozyHeroSettings)
     }
     await adminApi.put('/admin/settings/batch', settings)
     ElMessage.success('保存成功')
@@ -947,4 +992,3 @@ onMounted(() => {
   loadAllSettings()
 })
 </script>
-

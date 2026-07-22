@@ -1,4 +1,5 @@
 import { parseCommand } from './parser'
+import { availableThemeIds } from '@/themes/registry'
 import {
   VIRTUAL_ROOT,
   createResourceName,
@@ -19,7 +20,7 @@ const HELP = [
   'filesystem: ls [path], cd <path>, pwd, cat <path>, grep <word> <path>',
   'navigation: open home|blog|works|photos|wiki|about|links|article <id>|work <id>|user <id>',
   'query: list articles|works|photos|users|wiki [keyword], search blog|works|photos|users <keyword>',
-  'appearance: theme magazine|terminal, scheme system|light|dark, status',
+  `appearance: theme ${[...availableThemeIds].join('|')}, scheme system|light|dark, status`,
   'actions: like|unlike article|work <id>, favorite|unfavorite article|work <id>, follow|unfollow user <id>',
   'window: clear, history, minimize, close; write actions require yes/no'
 ]
@@ -216,7 +217,7 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
   async function setAppearance(kind, value) {
     const preference = { ...appearanceStore.activePreference }
     if (kind === 'theme') {
-      if (!['magazine', 'terminal'].includes(value)) throw new Error('theme must be magazine or terminal')
+      if (!availableThemeIds.has(value)) throw new Error(`theme must be one of: ${[...availableThemeIds].join(', ')}`)
       preference.ui_theme = value
     } else {
       if (!['system', 'light', 'dark'].includes(value)) throw new Error('scheme must be system, light or dark')
