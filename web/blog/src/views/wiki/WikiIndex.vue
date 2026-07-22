@@ -163,16 +163,24 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import api from '@/utils/api'
 
+const route = useRoute()
+const router = useRouter()
 const workspaces = ref([])
 const loading = ref(true)
 const error = ref('')
 const currentPage = ref(1)
 const pageSize = 9
 const total = ref(0)
+
+const positiveInt = value => {
+  const number = Number(typeof value === 'string' ? value : '')
+  return Number.isInteger(number) && number > 0 ? number : null
+}
 
 const formatDate = value => value ? dayjs(value).format('YYYY.MM.DD') : '-'
 const isImageIcon = value => /^(https?:\/\/|\/uploads\/)/.test(value || '')
@@ -195,11 +203,17 @@ async function loadWorkspaces() {
 }
 
 function handlePageChange() {
-  loadWorkspaces()
+  router.push({
+    path: route.path,
+    query: { ...route.query, page: String(currentPage.value) }
+  })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-onMounted(loadWorkspaces)
+watch(() => route.query.page, page => {
+  currentPage.value = positiveInt(page) || 1
+  loadWorkspaces()
+}, { immediate: true })
 </script>
 
 <style scoped>

@@ -401,6 +401,7 @@ import { Star, Collection, User, View, Clock, Edit, ChatDotRound, ArrowDown } fr
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 import { useAppearanceStore } from '@/stores/appearance'
+import { useTerminalStore } from '@/stores/terminal'
 import dayjs from 'dayjs'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
@@ -410,6 +411,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appearanceStore = useAppearanceStore()
+const terminalStore = useTerminalStore()
 
 const article = ref(null)
 const markdownTheme = computed(() => appearanceStore.resolvedColorScheme)
@@ -1127,6 +1129,14 @@ const loadCommentSettings = async () => {
 watch(markdownTheme, () => {
   if (article.value?.content) renderMarkdown()
 })
+
+watch(
+  () => terminalStore.refreshSignals[`article:${route.params.id}`],
+  async (signal, previousSignal) => {
+    if (!signal || signal === previousSignal) return
+    await Promise.all([loadArticle(), checkLiked(), checkFavorited()])
+  }
+)
 
 onMounted(async () => {
   // 如果已登录但用户信息未加载，先获取用户信息

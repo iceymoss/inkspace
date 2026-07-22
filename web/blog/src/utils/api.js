@@ -11,7 +11,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const userStore = useUserStore()
-    if (userStore.token) {
+    if (userStore.token && !config.skipAuth) {
       config.headers.Authorization = `Bearer ${userStore.token}`
     }
     return config
@@ -31,7 +31,7 @@ api.interceptors.response.use(
       return data
     } else {
       // 即使 HTTP 状态码是 200，如果 code 不是 0，也是错误
-      ElMessage.error(data.message || '请求失败')
+      if (!response.config?.silentError) ElMessage.error(data.message || '请求失败')
       return Promise.reject(new Error(data.message || '请求失败'))
     }
   },
@@ -45,25 +45,25 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          ElMessage.error(errorMessage || '未登录或登录已过期')
+          if (!error.config?.silentError) ElMessage.error(errorMessage || '未登录或登录已过期')
           const userStore = useUserStore()
           userStore.logout()
           window.location.href = '/login'
           break
         case 403:
-          ElMessage.error(errorMessage || '没有权限')
+          if (!error.config?.silentError) ElMessage.error(errorMessage || '没有权限')
           break
         case 404:
-          ElMessage.error(errorMessage || '请求的资源不存在')
+          if (!error.config?.silentError) ElMessage.error(errorMessage || '请求的资源不存在')
           break
         case 500:
-          ElMessage.error(errorMessage || '服务器错误')
+          if (!error.config?.silentError) ElMessage.error(errorMessage || '服务器错误')
           break
         default:
-          ElMessage.error(errorMessage || '请求失败')
+          if (!error.config?.silentError) ElMessage.error(errorMessage || '请求失败')
       }
     } else {
-      ElMessage.error('网络错误')
+      if (!error.config?.silentError) ElMessage.error('网络错误')
     }
     return Promise.reject(error)
   }

@@ -748,6 +748,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useAppearanceStore } from '@/stores/appearance'
+import { useTerminalStore } from '@/stores/terminal'
 import api from '@/utils/api'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
@@ -757,6 +758,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appearanceStore = useAppearanceStore()
+const terminalStore = useTerminalStore()
 
 const work = ref(null)
 const markdownTheme = computed(() => appearanceStore.resolvedColorScheme)
@@ -1730,6 +1732,21 @@ onMounted(async () => {
 watch(markdownTheme, () => {
   if (work.value?.description) renderDescription()
 })
+
+watch(
+  () => terminalStore.refreshSignals[`work:${route.params.id}`],
+  async (signal, previousSignal) => {
+    if (!signal || signal === previousSignal) return
+    await Promise.all([loadWork(true), checkLikedStatus(), checkFavoritedStatus()])
+  }
+)
+
+watch(
+  () => terminalStore.refreshSignals[`user:${work.value?.author?.id}`],
+  (signal, previousSignal) => {
+    if (signal && signal !== previousSignal) checkFollowStatus()
+  }
+)
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateCarouselHeight)

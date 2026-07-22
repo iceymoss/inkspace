@@ -8,7 +8,9 @@
           :settings="terminalHeroSettings"
           :title="terminalHeroTitle"
           :stats="stats"
+          :active="terminal.isOpen"
           @navigate="handleHeroLink"
+          @activate="activateTerminal"
         />
         <el-carousel 
           v-else-if="carouselItems.length > 0"
@@ -506,9 +508,12 @@ import api from '@/utils/api'
 import dayjs from 'dayjs'
 import TerminalHero from '@/components/theme/TerminalHero.vue'
 import { useAppearanceStore } from '@/stores/appearance'
+import { useTerminalStore } from '@/stores/terminal'
+import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
 
 const router = useRouter()
 const appearance = useAppearanceStore()
+const terminal = useTerminalStore()
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
 const articles = ref([])
 const works = ref([])
@@ -563,7 +568,6 @@ const heroTitle = computed(() => splitHeroTitle(heroSettings))
 const terminalHeroTitle = computed(() => splitHeroTitle(terminalHeroSettings))
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
-const getArticleLogLevel = article => article.is_top ? 'FEAT' : article.category ? 'INFO' : 'WARN'
 
 // 解析技术栈字符串（逗号分隔）
 const getTechStack = (techStack) => {
@@ -633,6 +637,8 @@ const handleHeroLink = (event, link) => {
 }
 
 const safeHeroLink = link => /^https?:\/\//.test(link) || link?.startsWith('/') ? link : '#'
+
+const activateTerminal = sourceRect => terminal.open(sourceRect)
 
 const loadData = async () => {
   try {

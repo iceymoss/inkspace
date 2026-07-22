@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -149,14 +149,11 @@ const loading = ref(false)
 const topResults = ref([])
 const userResults = ref([])
 const hasSearched = ref(false)
+let searchRequestId = 0
 
-const handleSearch = async () => {
+const searchUsers = async () => {
+  const activeRequest = ++searchRequestId
   const kw = keyword.value.trim()
-  if (!kw) {
-    ElMessage.warning('请输入要搜索的昵称或账号')
-    return
-  }
-
   loading.value = true
   hasSearched.value = true
 
@@ -164,6 +161,7 @@ const handleSearch = async () => {
     const response = await api.get('/users/search', {
       params: { keyword: kw, limit: 20 }
     })
+    if (activeRequest !== searchRequestId) return
 
     const payload = response.data || {}
     topResults.value = Array.isArray(payload.top) ? payload.top : []
@@ -175,24 +173,45 @@ const handleSearch = async () => {
       return
     }
   } catch (error) {
+    if (activeRequest !== searchRequestId) return
     console.error('User search failed:', error)
     ElMessage.error('搜索用户失败')
   } finally {
-    loading.value = false
+    if (activeRequest === searchRequestId) loading.value = false
   }
+}
+
+const handleSearch = () => {
+  const kw = keyword.value.trim()
+  if (!kw) {
+    ElMessage.warning('请输入要搜索的昵称或账号')
+    return
+  }
+
+  const query = { ...route.query, keyword: kw }
+  const target = { path: route.path, query }
+  if (router.resolve(target).fullPath === route.fullPath) {
+    searchUsers()
+    return
+  }
+  router.push(target)
 }
 
 const goToUser = (id) => {
   router.push(`/users/${id}`)
 }
 
-onMounted(() => {
-  const initialKeyword = route.query.keyword
-  if (typeof initialKeyword === 'string' && initialKeyword.trim()) {
-    keyword.value = initialKeyword.trim()
-    handleSearch()
+watch(() => route.query.keyword, value => {
+  const nextKeyword = typeof value === 'string' ? value.trim() : ''
+  keyword.value = nextKeyword
+  if (nextKeyword) {
+    searchUsers()
+  } else {
+    topResults.value = []
+    userResults.value = []
+    hasSearched.value = false
   }
-})
+}, { immediate: true })
 </script>
 
 <style scoped>

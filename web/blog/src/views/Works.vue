@@ -128,7 +128,7 @@
           v-model:page-size="pageSize"
           :total="total"
           layout="prev, pager, next"
-          @current-change="loadWorks"
+          @current-change="handlePageChange"
         />
       </div>
 
@@ -141,13 +141,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { View, Star, ChatDotRound, Collection, Search } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
 
 const router = useRouter()
+const route = useRoute()
 const works = ref([])
 const currentPage = ref(1)
 const pageSize = ref(12)
@@ -155,6 +156,31 @@ const total = ref(0)
 const filterType = ref('all')
 const sortBy = ref('time') // 默认最新发布
 const searchKeyword = ref('')
+let workRequestId = 0
+
+const workTypes = new Set(['all', 'project', 'photography'])
+const sortTypes = new Set(['', 'hot', 'time', 'view', 'like'])
+const queryString = value => typeof value === 'string' ? value : ''
+const positiveInt = value => {
+  const number = Number(queryString(value))
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
+const updateQuery = () => {
+  const query = {
+    ...route.query,
+    keyword: searchKeyword.value.trim() || undefined,
+    type: filterType.value === 'all' ? undefined : filterType.value,
+    sort: sortBy.value || undefined,
+    page: String(currentPage.value)
+  }
+  const target = { path: route.path, query }
+  if (router.resolve(target).fullPath === route.fullPath) {
+    loadWorks()
+    return
+  }
+  router.push(target)
+}
 
 const typeOptions = [
   { label: '全部', value: 'all' },
@@ -163,6 +189,7 @@ const typeOptions = [
 ]
 
 const loadWorks = async () => {
+  const activeRequest = ++workRequestId
   try {
     const params = {
       page: currentPage.value,
@@ -183,21 +210,27 @@ const loadWorks = async () => {
     }
     
     const response = await api.get('/works', { params })
+    if (activeRequest !== workRequestId) return
     works.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
+    if (activeRequest !== workRequestId) return
     console.error('Failed to load works:', error)
   }
 }
 
 const handleFilterChange = () => {
   currentPage.value = 1
-  loadWorks()
+  updateQuery()
 }
 
 const handleSearch = () => {
   currentPage.value = 1
-  loadWorks()
+  updateQuery()
+}
+
+const handlePageChange = () => {
+  updateQuery()
 }
 
 // 处理作品点击，预加载数据后跳转
@@ -205,9 +238,15 @@ const handleWorkClick = (workId) => {
   navigateToWorkDetail(workId, router)
 }
 
-onMounted(() => {
+watch(() => route.query, query => {
+  const nextType = queryString(query.type)
+  const nextSort = queryString(query.sort)
+  searchKeyword.value = queryString(query.keyword)
+  filterType.value = workTypes.has(nextType) ? nextType : 'all'
+  sortBy.value = sortTypes.has(nextSort) ? nextSort : 'time'
+  currentPage.value = positiveInt(query.page) || 1
   loadWorks()
-})
+}, { immediate: true })
 </script>
 
 <style scoped>

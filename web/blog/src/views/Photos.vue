@@ -176,16 +176,28 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/utils/api'
 
+const route = useRoute()
+const router = useRouter()
 const photos = ref([])
 const currentPage = ref(1)
+const keyword = ref('')
+const sortBy = ref('')
 const pageSize = 12
 const total = ref(0)
 const loading = ref(true)
 const error = ref(false)
 let requestId = 0
+
+const sortTypes = new Set(['', 'hot', 'time', 'view', 'like'])
+const queryString = value => typeof value === 'string' ? value : ''
+const positiveInt = value => {
+  const number = Number(queryString(value))
+  return Number.isInteger(number) && number > 0 ? number : null
+}
 
 const loadPhotos = async () => {
   const activeRequest = ++requestId
@@ -193,14 +205,16 @@ const loadPhotos = async () => {
   error.value = false
 
   try {
-    const response = await api.get('/works', {
-      params: {
-        type: 'photography',
-        status: 1,
-        page: currentPage.value,
-        page_size: pageSize
-      }
-    })
+    const params = {
+      type: 'photography',
+      status: 1,
+      page: currentPage.value,
+      page_size: pageSize
+    }
+    if (keyword.value) params.keyword = keyword.value
+    if (sortBy.value) params.sort = sortBy.value
+
+    const response = await api.get('/works', { params })
 
     if (activeRequest !== requestId) return
     photos.value = response.data?.list || []
@@ -256,11 +270,23 @@ const handleImageError = (event) => {
 }
 
 const handlePageChange = () => {
-  loadPhotos()
+  const query = {
+    ...route.query,
+    keyword: keyword.value || undefined,
+    sort: sortBy.value || undefined,
+    page: String(currentPage.value)
+  }
+  router.push({ path: route.path, query })
   document.querySelector('.photos-journal')?.scrollIntoView({ behavior: 'smooth' })
 }
 
-onMounted(loadPhotos)
+watch(() => route.query, query => {
+  const nextSort = queryString(query.sort)
+  keyword.value = queryString(query.keyword)
+  sortBy.value = sortTypes.has(nextSort) ? nextSort : ''
+  currentPage.value = positiveInt(query.page) || 1
+  loadPhotos()
+}, { immediate: true })
 </script>
 
 <style scoped>

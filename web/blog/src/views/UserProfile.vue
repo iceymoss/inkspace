@@ -638,11 +638,13 @@ import { ElMessage } from 'element-plus'
 import { Plus, Check, Star, View, Clock } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
+import { useTerminalStore } from '@/stores/terminal'
 import dayjs from 'dayjs'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const terminalStore = useTerminalStore()
 
 const user = ref(null)
 const followStats = ref(null)
@@ -1038,6 +1040,14 @@ watch(
     }
   },
   { immediate: false }
+)
+
+watch(
+  () => terminalStore.refreshSignals[`user:${route.params.id}`],
+  async (signal, previousSignal) => {
+    if (!signal || signal === previousSignal) return
+    await Promise.all([loadUser(), loadFollowStats()])
+  }
 )
 
 // 监听tab切换

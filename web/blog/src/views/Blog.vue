@@ -138,7 +138,7 @@
             >
               <div class="article-content" :class="{ 'has-cover': article.cover }">
                 <div class="terminal-log-meta">
-                  <span :class="`level-${getLogLevel(article).toLowerCase()}`">{{ getLogLevel(article) }}</span>
+                  <span :class="`level-${getArticleLogLevel(article).toLowerCase()}`">{{ getArticleLogLevel(article) }}</span>
                   <time :datetime="article.created_at">{{ formatDate(article.created_at) }}</time>
                 </div>
                 <img
@@ -217,7 +217,7 @@
               v-model:page-size="pageSize"
               :total="total"
               layout="prev, pager, next"
-              @current-change="loadArticles"
+              @current-change="handlePageChange"
             />
           </div>
         </el-col>
@@ -276,12 +276,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { Search, User, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Search, View, Clock, ArrowDown, Star, ChatDotRound, Collection } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
 
 const route = useRoute()
+const router = useRouter()
 
 const articles = ref([])
 const categories = ref([])
@@ -295,6 +297,34 @@ const selectedCategory = ref(null)
 const selectedTag = ref(null)
 const rankType = ref('') // 默认全部
 const sortBy = ref('time') // 默认最新发布
+let articleRequestId = 0
+
+const rankTypes = new Set(['', 'hot', 'week', 'month', 'year'])
+const sortTypes = new Set(['hot', 'time', 'view_count', 'like_count', 'comment_count'])
+
+const queryString = value => typeof value === 'string' ? value : ''
+const positiveInt = value => {
+  const number = Number(queryString(value))
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
+const updateQuery = () => {
+  const query = {
+    ...route.query,
+    keyword: searchKeyword.value.trim() || undefined,
+    category_id: selectedCategory.value ? String(selectedCategory.value) : undefined,
+    tag_id: selectedTag.value ? String(selectedTag.value) : undefined,
+    rank_type: rankType.value || undefined,
+    sort_by: sortBy.value,
+    page: String(currentPage.value)
+  }
+  const target = { path: route.path, query }
+  if (router.resolve(target).fullPath === route.fullPath) {
+    loadArticles()
+    return
+  }
+  router.push(target)
+}
 
 // 当前选中的分类数据
 const selectedCategoryData = computed(() => {
@@ -303,9 +333,9 @@ const selectedCategoryData = computed(() => {
 })
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
-const getLogLevel = article => article.is_top ? 'FEAT' : article.category ? 'INFO' : 'WARN'
 
 const loadArticles = async () => {
+  const activeRequest = ++articleRequestId
   try {
     const params = {
       page: currentPage.value,
@@ -327,9 +357,11 @@ const loadArticles = async () => {
     }
 
     const response = await api.get('/articles', { params })
+    if (activeRequest !== articleRequestId) return
     articles.value = response.data.list || []
     total.value = response.data.total || 0
   } catch (error) {
+    if (activeRequest !== articleRequestId) return
     console.error('Failed to load articles:', error)
   }
 }
@@ -381,38 +413,42 @@ const recordAdView = (adId) => {
 
 const handleSearch = () => {
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleCategorySelect = (categoryId) => {
   selectedCategory.value = categoryId
   selectedTag.value = null
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const filterByTag = (tagId) => {
   selectedTag.value = selectedTag.value === tagId ? null : tagId
   selectedCategory.value = null
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleRankChange = () => {
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleSortChange = () => {
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
 }
 
 const handleTagClick = (tagId) => {
   selectedTag.value = tagId
   selectedCategory.value = null
   currentPage.value = 1
-  loadArticles()
+  updateQuery()
+}
+
+const handlePageChange = () => {
+  updateQuery()
 }
 
 // 根据标签名称生成颜色（用于书签样式）
@@ -429,32 +465,25 @@ const getTagColor = (tagName) => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-// 监听 URL 参数变化，自动更新筛选条件
-watch(() => route.query, (newQuery) => {
-  if (newQuery.category_id) {
-    selectedCategory.value = parseInt(newQuery.category_id)
-    selectedTag.value = null
-  } else if (newQuery.tag_id) {
-    selectedTag.value = parseInt(newQuery.tag_id)
-    selectedCategory.value = null
-  }
-  currentPage.value = 1
+watch(() => route.query, query => {
+  const categoryId = positiveInt(query.category_id)
+  const tagId = positiveInt(query.tag_id)
+  const nextRankType = queryString(query.rank_type)
+  const nextSortBy = queryString(query.sort_by)
+
+  searchKeyword.value = queryString(query.keyword)
+  selectedCategory.value = categoryId
+  selectedTag.value = categoryId ? null : tagId
+  rankType.value = rankTypes.has(nextRankType) ? nextRankType : ''
+  sortBy.value = sortTypes.has(nextSortBy) ? nextSortBy : 'time'
+  currentPage.value = positiveInt(query.page) || 1
   loadArticles()
-}, { immediate: false })
+}, { immediate: true })
 
 onMounted(() => {
   loadCategories()
   loadTags()
   loadAds()
-  
-  // 从 URL 参数初始化筛选条件
-  if (route.query.category_id) {
-    selectedCategory.value = parseInt(route.query.category_id)
-  } else if (route.query.tag_id) {
-    selectedTag.value = parseInt(route.query.tag_id)
-  }
-  
-  loadArticles()
 })
 </script>
 

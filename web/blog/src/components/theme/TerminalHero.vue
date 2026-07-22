@@ -21,8 +21,23 @@
     </div>
 
     <div
+      v-if="active"
+      class="terminal-window terminal-placeholder"
+      aria-live="polite"
+    >
+      <span>terminal session active</span>
+      <small>Use the floating window to continue.</small>
+    </div>
+    <div
+      v-else
+      ref="terminalWindow"
       class="terminal-window"
-      aria-hidden="true"
+      role="button"
+      tabindex="0"
+      aria-label="Open interactive terminal"
+      @click="activateTerminal"
+      @keydown.enter.prevent="activateTerminal"
+      @keydown.space.prevent="activateTerminal"
     >
       <div class="terminal-bar">
         <i class="dot red" /><i class="dot amber" /><i class="dot green" />
@@ -45,11 +60,13 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 defineProps({
   settings: { type: Object, required: true },
   title: { type: Object, required: true },
-  stats: { type: Object, required: true }
+  stats: { type: Object, required: true },
+  active: { type: Boolean, default: false }
 })
 
-defineEmits(['navigate'])
+const emit = defineEmits(['navigate', 'activate'])
 
+const terminalWindow = ref(null)
 const commands = ['ls photos/', 'git log --all', 'open wiki/', 'npm run build']
 const typedCommand = ref(commands[0])
 let timer
@@ -59,6 +76,10 @@ let deleting = true
 let reducedMotion
 
 const safeLink = link => /^https?:\/\//.test(link) || link?.startsWith('/') ? link : '#'
+
+function activateTerminal() {
+  emit('activate', terminalWindow.value?.getBoundingClientRect())
+}
 
 function tick() {
   const command = commands[commandIndex]
@@ -115,6 +136,12 @@ h1 em { color: var(--accent); font-style: normal; }
 .terminal-actions a:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .terminal-actions .terminal-primary:hover { color: var(--terminal-button-ink); filter: brightness(1.1); }
 .terminal-window { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: var(--terminal-shadow); font-family: var(--terminal-mono); font-size: 13px; }
+.terminal-window[role="button"] { cursor: pointer; transition: border-color .2s, transform .2s; }
+.terminal-window[role="button"]:hover { border-color: var(--accent); transform: translateY(-2px); }
+.terminal-window[role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.terminal-placeholder { display: grid; min-height: 190px; align-content: center; gap: 7px; border-style: dashed; color: var(--green); text-align: center; }
+.terminal-placeholder::before { color: var(--accent); font-size: 24px; content: '❯_'; }
+.terminal-placeholder small { color: var(--sub); }
 .terminal-bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .terminal-bar > span { margin: 0 auto; color: var(--sub); font-size: 12px; }
 .dot { width: 11px; height: 11px; border-radius: 50%; }.dot.red { background: #f26d6d; }.dot.amber { background: #f2c46d; }.dot.green { background: #6dd087; }
@@ -124,5 +151,5 @@ h1 em { color: var(--accent); font-style: normal; }
 @keyframes terminal-blink { 50% { opacity: 0; } }
 @media (max-width: 900px) { .terminal-hero { grid-template-columns: 1fr; gap: 40px; padding-top: 48px; } }
 @media (max-width: 560px) { .terminal-hero { padding: 34px 0 46px; }.terminal-actions { flex-wrap: wrap; }.terminal-actions a { flex: 1; padding-inline: 14px; text-align: center; }.terminal-body { padding-inline: 16px; } }
-@media (prefers-reduced-motion: reduce) { .terminal-caret { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .terminal-caret { animation: none; }.terminal-window[role="button"] { transition: none; }.terminal-window[role="button"]:hover { transform: none; } }
 </style>

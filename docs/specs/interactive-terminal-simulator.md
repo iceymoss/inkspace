@@ -2,7 +2,7 @@
 
 ## 状态
 - 创建日期: 2026-07-22
-- 状态: 草稿，待确认
+- 状态: 代码与自动化验证完成，人工交互矩阵待验收
 - 关联主题: `terminal` / `inkspace.log`
 - 上游规范: [`terminal-ui-theme.md`](./terminal-ui-theme.md)
 
@@ -86,14 +86,15 @@
 
 ### C.1 虚拟文件系统
 
-1. 根目录固定为 `/inkspace`，不允许通过 `..` 逃逸。
+1. 用户主目录固定为 `/inkspace`，不允许通过 `..` 逃逸；`/inkspace` 本身可进入。
 2. 首页路由 `/` 映射到 `/inkspace/index`；一级目录包括 `index|blog|works|photos|wiki|users|about|links`。
-3. `ls` 列出当前虚拟目录；静态一级目录不调用 API，内容目录按需调用现有公开 API。
-4. `cd ../blog` 解析规范化路径并调用 `router.push('/blog')`；路由变化也反向更新终端当前目录。
+3. 从 `/inkspace/index` 执行 `cd ../` 进入用户主目录；已登录时联动 `/dashboard`，未登录时联动 `/login` 并提示认证。登录页和用户中心在终端中都映射为 `/inkspace`。
+4. `ls` 列出当前虚拟目录；静态一级目录不调用 API，内容目录按需调用现有公开 API。
+5. `cd ../blog` 解析规范化路径并调用 `router.push('/blog')`；路由变化也反向更新终端当前目录。
 5. 文章映射为 `blog/<id>-<slug>.md`，作品映射为 `works/<id>-<slug>.json`，摄影映射为 `photos/<id>-<slug>.jpg`，用户映射为 `users/<id>-<slug>/`。
 6. Wiki 工作区映射为 `wiki/<workspaceId>-<slug>/`；公开文档映射为工作区目录中的 `<docId>-<slug>.md`，目录树按公开 API 结果生成。
 7. `cat` 对内容文件读取对应公开详情 API，并同步导航到详情页；默认输出标题、元数据和安全截断后的纯文本摘要，不在终端渲染 `content_html`。
-8. `grep <keyword> blog/|works/|photos/|users/` 调用现有关键词 API，并同步进入带 query 的列表页。
+8. `grep <keyword> <path>` 遵循当前目录的标准相对路径；例如在 `/inkspace/index` 使用 `grep vue ../blog`，调用现有关键词 API 并同步进入带 query 的列表页。
 9. `favorite|like|follow` 可接收资源类型加 ID，也可接收虚拟路径；路径最终只解析为白名单资源类型和正整数 ID。
 10. 所有名称 slug 只用于可读显示，路由与 API 以 ID 为准；重名、改名或非法字符不影响资源定位。
 
@@ -359,21 +360,21 @@ store 最小状态：
 
 ## 实现步骤（每步可独立 commit）
 
-1. [ ] **稳定日志等级**：新增共享 `articleLogLevel` 纯函数及测试，Home/Blog 统一使用 `FEAT|INFO|NOTE|WARN`。
-2. [ ] **命令语法基础**：实现引号感知 parser、命令注册表、帮助文本、参数校验和纯单元测试。
-3. [ ] **虚拟文件系统**：实现 `/inkspace` 路径归一化、路由双向映射、内容资源文件和 `ls|cd|cat|grep` 测试。
-4. [ ] **会话 store**：实现窗口状态、历史、pending confirmation、sessionStorage 白名单持久化和恢复夹紧。
-5. [ ] **全局终端外壳**：在 App 挂载 FloatingTerminal，实现输出、输入、历史、补全、焦点、最小化和关闭。
-6. [ ] **Hero 原位升起**：TerminalHero 增加可访问启动入口、源矩形交接、占位状态和 reduced-motion 降级。
-7. [ ] **拖拽缩放与移动端**：Pointer Events、视口夹紧、窗口 resize 处理和 `<=560px` 底部抽屉。
-8. [ ] **路由命令**：实现 open、pwd、status、scroll、focus，并保持跨路由终端状态。
-9. [ ] **页面 query 统一**：让 Blog、Works、Photos、WikiIndex、UserSearch 以 URL 作为筛选状态源。
-10. [ ] **只读查询命令**：接入文章、作品、摄影、用户和 Wiki 现有 API，输出安全文本和结果链接。
-11. [ ] **主题命令**：接入 appearance store，区分访客会话预览和登录用户保存语义。
-12. [ ] **写操作确认**：实现 yes/no 状态机、登录门禁、状态预检、点赞/收藏/关注 API 和防重复提交。
-13. [ ] **页面状态刷新**：详情页监听匹配资源的 refresh signal，更新计数和互动状态。
-14. [ ] **完整验证**：测试、lint、build、三视口拖拽/抽屉、主题切换、路由后退、过期 token、空错态和无障碍。
-15. [ ] **规范同步**：更新 Terminal Phase 2 状态、命令帮助和剩余风险。
+1. [x] **稳定日志等级**：新增共享 `articleLogLevel` 纯函数及测试，Home/Blog 统一使用 `FEAT|INFO|NOTE|WARN`。
+2. [x] **命令语法基础**：实现引号感知 parser、命令帮助、参数校验和纯单元测试。
+3. [x] **虚拟文件系统**：实现 `/inkspace` 用户目录、路径归一化、路由双向映射、内容资源文件和 `ls|cd|cat|grep` 测试。
+4. [x] **会话 store**：实现窗口状态、历史、确认状态、sessionStorage 白名单持久化和恢复夹紧。
+5. [x] **全局终端外壳**：在 App 挂载 FloatingTerminal，实现输出、输入、历史、补全、焦点、最小化和关闭。
+6. [x] **Hero 原位升起**：TerminalHero 增加可访问启动入口、源矩形交接、占位状态和 reduced-motion 降级。
+7. [x] **拖拽缩放与移动端**：Pointer Events、视口夹紧、window resize 处理和 `<=560px` 底部抽屉。
+8. [x] **路由命令**：实现 open、pwd、status、scroll、focus，并保持跨路由终端状态。
+9. [x] **页面 query 统一**：Blog、Works、Photos、WikiIndex、UserSearch 以 URL 作为筛选状态源，并防止旧响应覆盖新状态。
+10. [x] **只读查询命令**：接入文章、作品、摄影、用户和 Wiki 现有公开 API，输出安全文本和结果路径。
+11. [x] **主题命令**：接入 appearance store，访客会话预览、登录用户账号保存。
+12. [x] **写操作确认**：实现精确 yes/no 状态机、登录门禁、状态预检、点赞/收藏/关注 API 和防重复提交。
+13. [x] **页面状态刷新**：详情页监听匹配资源的 refresh signal，更新计数和互动状态。
+14. [ ] **完整验证**：自动化测试、lint、build 和回归检查已完成；三视口拖拽/抽屉、软键盘和屏幕阅读人工矩阵待执行。
+15. [x] **规范同步**：已更新实现状态、虚拟用户目录和剩余风险。
 
 ## 参考的现有模式
 
@@ -434,12 +435,12 @@ store 最小状态：
 
 ### 验证命令
 
-- [ ] `web/blog: pnpm test --run`
-- [ ] `web/blog: pnpm lint`
-- [ ] `web/blog: pnpm build`
-- [ ] `go test ./... -count=1`（若未修改 Go，仅作回归）
-- [ ] `go vet ./...`
-- [ ] `git diff --check`
+- [x] `web/blog: pnpm test --run`（8 个测试文件、60 项测试）
+- [x] `web/blog: pnpm lint`
+- [x] `web/blog: pnpm build`（通过，保留既有大 chunk 警告）
+- [x] `go test ./... -count=1`（未修改 Go，回归通过）
+- [x] `go vet ./...`
+- [x] `git diff --check`
 
 ### 人工矩阵
 
