@@ -123,10 +123,11 @@
         </div>
       </div>
 
-      <el-row :gutter="20">
+      <el-row :gutter="20" class="blog-content-row">
         <el-col
           :xs="24"
           :md="20"
+          class="blog-main-column"
         >
           <div class="article-list">
             <el-card
@@ -225,6 +226,7 @@
         <el-col
           :xs="24"
           :md="4"
+          class="blog-sidebar-column"
         >
           <el-card class="sidebar-card">
             <h3>热门标签</h3>
@@ -1035,4 +1037,3 @@ onMounted(() => {
   .article-list { padding: 4px 16px; }
 }
 </style>
-

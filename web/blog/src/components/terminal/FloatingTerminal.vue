@@ -69,6 +69,7 @@ import { useRoute } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal'
 import { parseCommand, tokenizeCommand } from '@/utils/terminal/parser'
 import { routeToVirtualPath } from '@/utils/terminal/virtualFileSystem'
+import { availableThemeIds } from '@/themes/registry'
 
 const emit = defineEmits(['submit', 'confirm'])
 const terminal = useTerminalStore()
@@ -88,7 +89,7 @@ const staticCompletions = {
   open: ['home', 'index', 'blog', 'works', 'photos', 'wiki', 'users', 'about', 'links', 'login', 'dashboard', 'article', 'work', 'user', 'workspace', 'doc'],
   search: ['blog', 'works', 'photos', 'users', 'wiki'],
   list: ['articles', 'works', 'photos', 'users', 'wiki'],
-  theme: ['magazine', 'terminal'],
+  theme: [...availableThemeIds],
   scheme: ['system', 'light', 'dark'],
   scroll: ['top', 'bottom'],
   focus: ['search'],
@@ -206,7 +207,11 @@ function virtualPathCandidates() {
     return ['index/', 'articles/', 'workspaces/', 'my-works/', 'favorites/', 'notifications/', 'profile/', 'appearance/']
   }
   if (currentVirtualPath.value === '/inkspace/index') {
-    return ['../', '../blog/', '../works/', '../photos/', '../wiki/', '../users/', '../about/', '../links/']
+    return [
+      '../',
+      'index/', 'blog/', 'works/', 'photos/', 'wiki/', 'users/', 'about/', 'links/',
+      '../blog/', '../works/', '../photos/', '../wiki/', '../users/', '../about/', '../links/'
+    ]
   }
   return ['../', './', ...listedResourceNames()]
 }
@@ -349,14 +354,14 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .floating-terminal {
-  --ft-bg: var(--panel, var(--theme-bg-card, #101622));
-  --ft-bg-soft: var(--panel-2, var(--theme-bg-secondary, #182131));
+  --ft-bg: var(--panel, var(--card, var(--theme-bg-card, #101622)));
+  --ft-bg-soft: var(--panel-2, var(--card-soft, var(--theme-bg-secondary, #182131)));
   --ft-text: var(--ink, var(--theme-text-primary, #d8e2f0));
-  --ft-bright: var(--bright, var(--theme-text-primary, #f4f7fb));
+  --ft-bright: var(--bright, var(--ink, var(--theme-text-primary, #f4f7fb)));
   --ft-muted: var(--sub, var(--theme-text-secondary, #8794a8));
   --ft-line: var(--line, var(--theme-border, #344156));
-  --ft-accent: var(--accent, var(--theme-primary, #4b9eff));
-  --ft-green: var(--green, #57c985);
+  --ft-accent: var(--accent, var(--moss, var(--theme-primary, #4b9eff)));
+  --ft-green: var(--green, var(--moss, #57c985));
   position: fixed;
   z-index: 1800;
   display: flex;
@@ -367,7 +372,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--ft-line);
   border-radius: 12px;
   background: var(--ft-bg);
-  box-shadow: var(--terminal-shadow, 0 22px 70px rgba(0, 0, 0, .32));
+  box-shadow: var(--terminal-shadow, var(--shadow, 0 22px 70px rgba(0, 0, 0, .32)));
   color: var(--ft-text);
   font: 13px/1.65 var(--terminal-mono, 'SFMono-Regular', Consolas, monospace);
   transform-origin: top left;

@@ -1,4 +1,5 @@
 import { parseCommand } from './parser'
+import { availableThemeIds } from '@/themes/registry'
 import {
   VIRTUAL_ROOT,
   createResourceName,
@@ -19,7 +20,7 @@ const HELP = [
   'filesystem: ls [path], cd <path>, pwd, cat <path>, grep <word> <path>',
   'navigation: open home|blog|works|photos|wiki|about|links|article <id>|work <id>|user <id>',
   'query: list articles|works|photos|users|wiki [keyword], search blog|works|photos|users <keyword>',
-  'appearance: theme magazine|terminal, scheme system|light|dark, status',
+  `appearance: theme ${[...availableThemeIds].join('|')}, scheme system|light|dark, status`,
   'actions: like|unlike article|work <id>, favorite|unfavorite article|work <id>, follow|unfollow user <id>',
   'window: clear, history, minimize, close; write actions require yes/no'
 ]
@@ -36,6 +37,15 @@ function routePath(route) {
   return routeToVirtualPath(route) || `${VIRTUAL_ROOT}/index`
 }
 
+function resolvePath(rawPath, cwd) {
+  const relativePath = String(rawPath).replace(/^(?:\.\/)+/, '')
+  const firstPart = relativePath.split('/')[0]
+  if (cwd === `${VIRTUAL_ROOT}/index` && TOP_LEVEL.includes(`${firstPart}/`)) {
+    return normalizeVirtualPath(relativePath, VIRTUAL_ROOT)
+  }
+  return normalizeVirtualPath(rawPath, cwd)
+}
+
 function textContent(html) {
   if (!html) return ''
   const documentNode = new DOMParser().parseFromString(String(html), 'text/html')
@@ -48,6 +58,10 @@ function resourceLines(type, list) {
     const name = createResourceName(type, item.id, label)
     return `${name || item.id}  ${label}`
   })
+}
+
+function prefixedResourceLines(type, list) {
+  return list.slice(0, 20).map(item => `${type}/${createResourceName(type, item.id, item.title || item.name)}`)
 }
 
 function queryWithoutEmpty(query) {
@@ -66,14 +80,25 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
 
   async function listPath(rawPath = '.') {
     const cwd = routePath(route)
-    const path = normalizeVirtualPath(rawPath, cwd)
+    const path = resolvePath(rawPath, cwd)
     if (!path) throw new Error('path escapes /inkspace or is invalid')
     if (path === VIRTUAL_ROOT) {
       write(userStore.isLoggedIn ? ACCOUNT_LEVEL.join('  ') : 'login required; use open login or cd index')
       return
     }
     if (path === `${VIRTUAL_ROOT}/index`) {
-      write(TOP_LEVEL.join('  '))
+      const [articles, works, photos, workspaces] = await Promise.all([
+        api.get('/articles/hot?limit=6', PUBLIC_REQUEST),
+        api.get('/works/hot?limit=4', PUBLIC_REQUEST),
+        api.get('/works', { ...PUBLIC_REQUEST, params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
+        api.get('/wiki/workspaces', { ...PUBLIC_REQUEST, params: { page: 1, page_size: 4 } })
+      ])
+      write([
+        ...prefixedResourceLines('blog', articles.data || []),
+        ...prefixedResourceLines('works', works.data || []),
+        ...prefixedResourceLines('photos', photos.data?.list || []),
+        ...(workspaces.data?.list || []).map(item => `wiki/${item.id}-${createResourceName('wiki', item.id, item.name).replace(/^\d+-|\.md$/g, '')}/`)
+      ])
       return
     }
 
@@ -103,14 +128,14 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
     } else if (type === 'users') {
       if (parts.length !== 1) throw new Error(`not a directory: ${path}`)
       write('usage: list users <keyword> or grep <keyword> users/')
-    } else if (TOP_LEVEL.includes(`${type}/`)) {
+    } else if (TOP_LEVEL.includes(`${type}/`) || ACCOUNT_LEVEL.includes(`${type}/`)) {
       write(`${type}/`)
     } else throw new Error(`directory not found: ${path}`)
   }
 
   async function catPath(rawPath) {
     if (!rawPath) throw new Error('usage: cat <virtual-resource-path>')
-    const path = normalizeVirtualPath(rawPath, routePath(route))
+    const path = resolvePath(rawPath, routePath(route))
     if (!path) throw new Error('invalid virtual path')
     const relative = path.slice(VIRTUAL_ROOT.length + 1)
     const [type] = relative.split('/')
@@ -177,7 +202,7 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
 
   async function cd(rawPath) {
     if (!rawPath) throw new Error('usage: cd <virtual-path>')
-    const path = normalizeVirtualPath(rawPath, routePath(route))
+    const path = resolvePath(rawPath, routePath(route))
     if (/\.(?:md|json|jpg)$/i.test(path || '')) throw new Error(`not a directory: ${rawPath}`)
     const destination = path === VIRTUAL_ROOT
       ? (userStore.isLoggedIn ? '/dashboard' : '/login')
@@ -192,7 +217,7 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
   async function setAppearance(kind, value) {
     const preference = { ...appearanceStore.activePreference }
     if (kind === 'theme') {
-      if (!['magazine', 'terminal'].includes(value)) throw new Error('theme must be magazine or terminal')
+      if (!availableThemeIds.has(value)) throw new Error(`theme must be one of: ${[...availableThemeIds].join(', ')}`)
       preference.ui_theme = value
     } else {
       if (!['system', 'light', 'dark'].includes(value)) throw new Error('scheme must be system, light or dark')
@@ -281,7 +306,7 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
       else if (name === 'cd') await cd(args[0])
       else if (name === 'cat') await catPath(args[0])
       else if (name === 'grep') {
-        const path = normalizeVirtualPath(args[1] || '.', routePath(route))
+        const path = resolvePath(args[1] || '.', routePath(route))
         if (!path) throw new Error('invalid grep path')
         const type = path.slice(VIRTUAL_ROOT.length + 1).split('/')[0]
         await search(type, args[0])

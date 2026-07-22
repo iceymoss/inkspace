@@ -78,7 +78,7 @@
               </template>
               <template v-else>
                 <span>04 / GRID</span>
-                <strong>CHEN<br>YU®</strong>
+                <strong>{{ siteName }}</strong>
                 <i />
               </template>
             </div>
@@ -86,7 +86,7 @@
             <div class="theme-card-copy">
               <span class="card-index">{{ String(index + 1).padStart(2, '0') }}</span>
               <div>
-                <h3>{{ theme.name }}</h3>
+                <h3>{{ themeName(theme) }}</h3>
                 <p class="theme-subtitle">
                   {{ theme.subtitle }}
                 </p>
@@ -164,11 +164,11 @@
           LIVE PROOF
         </p>
         <h2 id="preview-heading">
-          {{ selectedTheme === 'terminal' ? 'inkspace.log runtime' : '此刻的屿刊' }}
+          {{ previewCopy.heading }}
         </h2>
-        <p>{{ selectedTheme === 'terminal' ? '机器语言负责状态与路径，中文正文保持清晰可读。' : '纸张会随你的选择改变光线，内容的秩序保持不变。' }}</p>
+        <p>{{ previewCopy.description }}</p>
         <dl>
-          <div><dt>风格</dt><dd>{{ selectedThemeMeta.name }}</dd></div>
+          <div><dt>风格</dt><dd>{{ themeName(selectedThemeMeta) }}</dd></div>
           <div><dt>模式</dt><dd>{{ selectedSchemeLabel }}</dd></div>
           <div><dt>实际显示</dt><dd>{{ candidateResolvedScheme === 'dark' ? '深色' : '浅色' }}</dd></div>
         </dl>
@@ -177,7 +177,11 @@
         class="mini-issue"
         :class="{
           'mini-terminal': selectedTheme === 'terminal',
-          'mini-terminal-light': selectedTheme === 'terminal' && candidateResolvedScheme === 'light'
+          'mini-terminal-light': selectedTheme === 'terminal' && candidateResolvedScheme === 'light',
+          'mini-cozy': selectedTheme === 'cozy',
+          'mini-cozy-dark': selectedTheme === 'cozy' && candidateResolvedScheme === 'dark',
+          'mini-swiss': selectedTheme === 'swiss',
+          'mini-swiss-dark': selectedTheme === 'swiss' && candidateResolvedScheme === 'dark'
         }"
         aria-hidden="true"
       >
@@ -188,6 +192,21 @@
             <p><b>❯</b> cat appearance.json</p><span>{ theme: "terminal", mode: "{{ candidateResolvedScheme }}" }</span>
             <p><b>❯</b> tail -f stories<span class="mini-caret" /></p>
           </div>
+        </template>
+        <template v-else-if="selectedTheme === 'cozy'">
+          <div class="mini-cozy-top"><i>Ink</i><span>InkSpace</span></div>
+          <strong>把喜欢的事，<br><em>慢慢</em>做成日常。</strong>
+          <p>随笔、手作、照片和一本本持续生长的笔记。</p>
+          <div class="mini-polaroids"><i /><i /><i /></div>
+          <small>进来坐坐吧 →</small>
+        </template>
+        <template v-else-if="selectedTheme === 'swiss'">
+          <div class="mini-swiss-top"><strong>{{ siteName }}</strong><span>04 / GRID</span></div>
+          <div class="mini-swiss-grid">
+            <div><small>A1 / INDEX</small><strong>WRITE,<br>BUILD &<br><em>ARCHIVE</em></strong></div>
+            <div><b>12+</b><small>ARTICLES</small><b>06</b><small>WORKS</small></div>
+          </div>
+          <div class="mini-swiss-foot">GRID 12 COL <span>START READING</span></div>
         </template>
         <template v-else>
           <div class="mini-top">
@@ -242,16 +261,18 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Monitor, Moon, Sunny } from '@element-plus/icons-vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { getTheme, themeRegistry } from '@/themes/registry'
+import api from '@/utils/api'
 
 const appearance = useAppearanceStore()
 const selectedTheme = ref(appearance.savedPreference.ui_theme)
 const selectedScheme = ref(appearance.savedPreference.color_scheme)
+const siteName = ref('InkSpace')
 
 const schemeOptions = [
   { value: 'system', label: '跟随系统', description: '随设备设置自动切换' },
@@ -264,7 +285,14 @@ const candidate = computed(() => ({
   color_scheme: selectedScheme.value
 }))
 const selectedThemeMeta = computed(() => getTheme(selectedTheme.value))
+const themeName = theme => theme.id === 'swiss' ? siteName.value : theme.name
 const selectedSchemeLabel = computed(() => schemeOptions.find((item) => item.value === selectedScheme.value)?.label)
+const previewCopy = computed(() => {
+  if (selectedTheme.value === 'terminal') return { heading: 'inkspace.log runtime', description: '机器语言负责状态与路径，中文正文保持清晰可读。' }
+  if (selectedTheme.value === 'cozy') return { heading: 'InkSpace · 温暖手作感', description: '暖纸、拍立得和笔记本让内容更亲切，操作秩序保持不变。' }
+  if (selectedTheme.value === 'swiss') return { heading: `${siteName.value} · 瑞士网格风`, description: '外露网格、真实档案编号和克莱因蓝构成精确的内容系统。' }
+  return { heading: '此刻的屿刊', description: '纸张会随你的选择改变光线，内容的秩序保持不变。' }
+})
 const candidateResolvedScheme = computed(() => selectedScheme.value === 'system'
   ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   : selectedScheme.value)
@@ -308,6 +336,15 @@ async function saveSelection() {
 
 onBeforeRouteLeave(() => {
   if (appearance.isPreviewing) appearance.cancelPreview()
+})
+
+onMounted(async () => {
+  try {
+    const response = await api.get('/settings/public')
+    siteName.value = response.data?.site_name?.trim() || 'InkSpace'
+  } catch {
+    siteName.value = 'InkSpace'
+  }
 })
 </script>
 
@@ -439,7 +476,7 @@ onBeforeRouteLeave(() => {
 .proof-cozy { color: #43362a; background: #fbf6ed; transform: rotate(-1deg); }
 .proof-cozy .tape { position: absolute; top: 8px; left: 38%; width: 55px; height: 15px; background: rgba(217, 164, 65, .55); transform: rotate(3deg); }
 .proof-cozy strong { display: block; margin: 29px 0 16px; font-size: 25px; line-height: 1.35; }
-.proof-cozy span { padding-bottom: 3px; border-bottom: 2px wavy #75845c; font-size: 10px; }
+.proof-cozy span { padding-bottom: 3px; text-decoration: underline wavy #75845c 2px; text-underline-offset: 4px; font-size: 10px; }
 
 .proof-swiss { color: #111; background: #fff; border-bottom: 1px solid #111; font: 8px Helvetica, sans-serif; }
 .proof-swiss::after { content: ''; position: absolute; inset: 0 34% 0 auto; width: 1px; background: #ddd; }
@@ -539,6 +576,33 @@ onBeforeRouteLeave(() => {
 .mini-terminal-body p b { color: var(--green, #6fcf8e); }
 .mini-terminal-body > span { color: var(--sub); }
 .mini-caret { display: inline-block; width: 7px; height: 13px; margin-left: 4px; background: var(--accent); vertical-align: -2px; animation: mini-blink 1.1s steps(1) infinite; }
+.mini-cozy { position: relative; overflow: hidden; border: 2px solid #e2d4c0; border-radius: 20px; background: #fbf6ed; color: #43362a; }
+.mini-cozy-dark { border-color: #4a3e33; background: #26201a; color: #efe6d9; }
+.mini-cozy-top { display: flex; align-items: center; gap: 9px; margin-bottom: 26px; font-size: 13px; font-weight: 700; }
+.mini-cozy-top i { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 10px 12px 11px 13px; background: #75845c; color: #fffdf6; font-style: normal; transform: rotate(-4deg); }
+.mini-cozy > strong { font: 800 clamp(24px, 3vw, 34px)/1.4 'PingFang SC', sans-serif; }
+.mini-cozy > strong em { color: #d9a441; }
+.mini-cozy > p { max-width: 270px; color: #93826f; }
+.mini-cozy-dark > p { color: #b8a58f; }
+.mini-polaroids { position: absolute; right: 25px; bottom: 38px; width: 132px; height: 92px; }
+.mini-polaroids i { position: absolute; width: 54px; height: 68px; padding: 5px; background: #fffefa; box-shadow: 0 4px 12px rgb(80 60 40 / 18%); }
+.mini-cozy-dark .mini-polaroids i { background: #3a332b; }
+.mini-polaroids i::before { display: block; height: 45px; background: #8faabf; content: ''; }
+.mini-polaroids i:nth-child(1) { left: 0; transform: rotate(-7deg); }.mini-polaroids i:nth-child(2) { left: 38px; transform: rotate(3deg); }.mini-polaroids i:nth-child(3) { left: 76px; transform: rotate(-2deg); }.mini-polaroids i:nth-child(2)::before { background: #e5b8a5; }.mini-polaroids i:nth-child(3)::before { background: #75845c; }
+.mini-cozy > small { position: absolute; bottom: 24px; left: 34px; padding-bottom: 2px; border-bottom: 2px dotted #75845c; color: #75845c; }
+.mini-swiss { padding: 0; border: 1px solid #111; border-radius: 0; background: #fff; color: #111; font-family: Helvetica, Arial, sans-serif; }
+.mini-swiss-dark { border-color: #f2f2f2; background: #0c0c0c; color: #f2f2f2; }
+.mini-swiss-top { display: flex; height: 42px; padding: 0 18px; align-items: center; justify-content: space-between; border-bottom: 1px solid currentColor; font-size: 11px; text-transform: uppercase; }
+.mini-swiss-grid { display: grid; min-height: 185px; grid-template-columns: 2fr 1fr; }
+.mini-swiss-grid > div { display: flex; padding: 18px; flex-direction: column; border-right: 1px solid #ddd; }
+.mini-swiss-grid > div:last-child { border-right: 0; }
+.mini-swiss-grid small { color: #767676; font-size: 8px; letter-spacing: .12em; }
+.mini-swiss-grid strong { margin-top: 18px; font-size: 25px; line-height: 1.04; }
+.mini-swiss-grid em { color: #002fa7; font-style: normal; }
+.mini-swiss-grid b { color: #002fa7; font-size: 25px; line-height: 1; }
+.mini-swiss-grid div:last-child small { margin-bottom: 22px; }
+.mini-swiss-foot { display: flex; padding: 10px 18px; align-items: center; justify-content: space-between; border-top: 1px solid #ddd; color: #767676; font-size: 8px; letter-spacing: .1em; }
+.mini-swiss-foot span { padding: 6px 10px; background: #002fa7; color: #fff; }
 @keyframes mini-blink { 50% { opacity: 0; } }
 
 .action-bar {

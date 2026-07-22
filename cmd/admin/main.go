@@ -45,8 +45,8 @@ func main() {
 	// 设置管理后台路由
 	r := router.SetupAdminRouter(adminweb.FS())
 
-	// 获取端口（优先使用admin配置，否则使用server配置+1）
-	port := config.AppConfig.Server.Port + 1
+	// 管理服务默认使用仓库约定的 8083，避免回退到主配置时与前端代理不一致。
+	port := 8083
 	if config.AppConfig.Admin.Port > 0 {
 		port = config.AppConfig.Admin.Port
 	}
@@ -54,7 +54,7 @@ func main() {
 	log.Printf("管理后台服务启动在端口 %d...\n", port)
 	log.Println("===========================================")
 	log.Printf("管理后台API: http://localhost:%d\n", port)
-	log.Println("登录地址: http://localhost:3001/admin/login")
+	log.Println("登录地址: http://localhost:3002/login")
 	log.Println("默认账号: admin / admin123")
 	log.Println("===========================================")
 

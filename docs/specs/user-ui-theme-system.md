@@ -4,9 +4,11 @@
 - 创建日期: 2026-07-22
 - 状态: Phase 1「屿刊」及附加功能已完成，并于 2026-07-22 通过用户验收
 - 首期主题: A · 极简杂志风「屿刊」
-- 当前阶段: Phase 2「yu.log」实现与自动化验证完成，人工视觉矩阵待验收
-- 后续顺序: B · `yu.log` -> C ·「小屿的角落」-> D · `CHEN YU®`
+- 当前阶段: Phase 4 `{site_name} · 瑞士网格风` 已于 2026-07-22 通过用户审核并开放
+- 后续顺序: B · `yu.log` -> C · `InkSpace` -> D · `Swiss`
 - Phase 2 规范: [`terminal-ui-theme.md`](./terminal-ui-theme.md)
+- Phase 3 规范: [`cozy-ui-theme.md`](./cozy-ui-theme.md)
+- Phase 4 规范: [`swiss-ui-theme.md`](./swiss-ui-theme.md)
 
 ## 设计关联
 
@@ -15,9 +17,9 @@
 | 主题 ID | 展示名称 | 规范 | 高保真原型 | 实现阶段 |
 |---|---|---|---|---|
 | `magazine` | 屿刊 · 极简杂志风 | [`style-a-magazine.md`](../design/style-a-magazine.md) | [`style-a-magazine.html`](../design/style-a-magazine.html) | Phase 1 已完成，默认主题 |
-| `terminal` | yu.log · 暗色科技感 | [`style-b-terminal.md`](../design/style-b-terminal.md) | [`style-b-terminal.html`](../design/style-b-terminal.html) | Phase 2 已开放，人工视觉矩阵待验收 |
-| `cozy` | 小屿的角落 · 温暖手作感 | [`style-c-cozy.md`](../design/style-c-cozy.md) | [`style-c-cozy.html`](../design/style-c-cozy.html) | 第三阶段 |
-| `swiss` | CHEN YU® · 瑞士网格风 | [`style-d-swiss.md`](../design/style-d-swiss.md) | [`style-d-swiss.html`](../design/style-d-swiss.html) | 第四阶段 |
+| `terminal` | yu.log · 暗色科技感 | [`style-b-terminal.md`](../design/style-b-terminal.md) | [`style-b-terminal.html`](../design/style-b-terminal.html) | Phase 2 已完成并通过用户审核 |
+| `cozy` | InkSpace · 温暖手作感 | [`style-c-cozy.md`](../design/style-c-cozy.md) | [`style-c-cozy.html`](../design/style-c-cozy.html) | Phase 3 已完成并通过用户审核 |
+| `swiss` | {site_name} · 瑞士网格风 | [`style-d-swiss.md`](../design/style-d-swiss.md) | [`style-d-swiss.html`](../design/style-d-swiss.html) | Phase 4 已完成并通过用户审核；原型 `CHEN YU®` 不作为真实品牌 |
 
 共同基线：
 
@@ -56,10 +58,11 @@
 ### A. 首次访问与启动
 
 1. 应用在 Vue 挂载前读取本地缓存，立即给 `<html>` 设置 `data-ui-theme` 和 `data-theme`，避免明显闪烁。
-2. 无缓存时使用 `ui_theme=magazine`、`color_scheme=system`；`system` 根据 `prefers-color-scheme` 解析为实际 `light` 或 `dark`。
-3. 同时读取 `GET /api/settings/public`：若管理员设置 `site_theme=holiday` 或 `mourning`，添加独立站点覆盖状态，但不改写用户保存的主题偏好。
+2. 无缓存时先使用 `ui_theme=magazine`、`color_scheme=system` 保证挂载前可读；初始化读取公开设置后，未登录且访客缓存仍不存在时应用管理员配置的 `default_guest_ui_theme` 和 `default_guest_color_scheme` 并写入访客缓存。
+3. 同一次 `GET /api/settings/public` 若读取到 `site_theme=holiday` 或 `mourning`，添加独立站点覆盖状态，但不改写用户保存的主题偏好。
 4. 登录用户读取自己的主题偏好，以服务端账号值为准并写入当前用户专属缓存；未登录访客继续使用独立的访客缓存，两者不得互相覆盖。
 5. 当偏好为 `system` 时监听系统明暗变化并即时更新；显式 `light`/`dark` 不跟随系统变化。
+6. 后台默认外观只影响无缓存访客；公开设置响应返回前若访客已选择外观或完成登录，迟到响应不得覆盖新状态。无效后台值归一化为 `magazine + system`。
 
 ### B. 用户预览并确认主题
 
@@ -359,7 +362,7 @@ web/blog/src/
 1. 管理员 `holiday` / `mourning` 特殊覆盖，仅影响最终呈现。
 2. 登录用户服务端偏好。
 3. 当前浏览器本地偏好。
-4. 默认 `magazine + system`。
+4. 账号默认与公开设置不可用时的安全回退仍为 `magazine + system`；无缓存访客可由管理员配置四套已开放主题和 `system|light|dark`。
 
 本地缓存使用两个命名空间：访客键 `inkspace_guest_appearance_v1`，账号键 `inkspace_user_appearance_v1:<userId>`；内容只允许白名单字段。登录只更新对应账号键，不覆盖访客键；登出恢复访客偏好。再次登录时先用账号缓存防闪烁，再由服务端值校正。工作区公开状态更新必须沿用现有缓存失效逻辑，公共读取不得因旧缓存绕过 `is_public` 校验。
 
@@ -382,9 +385,9 @@ web/blog/src/
 8. [x] **公共知识库模型与 API**：增加 `Workspace.IsPublic`、公开 DTO/查询、草稿回退规则、净化和基础权限测试。
 9. [x] **公共知识库前端**：新增 `/wiki`、工作区树和文档详情；管理界面增加公开开关、风险说明、文档状态及发布/取消发布/重新发布操作。
 10. [x] **屿刊全矩阵验收**：桌面/平板/手机、浅色/深色、访客/用户、空态/错误态、节日/哀悼、无障碍和构建验证；2026-07-22 用户验收通过。
-11. [ ] **B · yu.log**：实现、自动化验证、注册表与后端白名单已完成并开放；三视口全路由人工视觉矩阵待验收。
-12. [ ] **C · 小屿的角落**：关联 C 设计规范完成全矩阵适配，验收后开放白名单。
-13. [ ] **D · CHEN YU®**：关联 D 设计规范完成全矩阵适配，验收后开放白名单。
+11. [x] **B · yu.log**：实现、自动化验证、注册表与后端白名单及三视口全路由审核均已完成并开放。
+12. [x] **C · InkSpace 温暖手作感**：实现、自动化验证、前后端白名单和用户审核均已完成并开放。
+13. [x] **D · Swiss 瑞士网格风**：实现、自动化验证、真实数据映射、前后端白名单和用户审核均已完成并开放。
 
 ### 参考的现有模式
 
@@ -453,7 +456,7 @@ web/blog/src/
 
 ## 验收标准
 
-1. 新用户、无缓存访客和未知偏好均默认进入「屿刊 · 极简杂志风」。
+1. 新账号和无效偏好安全回退「屿刊 · 极简杂志风」；无缓存访客使用管理员公开配置，配置缺失或无效时回退 `magazine + system`。
 2. 登录用户的主题与明暗偏好可跨设备同步；预览、取消、确认和失败回滚符合核心流程。
 3. 管理员节日/哀悼模式可临时覆盖呈现，但不破坏个人偏好。
 4. `magazine` 完成页面适配矩阵，桌面和移动端均可正常完成原有业务操作。
@@ -484,7 +487,4 @@ web/blog/src/
 
 **后续阶段：**
 
-1. B · `yu.log` 按 [`terminal-ui-theme.md`](./terminal-ui-theme.md) 完整适配并开放选择。
-2. C ·「小屿的角落」完整适配并开放选择。
-3. D · `CHEN YU®` 完整适配并开放选择。
-4. 公共知识库全文搜索、双向链接、目录独立公开策略或发布快照，如后续另行立项。
+1. 公共知识库全文搜索、双向链接、目录独立公开策略或发布快照，如后续另行立项。

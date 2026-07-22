@@ -10,6 +10,9 @@ const ACCOUNT_ROUTES = {
   profile: '/profile/edit',
   appearance: '/dashboard/appearance'
 }
+const ROUTE_ACCOUNT_PATHS = Object.fromEntries(
+  Object.entries(ACCOUNT_ROUTES).map(([path, route]) => [route, path])
+)
 const RESOURCE_EXTENSIONS = {
   blog: '.md',
   works: '.json',
@@ -87,6 +90,7 @@ export function routeToVirtualPath(route) {
   const path = routePath.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/'
 
   if (path === '/') return `${VIRTUAL_ROOT}/index`
+  if (Object.hasOwn(ROUTE_ACCOUNT_PATHS, path)) return `${VIRTUAL_ROOT}/${ROUTE_ACCOUNT_PATHS[path]}`
   if (path === '/login' || path === '/dashboard' || path.startsWith('/dashboard/') || path === '/favorites' || path === '/profile/edit') {
     return VIRTUAL_ROOT
   }

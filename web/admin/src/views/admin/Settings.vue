@@ -66,6 +66,69 @@
           </el-form-item>
           <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 inkspace.log 主题，不影响屿刊 Hero 和轮播图。</div>
 
+          <el-divider content-position="left">InkSpace 温暖手作主题首页</el-divider>
+          <el-form-item label="问候语">
+            <el-input v-model="cozyHeroSettings.eyebrow" placeholder="例如：你好呀，欢迎来坐坐" />
+          </el-form-item>
+          <el-form-item label="主标题">
+            <el-input v-model="cozyHeroSettings.title" placeholder="例如：把喜欢的事，慢慢做成日常。" />
+          </el-form-item>
+          <el-form-item label="标题强调词">
+            <el-input v-model="cozyHeroSettings.accent" placeholder="例如：慢慢" />
+          </el-form-item>
+          <el-form-item label="简介">
+            <el-input v-model="cozyHeroSettings.description" type="textarea" :rows="3" maxlength="300" show-word-limit />
+          </el-form-item>
+          <el-form-item label="主按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="cozyHeroSettings.primary_text" placeholder="文案，例如：读读随笔" />
+              <el-input v-model="cozyHeroSettings.primary_link" placeholder="链接，例如：/blog" />
+            </div>
+          </el-form-item>
+          <el-form-item label="次按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="cozyHeroSettings.secondary_text" placeholder="文案，例如：看看照片" />
+              <el-input v-model="cozyHeroSettings.secondary_link" placeholder="链接，例如：/photos" />
+            </div>
+          </el-form-item>
+          <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 InkSpace 温暖手作主题；未保存时使用以上默认文案。</div>
+
+          <el-divider content-position="left">InkSpace 瑞士网格主题首页</el-divider>
+          <el-form-item label="档案标签">
+            <el-input v-model="swissHeroSettings.eyebrow" placeholder="例如：A1 / INDEX" />
+          </el-form-item>
+          <el-form-item label="地点">
+            <el-input v-model="swissHeroSettings.location" maxlength="80" show-word-limit placeholder="可选，最多 80 个字符" />
+          </el-form-item>
+          <el-form-item label="坐标">
+            <el-input v-model="swissHeroSettings.coordinates" maxlength="80" show-word-limit placeholder="可选，最多 80 个字符" />
+          </el-form-item>
+          <el-form-item label="成立年份">
+            <el-input v-model="swissHeroSettings.established" maxlength="40" show-word-limit placeholder="可选，最多 40 个字符" />
+          </el-form-item>
+          <el-form-item label="主标题">
+            <el-input v-model="swissHeroSettings.title" placeholder="例如：WRITE, BUILD & ARCHIVE" />
+          </el-form-item>
+          <el-form-item label="标题强调词">
+            <el-input v-model="swissHeroSettings.accent" placeholder="例如：ARCHIVE" />
+          </el-form-item>
+          <el-form-item label="简介">
+            <el-input v-model="swissHeroSettings.description" type="textarea" :rows="3" maxlength="300" show-word-limit />
+          </el-form-item>
+          <el-form-item label="主按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="swissHeroSettings.primary_text" placeholder="文案，例如：START READING" />
+              <el-input v-model="swissHeroSettings.primary_link" placeholder="链接，例如：/blog" />
+            </div>
+          </el-form-item>
+          <el-form-item label="次按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="swissHeroSettings.secondary_text" placeholder="文案，例如：VIEW WORKS" />
+              <el-input v-model="swissHeroSettings.secondary_link" placeholder="链接，例如：/works" />
+            </div>
+          </el-form-item>
+          <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 InkSpace 瑞士网格主题；地点、坐标和成立年份留空时不会显示。</div>
+
           <el-divider content-position="left">轮播图</el-divider>
           <el-form-item>
             <el-button type="primary" @click="addCarouselItem">添加轮播项</el-button>
@@ -349,6 +412,27 @@
 
       <el-tab-pane label="网站主题" name="theme">
         <el-form :model="themeSettings" label-width="150px">
+          <el-divider content-position="left">未登录默认外观</el-divider>
+          <el-form-item label="默认 UI 主题">
+            <el-select v-model="themeSettings.default_guest_ui_theme" style="width: 300px">
+              <el-option label="屿刊 · 极简杂志风" value="magazine" />
+              <el-option label="inkspace.log · 暗色科技感" value="terminal" />
+              <el-option label="InkSpace · 温暖手作感" value="cozy" />
+              <el-option label="Swiss · 瑞士网格风" value="swiss" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="默认明暗模式">
+            <el-select v-model="themeSettings.default_guest_color_scheme" style="width: 300px">
+              <el-option label="跟随系统" value="system" />
+              <el-option label="浅色" value="light" />
+              <el-option label="深色" value="dark" />
+            </el-select>
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+              只用于未登录且没有本地外观缓存的首次访问者；不会覆盖访客已有选择或登录用户的账号偏好。
+            </div>
+          </el-form-item>
+
+          <el-divider content-position="left">特殊站点主题</el-divider>
           <el-form-item label="整体主题">
             <el-select v-model="themeSettings.site_theme" placeholder="选择网站整体主题" style="width: 300px">
               <el-option label="白天" value="day" />
@@ -560,6 +644,8 @@ const featureSettings = reactive({
 })
 
 const themeSettings = reactive({
+  default_guest_ui_theme: 'magazine',
+  default_guest_color_scheme: 'system',
   site_theme: 'day', // 默认使用白天主题
   holiday_type: 'spring_festival', // 节假日类型
   holiday_bg_primary: '#fff5f5', // 节假日背景主色
@@ -600,6 +686,31 @@ const terminalHeroSettings = reactive({
   primary_text: 'tail -f blog',
   primary_link: '/blog',
   secondary_text: 'ls projects/',
+  secondary_link: '/works'
+})
+
+const cozyHeroSettings = reactive({
+  eyebrow: '你好呀，欢迎来坐坐',
+  title: '把喜欢的事，慢慢做成日常。',
+  accent: '慢慢',
+  description: '这里收录文章、作品、照片，以及持续整理中的知识。',
+  primary_text: '读读随笔',
+  primary_link: '/blog',
+  secondary_text: '看看照片',
+  secondary_link: '/photos'
+})
+
+const swissHeroSettings = reactive({
+  eyebrow: 'A1 / INDEX',
+  location: '',
+  coordinates: '',
+  established: '',
+  title: 'WRITE, BUILD & ARCHIVE',
+  accent: 'ARCHIVE',
+  description: '文章 × 作品 × 摄影 × 知识库',
+  primary_text: 'START READING',
+  primary_link: '/blog',
+  secondary_text: 'VIEW WORKS',
   secondary_link: '/works'
 })
 
@@ -668,7 +779,7 @@ const loadAllSettings = async () => {
         }
       } else if (setting.group === 'markdown') {
         markdownSettings[setting.key] = setting.value
-      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal') {
+      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal' || setting.key === 'home_hero_cozy' || setting.key === 'home_hero_swiss') {
         if (setting.key === 'home_carousel' && setting.value) {
           try {
             carouselSettings.items = JSON.parse(setting.value)
@@ -686,6 +797,18 @@ const loadAllSettings = async () => {
             Object.assign(terminalHeroSettings, JSON.parse(setting.value))
           } catch (e) {
             console.error('Failed to parse terminal home hero data:', e)
+          }
+        } else if (setting.key === 'home_hero_cozy' && setting.value) {
+          try {
+            Object.assign(cozyHeroSettings, JSON.parse(setting.value))
+          } catch (e) {
+            console.error('Failed to parse cozy home hero data:', e)
+          }
+        } else if (setting.key === 'home_hero_swiss' && setting.value) {
+          try {
+            Object.assign(swissHeroSettings, JSON.parse(setting.value))
+          } catch (e) {
+            console.error('Failed to parse Swiss home hero data:', e)
           }
         }
       } else if (setting.group === 'about' || setting.key === 'about_page') {
@@ -893,7 +1016,9 @@ const saveCarouselSettings = async () => {
     const settings = {
       home_carousel: JSON.stringify(carouselSettings.items),
       home_hero: JSON.stringify(carouselSettings.hero),
-      home_hero_terminal: JSON.stringify(terminalHeroSettings)
+      home_hero_terminal: JSON.stringify(terminalHeroSettings),
+      home_hero_cozy: JSON.stringify(cozyHeroSettings),
+      home_hero_swiss: JSON.stringify(swissHeroSettings)
     }
     await adminApi.put('/admin/settings/batch', settings)
     ElMessage.success('保存成功')
@@ -947,4 +1072,3 @@ onMounted(() => {
   loadAllSettings()
 })
 </script>
-

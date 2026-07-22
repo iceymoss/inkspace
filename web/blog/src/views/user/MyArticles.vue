@@ -59,35 +59,37 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="330" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="handleView(row)">查看</el-button>
-            <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button 
-              v-if="row.status === 0" 
-              type="success" 
-              size="small" 
-              @click="handlePublish(row)"
-            >
-              发布
-            </el-button>
-            <el-button 
-              v-if="row.status === 1" 
-              type="warning" 
-              size="small" 
-              @click="handleMakePrivate(row)"
-            >
-              设为私有
-            </el-button>
-            <el-button 
-              v-if="row.status === 2" 
-              type="success" 
-              size="small" 
-              @click="handleMakePublic(row)"
-            >
-              设为公开
-            </el-button>
-            <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <div class="article-actions">
+              <el-button size="small" @click="handleView(row)">查看</el-button>
+              <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button
+                v-if="row.status === 0"
+                type="success"
+                size="small"
+                @click="handlePublish(row)"
+              >
+                发布
+              </el-button>
+              <el-button
+                v-if="row.status === 1"
+                type="warning"
+                size="small"
+                @click="handleMakePrivate(row)"
+              >
+                设为私有
+              </el-button>
+              <el-button
+                v-if="row.status === 2"
+                type="success"
+                size="small"
+                @click="handleMakePublic(row)"
+              >
+                设为公开
+              </el-button>
+              <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -406,8 +408,18 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.article-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.article-actions .el-button + .el-button {
+  margin-left: 8px;
+}
+
 .mt-20 {
   margin-top: 20px;
 }
 </style>
-

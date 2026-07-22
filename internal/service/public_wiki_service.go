@@ -19,6 +19,18 @@ type PublicWikiService struct{}
 
 func NewPublicWikiService() *PublicWikiService { return &PublicWikiService{} }
 
+func (s *PublicWikiService) Stats() (*models.PublicWikiStatsResponse, error) {
+	var count int64
+	err := database.DB.Model(&models.Doc{}).
+		Joins("JOIN workspaces ON workspaces.id = docs.workspace_id AND workspaces.owner_id = docs.owner_id AND workspaces.is_public = ? AND workspaces.deleted_at IS NULL", true).
+		Where("docs.status = ? AND docs.deleted_at IS NULL", models.DocStatusPublished).
+		Count(&count).Error
+	if err != nil {
+		return nil, err
+	}
+	return &models.PublicWikiStatsResponse{PublicDocCount: count}, nil
+}
+
 func (s *PublicWikiService) Workspaces(page, pageSize int) ([]*models.PublicWorkspaceResponse, int64, error) {
 	var total int64
 	if err := database.DB.Model(&models.Workspace{}).

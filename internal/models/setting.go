@@ -42,25 +42,29 @@ type SettingResponse struct {
 
 // 预定义的配置键
 const (
-	SettingSiteName              = "site_name"               // 网站名称
-	SettingSiteDescription       = "site_description"        // 网站描述
-	SettingSiteKeywords          = "site_keywords"           // 网站关键词
-	SettingSiteICP               = "site_icp"                // 备案号
-	SettingSiteCopyright         = "site_copyright"          // 版权信息
-	SettingSiteLogo              = "site_logo"               // 网站Logo
-	SettingSiteFavicon           = "site_favicon"            // 网站图标
-	SettingHomeCarousel          = "home_carousel"           // 首页轮播配置
-	SettingHomeHero              = "home_hero"               // 首页无轮播时的 Hero 文案
-	SettingHomeHeroTerminal      = "home_hero_terminal"      // Terminal 主题首页 Hero 文案
-	SettingCommentAudit          = "comment_audit"           // 评论是否需要审核
-	SettingArticleCommentEnabled = "article_comment_enabled" // 是否开放文章评论
-	SettingWorkCommentEnabled    = "work_comment_enabled"    // 是否开放作品评论
-	SettingWorkAudit             = "work_audit"              // 作品是否需要审核
-	SettingRegisterEnabled       = "register_enabled"        // 是否开放注册
-	SettingUploadMaxSize         = "upload_max_size"         // 上传文件最大大小
-	SettingCodeTheme             = "code_theme"              // Markdown 代码高亮主题
-	SettingMarkdownTheme         = "markdown_theme"          // Markdown 主题风格（light/dark）
-	SettingSiteTheme             = "site_theme"              // 网站整体主题（day/night/holiday/mourning）
+	SettingSiteName              = "site_name"                  // 网站名称
+	SettingSiteDescription       = "site_description"           // 网站描述
+	SettingSiteKeywords          = "site_keywords"              // 网站关键词
+	SettingSiteICP               = "site_icp"                   // 备案号
+	SettingSiteCopyright         = "site_copyright"             // 版权信息
+	SettingSiteLogo              = "site_logo"                  // 网站Logo
+	SettingSiteFavicon           = "site_favicon"               // 网站图标
+	SettingHomeCarousel          = "home_carousel"              // 首页轮播配置
+	SettingHomeHero              = "home_hero"                  // 首页无轮播时的 Hero 文案
+	SettingHomeHeroTerminal      = "home_hero_terminal"         // Terminal 主题首页 Hero 文案
+	SettingHomeHeroCozy          = "home_hero_cozy"             // Cozy 主题首页 Hero 文案
+	SettingHomeHeroSwiss         = "home_hero_swiss"            // Swiss 主题首页 Hero 文案
+	SettingCommentAudit          = "comment_audit"              // 评论是否需要审核
+	SettingArticleCommentEnabled = "article_comment_enabled"    // 是否开放文章评论
+	SettingWorkCommentEnabled    = "work_comment_enabled"       // 是否开放作品评论
+	SettingWorkAudit             = "work_audit"                 // 作品是否需要审核
+	SettingRegisterEnabled       = "register_enabled"           // 是否开放注册
+	SettingUploadMaxSize         = "upload_max_size"            // 上传文件最大大小
+	SettingCodeTheme             = "code_theme"                 // Markdown 代码高亮主题
+	SettingMarkdownTheme         = "markdown_theme"             // Markdown 主题风格（light/dark）
+	SettingSiteTheme             = "site_theme"                 // 网站整体主题（day/night/holiday/mourning）
+	SettingDefaultGuestUITheme   = "default_guest_ui_theme"     // 无缓存访客的默认 UI 主题
+	SettingDefaultGuestScheme    = "default_guest_color_scheme" // 无缓存访客的默认明暗模式
 )
 
 func (s *Setting) ToResponse() *SettingResponse {

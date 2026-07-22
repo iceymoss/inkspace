@@ -12,6 +12,24 @@
           @navigate="handleHeroLink"
           @activate="activateTerminal"
         />
+        <CozyHero
+          v-else-if="isCozy"
+          :settings="cozyHeroSettings"
+          :title="cozyHeroTitle"
+          :photos="photos"
+          :loading="showcaseSectionsLoading"
+          :error="showcaseSectionErrors.photos"
+          @navigate="handleHeroLink"
+          @retry="loadShowcaseSections({ force: true })"
+        />
+        <SwissHero
+          v-else-if="isSwiss"
+          :settings="swissHeroSettings"
+          :title="swissHeroTitle"
+          :stats="swissStats"
+          :site-name="siteName"
+          @navigate="handleHeroLink"
+        />
         <el-carousel 
           v-else-if="carouselItems.length > 0"
           :height="carouselHeight"
@@ -81,14 +99,120 @@
       </div>
     </section>
 
+    <svg v-if="isCozy" class="cozy-wavy-divider" viewBox="0 0 240 26" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 13 Q 30 0 60 13 T 120 13 T 180 13 T 240 13" />
+    </svg>
+
+    <main v-if="isSwiss" class="swiss-home-content">
+      <section class="swiss-section" aria-labelledby="swiss-writing-title">
+        <header class="swiss-section-head">
+          <span>01</span>
+          <h2 id="swiss-writing-title">Writing <small>文章</small></h2>
+          <router-link to="/blog">All articles →</router-link>
+        </header>
+        <div v-if="articles.length" class="swiss-index-list">
+          <router-link v-for="article in articles" :key="article.id" :to="`/blog/${article.id}`" class="swiss-index-row">
+            <span>{{ formatSwissCode('W–', article.id) }}</span>
+            <h3>{{ article.title }}</h3>
+            <small>{{ article.category?.name || 'UNCATEGORIZED' }} · {{ formatDate(article.created_at) }}</small>
+            <i aria-hidden="true">→</i>
+          </router-link>
+        </div>
+        <div v-else class="swiss-empty">NO PUBLISHED ARTICLES</div>
+      </section>
+
+      <section class="swiss-section" aria-labelledby="swiss-works-title">
+        <header class="swiss-section-head">
+          <span>02</span>
+          <h2 id="swiss-works-title">Works <small>作品</small></h2>
+          <router-link to="/works">All works →</router-link>
+        </header>
+        <div v-if="works.length" class="swiss-work-grid">
+          <router-link v-for="work in works" :key="work.id" :to="`/works/${work.id}`" class="swiss-work-cell">
+            <div class="swiss-work-cover">
+              <img
+                v-if="getWorkImage(work) && !failedWorkImages.has(work.id)"
+                :src="getWorkImage(work)"
+                :alt="`${work.title}封面`"
+                loading="lazy"
+                @error="failedWorkImages.add(work.id)"
+              >
+              <strong v-else>{{ formatSwissCode('P–', work.id) }}</strong>
+            </div>
+            <div class="swiss-work-copy">
+              <span>{{ formatSwissCode('P–', work.id) }}</span>
+              <h3>{{ work.title }}</h3>
+              <small>{{ swissWorkMeta(work) }}</small>
+              <p>{{ work.description || '暂无作品简介。' }}</p>
+            </div>
+          </router-link>
+        </div>
+        <div v-else class="swiss-empty">NO PUBLISHED WORKS</div>
+      </section>
+
+      <section class="swiss-section" aria-labelledby="swiss-photos-title">
+        <header class="swiss-section-head">
+          <span>03</span>
+          <h2 id="swiss-photos-title">Photos <small>摄影</small></h2>
+          <router-link to="/photos">Full gallery →</router-link>
+        </header>
+        <div v-if="photos.length" class="swiss-plate-grid">
+          <router-link
+            v-for="(photo, index) in photos.slice(0, 6)"
+            :key="photo.id"
+            :to="`/works/${photo.id}`"
+            class="swiss-plate"
+            :style="{ '--swiss-span': getSwissPlateSpan(index) }"
+          >
+            <span>{{ formatSwissCode('PL.', photo.id) }}<template v-if="photo.metadata?.location"> — {{ photo.metadata.location }}</template></span>
+            <img v-if="getWorkImage(photo) && !failedPhotoImages.has(photo.id)" :src="getWorkImage(photo)" :alt="photo.title" loading="lazy" @error="failedPhotoImages.add(photo.id)">
+            <strong v-else>NO IMAGE</strong>
+          </router-link>
+        </div>
+        <div v-else-if="showcaseSectionsLoading" class="swiss-empty">LOADING PLATES</div>
+        <div v-else-if="showcaseSectionErrors.photos" class="swiss-empty is-error">PLATES UNAVAILABLE <button type="button" @click="loadShowcaseSections({ force: true })">RETRY</button></div>
+        <div v-else class="swiss-empty">NO PUBLISHED PHOTOGRAPHY</div>
+      </section>
+
+      <section class="swiss-section" aria-labelledby="swiss-wiki-title">
+        <header class="swiss-section-head">
+          <span>04</span>
+          <h2 id="swiss-wiki-title">Wiki <small>知识库</small></h2>
+          <router-link to="/wiki">Enter →</router-link>
+        </header>
+        <div v-if="wikiWorkspaces.length" class="swiss-wiki-table">
+          <router-link v-for="workspace in wikiWorkspaces" :key="workspace.id" :to="`/wiki/${workspace.id}`" class="swiss-wiki-row">
+            <span>{{ formatSwissCode('K–', workspace.id) }}</span>
+            <div class="swiss-wiki-cover">
+              <img
+                v-if="isWorkspaceCover(workspace.icon) && !failedWorkspaceCovers.has(workspace.id)"
+                :src="workspace.icon"
+                :alt="`${workspace.name}封面`"
+                loading="lazy"
+                @error="failedWorkspaceCovers.add(workspace.id)"
+              >
+              <strong v-else>{{ workspace.icon || workspace.name?.slice(0, 1) || 'K' }}</strong>
+            </div>
+            <h3>{{ workspace.name }}</h3>
+            <p>{{ workspace.description || '暂无工作区简介。' }}</p>
+            <small>{{ workspace.doc_count }} Notes</small>
+            <i aria-hidden="true">→</i>
+          </router-link>
+        </div>
+        <div v-else-if="showcaseSectionsLoading" class="swiss-empty">LOADING ARCHIVES</div>
+        <div v-else-if="showcaseSectionErrors.wiki" class="swiss-empty is-error">WIKI UNAVAILABLE <button type="button" @click="loadShowcaseSections({ force: true })">RETRY</button></div>
+        <div v-else class="swiss-empty">NO PUBLIC WORKSPACES</div>
+      </section>
+    </main>
+
     <!-- Main Content -->
-    <section class="main-content">
+    <section v-else class="main-content">
       <div class="container">
         <el-row :gutter="30">
           <!-- Left: Articles List -->
           <el-col
             :xs="24"
-            :lg="19"
+            :lg="isCozy ? 24 : 19"
           >
             <div class="content-section">
               <div class="section-header">
@@ -106,6 +230,7 @@
                   v-for="article in articles" 
                   :key="article.id" 
                   class="article-item"
+                  :class="isCozy ? `cozy-tone-${getCozyContentTone(article)}` : null"
                   shadow="hover"
                   @click="$router.push(`/blog/${article.id}`)"
                 >
@@ -222,6 +347,7 @@
                 >
                   <el-card 
                     class="work-card work-card-clickable"
+                    :class="isCozy ? `cozy-tone-${getCozyContentTone(work)}` : null"
                     shadow="hover" 
                     @click="navigateToWorkDetail(work.id, router)"
                   >
@@ -282,6 +408,77 @@
               </el-row>
             </div>
 
+            <div v-if="isCozy" class="content-section cozy-photos">
+              <div class="section-header">
+                <h2>照片墙 <small>最近留下的光影</small></h2>
+                <router-link class="cozy-more" to="/photos">整面墙都在这 <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="photos.length" class="cozy-photo-grid">
+                <router-link
+                  v-for="(photo, index) in photos"
+                  :key="photo.id"
+                  :to="`/works/${photo.id}`"
+                  class="cozy-photo"
+                  :style="{ '--cozy-rotation': `${getCozyRotation(photo, index)}deg` }"
+                >
+                  <div class="cozy-photo-media">
+                    <img
+                      v-if="getWorkImage(photo) && !failedPhotoImages.has(photo.id)"
+                      :src="getWorkImage(photo)"
+                      :alt="photo.title"
+                      loading="lazy"
+                      @error="failedPhotoImages.add(photo.id)"
+                    >
+                    <span v-else aria-hidden="true">{{ photo.title?.slice(0, 1) || '照' }}</span>
+                  </div>
+                  <strong>{{ photo.title }}</strong>
+                  <small v-if="photo.metadata?.location">{{ photo.metadata.location }}</small>
+                </router-link>
+              </div>
+              <div v-else-if="showcaseSectionsLoading" class="cozy-paper-state">正在整理照片…</div>
+              <div v-else-if="showcaseSectionErrors.photos" class="cozy-paper-state is-error">
+                照片暂时没有挂好。<button type="button" @click="loadShowcaseSections({ force: true })">重新试试</button>
+              </div>
+              <div v-else class="cozy-paper-state">照片墙还空着。</div>
+            </div>
+
+            <div v-if="isCozy" class="content-section cozy-wiki">
+              <div class="section-header">
+                <h2>摊开的笔记本 <small>持续整理中的知识</small></h2>
+                <router-link class="cozy-more" to="/wiki">全部翻开 <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="wikiWorkspaces.length" class="cozy-wiki-grid">
+                <router-link
+                  v-for="workspace in wikiWorkspaces"
+                  :key="workspace.id"
+                  :to="`/wiki/${workspace.id}`"
+                  class="cozy-notebook"
+                  :class="`cozy-tone-${getCozyContentTone(workspace)}`"
+                >
+                  <div class="cozy-notebook-cover">
+                    <img
+                      v-if="isWorkspaceCover(workspace.icon) && !failedWorkspaceCovers.has(workspace.id)"
+                      :src="workspace.icon"
+                      :alt="`${workspace.name}封面`"
+                      loading="lazy"
+                      @error="failedWorkspaceCovers.add(workspace.id)"
+                    >
+                    <span v-else aria-hidden="true">{{ workspace.icon || workspace.name?.slice(0, 1) || '知' }}</span>
+                  </div>
+                  <div class="cozy-notebook-copy">
+                    <h3>{{ workspace.name }}</h3>
+                    <p>{{ workspace.description || '一本持续生长的公开笔记。' }}</p>
+                    <small>{{ workspace.doc_count }} 篇<span v-if="workspace.author_name"> · {{ workspace.author_name }}</span></small>
+                  </div>
+                </router-link>
+              </div>
+              <div v-else-if="showcaseSectionsLoading" class="cozy-paper-state">正在整理笔记本…</div>
+              <div v-else-if="showcaseSectionErrors.wiki" class="cozy-paper-state is-error">
+                笔记本暂时打不开。<button type="button" @click="loadShowcaseSections({ force: true })">重新试试</button>
+              </div>
+              <div v-else class="cozy-paper-state">公开笔记本还没有内容。</div>
+            </div>
+
             <div v-if="isTerminal" class="content-section terminal-captures">
               <div class="section-header">
                 <h2>photos <small>— captures</small></h2>
@@ -295,8 +492,8 @@
                   <div><strong>{{ photo.title }}</strong><span>{{ photo.metadata?.location || 'capture' }}</span></div>
                 </router-link>
               </div>
-              <div v-else-if="terminalSectionErrors.photos" class="terminal-empty terminal-error">
-                [ captures unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              <div v-else-if="showcaseSectionErrors.photos" class="terminal-empty terminal-error">
+                [ captures unavailable ] <button type="button" @click="loadShowcaseSections({ force: true })">retry</button>
               </div>
               <div v-else class="terminal-empty">[ no published captures ]</div>
             </div>
@@ -308,12 +505,26 @@
               </div>
               <div v-if="wikiWorkspaces.length" class="terminal-wiki-panel">
                 <router-link v-for="workspace in wikiWorkspaces" :key="workspace.id" :to="`/wiki/${workspace.id}`">
-                  <span>▸ {{ workspace.name }}/</span>
-                  <small>{{ workspace.doc_count }} docs · {{ workspace.author_name || 'anonymous' }}</small>
+                  <div class="terminal-wiki-cover">
+                    <img
+                      v-if="isWorkspaceCover(workspace.icon)"
+                      :src="workspace.icon"
+                      :alt="`${workspace.name}封面`"
+                      loading="lazy"
+                    >
+                    <div v-else class="terminal-wiki-placeholder" aria-hidden="true">
+                      <strong>{{ workspace.icon || workspace.name?.slice(0, 1) || 'W' }}</strong>
+                      <span>PUBLIC / WIKI</span>
+                    </div>
+                  </div>
+                  <div class="terminal-wiki-copy">
+                    <span>▸ {{ workspace.name }}/</span>
+                    <small>{{ workspace.doc_count }} docs · {{ workspace.author_name || 'anonymous' }}</small>
+                  </div>
                 </router-link>
               </div>
-              <div v-else-if="terminalSectionErrors.wiki" class="terminal-empty terminal-error">
-                [ wiki unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              <div v-else-if="showcaseSectionErrors.wiki" class="terminal-empty terminal-error">
+                [ wiki unavailable ] <button type="button" @click="loadShowcaseSections({ force: true })">retry</button>
               </div>
               <div v-else class="terminal-empty">[ no public workspaces ]</div>
             </div>
@@ -321,6 +532,7 @@
 
           <!-- Right: Sidebar -->
           <el-col
+            v-if="!isCozy"
             :xs="24"
             :lg="5"
           >
@@ -507,14 +719,21 @@ import {
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 import TerminalHero from '@/components/theme/TerminalHero.vue'
+import CozyHero from '@/components/theme/CozyHero.vue'
+import SwissHero from '@/components/theme/SwissHero.vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useTerminalStore } from '@/stores/terminal'
 import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
+import { getCozyContentTone, getCozyRotation } from '@/utils/cozyContentTone'
+import { formatSwissCode, getSwissPlateSpan } from '@/utils/swissArchive'
 
 const router = useRouter()
 const appearance = useAppearanceStore()
 const terminal = useTerminalStore()
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
+const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
+const isSwiss = computed(() => appearance.activePreference.ui_theme === 'swiss')
+const usesShowcaseSections = computed(() => isTerminal.value || isCozy.value || isSwiss.value)
 const articles = ref([])
 const works = ref([])
 const tags = ref([])
@@ -522,13 +741,26 @@ const recommendedArticles = ref([])
 const recommendedWorks = ref([])
 const photos = ref([])
 const wikiWorkspaces = ref([])
-const terminalSectionsLoaded = ref(false)
-const terminalSectionErrors = reactive({ photos: false, wiki: false })
+const failedPhotoImages = reactive(new Set())
+const failedWorkImages = reactive(new Set())
+const failedWorkspaceCovers = reactive(new Set())
+const showcaseSectionsLoaded = ref(false)
+const showcaseSectionsLoading = ref(false)
+const showcaseSectionErrors = reactive({ photos: false, wiki: false })
 const stats = ref({
   articleCount: 0,
   workCount: 0,
   categoryCount: 0
 })
+const swissStats = reactive({
+  articleCount: null,
+  workCount: null,
+  publicDocCount: null,
+  articleError: false,
+  workError: false,
+  docError: false
+})
+const siteName = ref('InkSpace')
 const carouselItems = ref([])
 const carouselHeight = ref('320px')
 const heroSettings = reactive({
@@ -553,6 +785,29 @@ const terminalHeroSettings = reactive({
   secondary_text: 'ls projects/',
   secondary_link: '/works'
 })
+const cozyHeroSettings = reactive({
+  eyebrow: '你好呀，欢迎来坐坐',
+  title: '把喜欢的事，慢慢做成日常。',
+  accent: '慢慢',
+  description: '这里收录文章、作品、照片，以及持续整理中的知识。',
+  primary_text: '读读随笔',
+  primary_link: '/blog',
+  secondary_text: '看看照片',
+  secondary_link: '/photos'
+})
+const swissHeroSettings = reactive({
+  eyebrow: 'A1 / INDEX',
+  location: '',
+  coordinates: '',
+  established: '',
+  title: 'WRITE, BUILD & ARCHIVE',
+  accent: 'ARCHIVE',
+  description: '文章 × 作品 × 摄影 × 知识库',
+  primary_text: 'START READING',
+  primary_link: '/blog',
+  secondary_text: 'VIEW WORKS',
+  secondary_link: '/works'
+})
 const splitHeroTitle = settings => {
   const title = settings.title
   const accent = settings.accent
@@ -566,6 +821,8 @@ const splitHeroTitle = settings => {
 }
 const heroTitle = computed(() => splitHeroTitle(heroSettings))
 const terminalHeroTitle = computed(() => splitHeroTitle(terminalHeroSettings))
+const cozyHeroTitle = computed(() => splitHeroTitle(cozyHeroSettings))
+const swissHeroTitle = computed(() => splitHeroTitle(swissHeroSettings))
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -574,6 +831,12 @@ const getTechStack = (techStack) => {
   if (!techStack) return []
   return techStack.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0)
 }
+const swissWorkMeta = work => {
+  if (work.type === 'photography') {
+    return [work.metadata?.location, work.metadata?.shooting_date, work.metadata?.photo_count ? `${work.metadata.photo_count} PHOTOS` : ''].filter(Boolean).join(' · ') || 'PHOTOGRAPHY'
+  }
+  return ['PROJECT', ...getTechStack(work.tech_stack).slice(0, 3), `${work.like_count || 0} LIKES`].join(' · ')
+}
 
 const loadCarousel = async () => {
   try {
@@ -581,6 +844,9 @@ const loadCarousel = async () => {
     const carouselData = response.data?.home_carousel
     const heroData = response.data?.home_hero
     const terminalHeroData = response.data?.home_hero_terminal
+    const cozyHeroData = response.data?.home_hero_cozy
+    const swissHeroData = response.data?.home_hero_swiss
+    siteName.value = response.data?.site_name?.trim() || 'InkSpace'
     if (heroData) {
       try {
         const parsed = JSON.parse(heroData)
@@ -603,6 +869,32 @@ const loadCarousel = async () => {
         }
       } catch (e) {
         console.error('Failed to parse terminal home hero data:', e)
+      }
+    }
+    if (cozyHeroData) {
+      try {
+        const parsed = JSON.parse(cozyHeroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(cozyHeroSettings).forEach((key) => {
+            if (typeof parsed[key] === 'string' && parsed[key].trim()) cozyHeroSettings[key] = parsed[key].trim()
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse cozy home hero data:', e)
+      }
+    }
+    if (swissHeroData) {
+      try {
+        const parsed = JSON.parse(swissHeroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(swissHeroSettings).forEach((key) => {
+            if (typeof parsed[key] !== 'string') return
+            const value = parsed[key].trim()
+            if (['location', 'coordinates', 'established'].includes(key) || value) swissHeroSettings[key] = value
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse Swiss home hero data:', e)
       }
     }
     if (carouselData) {
@@ -629,6 +921,7 @@ const handleCarouselClick = (item) => {
   }
 }
 const getWorkImage = work => work.cover || (typeof work.images?.[0] === 'string' ? work.images[0] : work.images?.[0]?.url) || ''
+const isWorkspaceCover = value => /^(https?:\/\/|\/uploads\/)/.test(value || '')
 
 const handleHeroLink = (event, link) => {
   if (/^https?:\/\//.test(link)) return
@@ -668,28 +961,52 @@ const loadData = async () => {
   }
 }
 
-const loadTerminalSections = async () => {
-  terminalSectionErrors.photos = false
-  terminalSectionErrors.wiki = false
-  const [photosResult, wikiResult] = await Promise.allSettled([
-    api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
-    api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
+const loadShowcaseSections = async ({ force = false } = {}) => {
+  if (showcaseSectionsLoading.value || (showcaseSectionsLoaded.value && !force)) return
+  showcaseSectionsLoading.value = true
+  showcaseSectionErrors.photos = false
+  showcaseSectionErrors.wiki = false
+  try {
+    const [photosResult, wikiResult] = await Promise.allSettled([
+      api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: isSwiss.value ? 6 : 3 } }),
+      api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
+    ])
+    showcaseSectionErrors.photos = photosResult.status === 'rejected'
+    showcaseSectionErrors.wiki = wikiResult.status === 'rejected'
+    photos.value = photosResult.status === 'fulfilled' ? photosResult.value.data?.list || [] : []
+    wikiWorkspaces.value = wikiResult.status === 'fulfilled' ? wikiResult.value.data?.list || [] : []
+    showcaseSectionsLoaded.value = true
+  } finally {
+    showcaseSectionsLoading.value = false
+  }
+}
+
+const loadSwissStats = async () => {
+  const [articlesResult, worksResult, docsResult] = await Promise.allSettled([
+    api.get('/articles', { params: { page: 1, page_size: 1 } }),
+    api.get('/works', { params: { page: 1, page_size: 1 } }),
+    api.get('/wiki/stats')
   ])
-  terminalSectionErrors.photos = photosResult.status === 'rejected'
-  terminalSectionErrors.wiki = wikiResult.status === 'rejected'
-  photos.value = photosResult.status === 'fulfilled' ? photosResult.value.data?.list || [] : []
-  wikiWorkspaces.value = wikiResult.status === 'fulfilled' ? wikiResult.value.data?.list || [] : []
-  terminalSectionsLoaded.value = true
+  swissStats.articleError = articlesResult.status === 'rejected'
+  swissStats.workError = worksResult.status === 'rejected'
+  swissStats.docError = docsResult.status === 'rejected'
+  swissStats.articleCount = articlesResult.status === 'fulfilled' ? articlesResult.value.data?.total ?? 0 : null
+  swissStats.workCount = worksResult.status === 'fulfilled' ? worksResult.value.data?.total ?? 0 : null
+  swissStats.publicDocCount = docsResult.status === 'fulfilled' ? docsResult.value.data?.public_doc_count ?? 0 : null
 }
 
 onMounted(() => {
   loadCarousel()
   loadData()
-  if (isTerminal.value) loadTerminalSections()
+  if (usesShowcaseSections.value) loadShowcaseSections()
+  if (isSwiss.value) loadSwissStats()
 })
 
-watch(isTerminal, (terminal) => {
-  if (terminal && !terminalSectionsLoaded.value) loadTerminalSections()
+watch(usesShowcaseSections, (enabled) => {
+  if (enabled) loadShowcaseSections()
+})
+watch(isSwiss, (enabled) => {
+  if (enabled) loadSwissStats()
 })
 </script>
 
@@ -1233,9 +1550,17 @@ watch(isTerminal, (terminal) => {
 .terminal-photo > div span { flex: none; }
 .terminal-photo-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--sub); font: 11px var(--terminal-mono); }
 .terminal-wiki-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line); box-shadow: var(--terminal-shadow); }
-.terminal-wiki-panel a { display: grid; gap: 8px; padding: 22px; background: var(--panel); color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
-.terminal-wiki-panel a:hover { background: var(--panel-2); }
-.terminal-wiki-panel small { color: var(--sub); }
+.terminal-wiki-panel a { display: grid; min-width: 0; background: var(--panel); color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
+.terminal-wiki-cover { position: relative; aspect-ratio: 16 / 7; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.terminal-wiki-cover img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.82) contrast(1.05); transition: transform .45s cubic-bezier(.2, .6, .2, 1), filter .3s ease; }
+.terminal-wiki-panel a:hover .terminal-wiki-cover img { filter: saturate(1) contrast(1.02); transform: scale(1.035); }
+.terminal-wiki-placeholder { display: flex; align-items: flex-end; justify-content: space-between; height: 100%; padding: 16px 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 30%, var(--panel-2)), var(--panel)); color: var(--accent); }
+.terminal-wiki-placeholder::after { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, .025) 5px 6px); content: ''; }
+.terminal-wiki-placeholder strong { font-size: 38px; line-height: 1; }
+.terminal-wiki-placeholder span { font-size: 9px; letter-spacing: .14em; opacity: .72; }
+.terminal-wiki-copy { display: grid; gap: 8px; padding: 16px 18px 18px; transition: background-color .2s ease; }
+.terminal-wiki-panel a:hover .terminal-wiki-copy { background: var(--panel-2); }
+.terminal-wiki-panel small { overflow: hidden; color: var(--sub); text-overflow: ellipsis; white-space: nowrap; }
 .terminal-empty { padding: 34px; border: 1px dashed var(--line); border-radius: 14px; color: var(--sub); font-family: var(--terminal-mono); text-align: center; }
 .terminal-more { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
 .terminal-error { color: var(--amber); }

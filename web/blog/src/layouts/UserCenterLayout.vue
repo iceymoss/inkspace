@@ -19,9 +19,11 @@
         <div class="logo">
           <router-link to="/">
             <template v-if="isTerminal"><span>$</span>inkspace.log</template>
+            <template v-else-if="isCozy"><span class="cozy-brand-mark">Ink</span>InkSpace</template>
+            <template v-else-if="isSwiss">{{ siteName }}<sup>GRID</sup></template>
             <template v-else>Ink<span>Space</span></template>
           </router-link>
-          <small :class="{ serif: !isTerminal }">{{ isTerminal ? '~/dashboard' : 'MEMBER · 01' }}</small>
+          <small :class="{ serif: !isTerminal && !isCozy && !isSwiss }">{{ isTerminal ? '~/dashboard' : isCozy ? '我的笔记本' : isSwiss ? 'A2 / DASHBOARD' : 'MEMBER · 01' }}</small>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -86,7 +88,7 @@
                 <Menu />
               </button>
               <div class="page-marker">
-                <span class="page-label">{{ isTerminal ? 'USER / CONTROL PANEL' : 'PERSONAL EDITION' }}</span>
+                <span class="page-label">{{ isTerminal ? 'USER / CONTROL PANEL' : isCozy ? 'MY CORNER' : isSwiss ? 'USER / ARCHIVE' : 'PERSONAL EDITION' }}</span>
                 <el-breadcrumb separator="/">
                   <el-breadcrumb-item :to="{ path: '/' }">
                     首页
@@ -162,6 +164,9 @@ const router = useRouter()
 const userStore = useUserStore()
 const appearance = useAppearanceStore()
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
+const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
+const isSwiss = computed(() => appearance.activePreference.ui_theme === 'swiss')
+const siteName = ref('InkSpace')
 const unreadCount = ref(0)
 const adminBackendUrl = ref('')
 const sidebarOpen = ref(false)
@@ -191,6 +196,7 @@ let intervalId = null
 onMounted(() => {
   loadUnreadCount()
   loadAdminBackendUrl()
+  loadSiteName()
   intervalId = setInterval(loadUnreadCount, 30000)
   
   // 监听路由变化，在通知页面时更频繁地刷新
@@ -200,6 +206,15 @@ onMounted(() => {
     }
   })
 })
+
+const loadSiteName = async () => {
+  try {
+    const response = await api.get('/settings/public')
+    siteName.value = response.data?.site_name?.trim() || 'InkSpace'
+  } catch {
+    siteName.value = 'InkSpace'
+  }
+}
 
 onUnmounted(() => {
   if (intervalId) {

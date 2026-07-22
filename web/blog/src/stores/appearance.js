@@ -164,11 +164,13 @@ export const useAppearanceStore = defineStore('appearance', () => {
     requestVersion += 1
     useCachedContext()
     loadAccountPreference()
+    const userStore = useUserStore()
+    if (!userStore.token && storageGet(GUEST_CACHE_KEY) === null) refreshSiteOverride(true)
   }
 
   function preview(preference) {
+    if (!availableThemeIds.has(preference?.ui_theme)) return false
     const normalized = normalizePreference(preference)
-    if (!availableThemeIds.has(normalized.ui_theme)) return false
     previewPreference.value = normalized
     apply(normalized)
     return true
@@ -181,10 +183,10 @@ export const useAppearanceStore = defineStore('appearance', () => {
 
   async function save(preference = activePreference.value) {
     const userStore = useUserStore()
-    const candidate = normalizePreference(preference)
-    if (!userStore.token || !availableThemeIds.has(candidate.ui_theme)) {
+    if (!userStore.token || !availableThemeIds.has(preference?.ui_theme)) {
       throw new Error('当前主题不可保存')
     }
+    const candidate = normalizePreference(preference)
 
     const rollback = { ...savedPreference.value }
     const sessionToken = userStore.token
@@ -215,12 +217,13 @@ export const useAppearanceStore = defineStore('appearance', () => {
   }
 
   function saveGuestPreference(preference) {
+    if (!availableThemeIds.has(preference?.ui_theme)) return false
     const normalized = normalizePreference(preference)
-    if (!availableThemeIds.has(normalized.ui_theme)) return
     savedPreference.value = normalized
     previewPreference.value = null
     writeCache(GUEST_CACHE_KEY, normalized)
     apply(normalized)
+    return true
   }
 
   async function refreshSiteOverride(force = false) {
@@ -229,6 +232,17 @@ export const useAppearanceStore = defineStore('appearance', () => {
     try {
       const response = await api.get('/settings/public')
       const settings = response.data || {}
+      const userStore = useUserStore()
+      if (!userStore.token && storageGet(GUEST_CACHE_KEY) === null) {
+        const guestDefault = normalizePreference({
+          ui_theme: settings.default_guest_ui_theme,
+          color_scheme: settings.default_guest_color_scheme
+        })
+        savedPreference.value = guestDefault
+        previewPreference.value = null
+        writeCache(GUEST_CACHE_KEY, guestDefault)
+        apply(guestDefault)
+      }
       siteOverride.value = SPECIAL_THEMES.has(settings.site_theme) ? settings.site_theme : null
       const root = document.documentElement
       if (siteOverride.value) root.dataset.siteTheme = siteOverride.value

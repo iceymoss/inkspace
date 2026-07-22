@@ -37,7 +37,13 @@ describe('terminal virtual file system', () => {
 
   it('maps account routes to the inkspace user directory', () => {
     expect(routeToVirtualPath('/dashboard')).toBe('/inkspace')
-    expect(routeToVirtualPath('/dashboard/articles')).toBe('/inkspace')
+    expect(routeToVirtualPath('/dashboard/articles')).toBe('/inkspace/articles')
+    expect(routeToVirtualPath('/dashboard/workspaces')).toBe('/inkspace/workspaces')
+    expect(routeToVirtualPath('/dashboard/works')).toBe('/inkspace/my-works')
+    expect(routeToVirtualPath('/favorites')).toBe('/inkspace/favorites')
+    expect(routeToVirtualPath('/dashboard/notifications')).toBe('/inkspace/notifications')
+    expect(routeToVirtualPath('/profile/edit')).toBe('/inkspace/profile')
+    expect(routeToVirtualPath('/dashboard/appearance')).toBe('/inkspace/appearance')
     expect(routeToVirtualPath('/login')).toBe('/inkspace')
     expect(virtualPathToRoute('/inkspace')).toBe('/dashboard')
     expect(virtualPathToRoute('/inkspace/articles')).toBe('/dashboard/articles')

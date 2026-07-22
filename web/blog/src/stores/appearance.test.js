@@ -68,6 +68,15 @@ describe('appearance store', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
+  it('bootstraps a cached cozy preference', () => {
+    window.localStorage.setItem('inkspace_guest_appearance_v1', JSON.stringify({ ui_theme: 'cozy', color_scheme: 'light' }))
+
+    bootstrapCachedAppearance()
+
+    expect(document.documentElement.dataset.uiTheme).toBe('cozy')
+    expect(document.documentElement.dataset.theme).toBe('light')
+  })
+
   it('previews a preference without saving and restores it on cancel', () => {
     const store = useAppearanceStore()
 
@@ -113,6 +122,24 @@ describe('appearance store', () => {
     })
   })
 
+  it('saves cozy and Swiss preferences', async () => {
+    const userStore = useUserStore()
+    userStore.token = 'token-without-readable-payload'
+    userStore.user = { id: 7 }
+    const store = useAppearanceStore()
+    api.put
+      .mockResolvedValueOnce({ data: { ui_theme: 'cozy', color_scheme: 'light' } })
+      .mockResolvedValueOnce({ data: { ui_theme: 'swiss', color_scheme: 'dark' } })
+
+    await store.save({ ui_theme: 'cozy', color_scheme: 'light' })
+
+    expect(store.savedPreference).toEqual({ ui_theme: 'cozy', color_scheme: 'light' })
+    expect(store.preview({ ui_theme: 'swiss', color_scheme: 'dark' })).toBe(true)
+    await store.save({ ui_theme: 'swiss', color_scheme: 'dark' })
+    expect(store.savedPreference).toEqual({ ui_theme: 'swiss', color_scheme: 'dark' })
+    expect(api.put).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps a site override independent from terminal preference', async () => {
     api.get.mockResolvedValue({ data: { site_theme: 'holiday' } })
     const store = useAppearanceStore()
@@ -123,6 +150,74 @@ describe('appearance store', () => {
     expect(document.documentElement.dataset.uiTheme).toBe('terminal')
     expect(document.documentElement.dataset.siteTheme).toBe('holiday')
     expect(store.savedPreference.ui_theme).toBe('terminal')
+  })
+
+  it('applies the public default appearance only to a guest without cache', async () => {
+    api.get.mockResolvedValue({
+      data: { default_guest_ui_theme: 'swiss', default_guest_color_scheme: 'dark' }
+    })
+    const store = useAppearanceStore()
+
+    store.initialize()
+    await vi.waitFor(() => expect(store.savedPreference).toEqual({ ui_theme: 'swiss', color_scheme: 'dark' }))
+
+    expect(document.documentElement.dataset.uiTheme).toBe('swiss')
+    expect(JSON.parse(window.localStorage.getItem('inkspace_guest_appearance_v1'))).toEqual({
+      ui_theme: 'swiss', color_scheme: 'dark'
+    })
+    store.dispose()
+  })
+
+  it('does not overwrite an existing guest preference with the public default', async () => {
+    window.localStorage.setItem('inkspace_guest_appearance_v1', JSON.stringify({
+      ui_theme: 'cozy', color_scheme: 'light'
+    }))
+    api.get.mockResolvedValue({
+      data: { default_guest_ui_theme: 'swiss', default_guest_color_scheme: 'dark' }
+    })
+    const store = useAppearanceStore()
+
+    store.initialize()
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/settings/public'))
+
+    expect(store.savedPreference).toEqual({ ui_theme: 'cozy', color_scheme: 'light' })
+    expect(document.documentElement.dataset.uiTheme).toBe('cozy')
+    store.dispose()
+  })
+
+  it('loads the public default after logout when no guest cache exists', async () => {
+    const userStore = useUserStore()
+    userStore.user = { id: 7 }
+    userStore.token = 'account-token'
+    api.get.mockImplementation((url) => Promise.resolve({
+      data: url === '/profile/appearance'
+        ? { ui_theme: 'terminal', color_scheme: 'light' }
+        : { default_guest_ui_theme: 'cozy', default_guest_color_scheme: 'dark' }
+    }))
+    const store = useAppearanceStore()
+    store.initialize()
+    await vi.waitFor(() => expect(store.savedPreference.ui_theme).toBe('terminal'))
+
+    userStore.logout()
+    await vi.waitFor(() => expect(store.savedPreference).toEqual({ ui_theme: 'cozy', color_scheme: 'dark' }))
+
+    expect(JSON.parse(window.localStorage.getItem('inkspace_guest_appearance_v1'))).toEqual({
+      ui_theme: 'cozy', color_scheme: 'dark'
+    })
+    store.dispose()
+  })
+
+  it('normalizes invalid public default appearance values', async () => {
+    api.get.mockResolvedValue({
+      data: { default_guest_ui_theme: 'unknown', default_guest_color_scheme: 'sepia' }
+    })
+    const store = useAppearanceStore()
+
+    store.initialize()
+    await vi.waitFor(() => expect(window.localStorage.getItem('inkspace_guest_appearance_v1')).not.toBeNull())
+
+    expect(store.savedPreference).toEqual({ ui_theme: 'magazine', color_scheme: 'system' })
+    store.dispose()
   })
 
   it('does not apply an account save after the session changes', async () => {

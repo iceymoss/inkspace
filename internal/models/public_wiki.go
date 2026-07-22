@@ -2,6 +2,10 @@ package models
 
 import "time"
 
+type PublicWikiStatsResponse struct {
+	PublicDocCount int64 `json:"public_doc_count"`
+}
+
 type PublicWorkspaceResponse struct {
 	ID           uint      `json:"id"`
 	Name         string    `json:"name"`
