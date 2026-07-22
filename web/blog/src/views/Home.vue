@@ -308,8 +308,22 @@
               </div>
               <div v-if="wikiWorkspaces.length" class="terminal-wiki-panel">
                 <router-link v-for="workspace in wikiWorkspaces" :key="workspace.id" :to="`/wiki/${workspace.id}`">
-                  <span>▸ {{ workspace.name }}/</span>
-                  <small>{{ workspace.doc_count }} docs · {{ workspace.author_name || 'anonymous' }}</small>
+                  <div class="terminal-wiki-cover">
+                    <img
+                      v-if="isWorkspaceCover(workspace.icon)"
+                      :src="workspace.icon"
+                      :alt="`${workspace.name}封面`"
+                      loading="lazy"
+                    >
+                    <div v-else class="terminal-wiki-placeholder" aria-hidden="true">
+                      <strong>{{ workspace.icon || workspace.name?.slice(0, 1) || 'W' }}</strong>
+                      <span>PUBLIC / WIKI</span>
+                    </div>
+                  </div>
+                  <div class="terminal-wiki-copy">
+                    <span>▸ {{ workspace.name }}/</span>
+                    <small>{{ workspace.doc_count }} docs · {{ workspace.author_name || 'anonymous' }}</small>
+                  </div>
                 </router-link>
               </div>
               <div v-else-if="terminalSectionErrors.wiki" class="terminal-empty terminal-error">
@@ -629,6 +643,7 @@ const handleCarouselClick = (item) => {
   }
 }
 const getWorkImage = work => work.cover || (typeof work.images?.[0] === 'string' ? work.images[0] : work.images?.[0]?.url) || ''
+const isWorkspaceCover = value => /^(https?:\/\/|\/uploads\/)/.test(value || '')
 
 const handleHeroLink = (event, link) => {
   if (/^https?:\/\//.test(link)) return
@@ -1233,9 +1248,17 @@ watch(isTerminal, (terminal) => {
 .terminal-photo > div span { flex: none; }
 .terminal-photo-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--sub); font: 11px var(--terminal-mono); }
 .terminal-wiki-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line); box-shadow: var(--terminal-shadow); }
-.terminal-wiki-panel a { display: grid; gap: 8px; padding: 22px; background: var(--panel); color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
-.terminal-wiki-panel a:hover { background: var(--panel-2); }
-.terminal-wiki-panel small { color: var(--sub); }
+.terminal-wiki-panel a { display: grid; min-width: 0; background: var(--panel); color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
+.terminal-wiki-cover { position: relative; aspect-ratio: 16 / 7; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.terminal-wiki-cover img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.82) contrast(1.05); transition: transform .45s cubic-bezier(.2, .6, .2, 1), filter .3s ease; }
+.terminal-wiki-panel a:hover .terminal-wiki-cover img { filter: saturate(1) contrast(1.02); transform: scale(1.035); }
+.terminal-wiki-placeholder { display: flex; align-items: flex-end; justify-content: space-between; height: 100%; padding: 16px 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 30%, var(--panel-2)), var(--panel)); color: var(--accent); }
+.terminal-wiki-placeholder::after { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, .025) 5px 6px); content: ''; }
+.terminal-wiki-placeholder strong { font-size: 38px; line-height: 1; }
+.terminal-wiki-placeholder span { font-size: 9px; letter-spacing: .14em; opacity: .72; }
+.terminal-wiki-copy { display: grid; gap: 8px; padding: 16px 18px 18px; transition: background-color .2s ease; }
+.terminal-wiki-panel a:hover .terminal-wiki-copy { background: var(--panel-2); }
+.terminal-wiki-panel small { overflow: hidden; color: var(--sub); text-overflow: ellipsis; white-space: nowrap; }
 .terminal-empty { padding: 34px; border: 1px dashed var(--line); border-radius: 14px; color: var(--sub); font-family: var(--terminal-mono); text-align: center; }
 .terminal-more { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
 .terminal-error { color: var(--amber); }

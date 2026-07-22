@@ -87,9 +87,9 @@
 ### C.1 虚拟文件系统
 
 1. 用户主目录固定为 `/inkspace`，不允许通过 `..` 逃逸；`/inkspace` 本身可进入。
-2. 首页路由 `/` 映射到 `/inkspace/index`；一级目录包括 `index|blog|works|photos|wiki|users|about|links`。
+2. 首页路由 `/` 映射到 `/inkspace/index`；`ls` 聚合首页实际展示的热门文章、精选作品、摄影和公开 Wiki，输出带 `blog|works|photos|wiki` 前缀的可操作资源路径。
 3. 从 `/inkspace/index` 执行 `cd ../` 进入用户主目录；已登录时联动 `/dashboard`，未登录时联动 `/login` 并提示认证。登录页和用户中心在终端中都映射为 `/inkspace`。
-4. `ls` 列出当前虚拟目录；静态一级目录不调用 API，内容目录按需调用现有公开 API。
+4. `ls` 列出当前虚拟目录；首页和内容目录按需调用现有公开 API，`cd blog|works|photos|wiki|users|about|links` 仍可从首页快捷导航到对应公共路由。
 5. `cd ../blog` 解析规范化路径并调用 `router.push('/blog')`；路由变化也反向更新终端当前目录。
 5. 文章映射为 `blog/<id>-<slug>.md`，作品映射为 `works/<id>-<slug>.json`，摄影映射为 `photos/<id>-<slug>.jpg`，用户映射为 `users/<id>-<slug>/`。
 6. Wiki 工作区映射为 `wiki/<workspaceId>-<slug>/`；公开文档映射为工作区目录中的 `<docId>-<slug>.md`，目录树按公开 API 结果生成。

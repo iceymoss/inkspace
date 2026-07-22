@@ -44,20 +44,39 @@ function setup(path = '/') {
 describe('terminal executor', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('lists the virtual root without calling an API', async () => {
+  it('lists the public content shown on the homepage', async () => {
     const context = setup('/')
+    context.api.get
+      .mockResolvedValueOnce({ data: [{ id: 12, title: 'Vue Notes' }] })
+      .mockResolvedValueOnce({ data: [{ id: 7, title: 'InkSpace CLI' }] })
+      .mockResolvedValueOnce({ data: { list: [{ id: 8, title: 'Night Sky' }] } })
+      .mockResolvedValueOnce({ data: { list: [{ id: 3, name: 'Frontend' }] } })
     await context.executor.execute('ls')
 
-    expect(context.api.get).not.toHaveBeenCalled()
-    expect(context.terminalStore.output.at(-1).text).toContain('blog/')
+    expect(context.api.get).toHaveBeenCalledTimes(4)
+    expect(context.terminalStore.output.map(item => item.text)).toEqual(expect.arrayContaining([
+      'blog/12-vue-notes.md',
+      'works/7-inkspace-cli.json',
+      'photos/8-night-sky.jpg',
+      'wiki/3-frontend/'
+    ]))
   })
 
   it('changes virtual directories through the router', async () => {
     const context = setup('/')
-    await context.executor.execute('cd ../blog')
+    await context.executor.execute('cd blog')
 
     expect(context.router.push).toHaveBeenCalledWith('/blog')
     expect(context.route.path).toBe('/blog')
+  })
+
+  it('enters public directories exactly as listed from index', async () => {
+    const context = setup('/')
+
+    await context.executor.execute('cd works')
+
+    expect(context.router.push).toHaveBeenCalledWith('/works')
+    expect(context.terminalStore.output.at(-1).text).toBe('cwd /inkspace/works')
   })
 
   it('treats /inkspace as the user directory and opens login for guests', async () => {
@@ -83,6 +102,20 @@ describe('terminal executor', () => {
 
     expect(context.terminalStore.output.at(-1).text).toContain('articles/')
     expect(context.terminalStore.output.at(-1).text).toContain('appearance/')
+  })
+
+  it('keeps the selected account directory after navigation', async () => {
+    const context = setup('/dashboard')
+    context.userStore.isLoggedIn = true
+
+    await context.executor.execute('cd my-works')
+
+    expect(context.router.push).toHaveBeenCalledWith('/dashboard/works')
+    expect(context.terminalStore.output.at(-1).text).toBe('cwd /inkspace/my-works')
+    await context.executor.execute('ls')
+    expect(context.terminalStore.output.at(-1).text).toBe('my-works/')
+    await context.executor.execute('pwd')
+    expect(context.terminalStore.output.at(-1).text).toBe('/inkspace/my-works')
   })
 
   it('lists real articles through the existing API', async () => {

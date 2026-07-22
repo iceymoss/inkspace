@@ -206,7 +206,11 @@ function virtualPathCandidates() {
     return ['index/', 'articles/', 'workspaces/', 'my-works/', 'favorites/', 'notifications/', 'profile/', 'appearance/']
   }
   if (currentVirtualPath.value === '/inkspace/index') {
-    return ['../', '../blog/', '../works/', '../photos/', '../wiki/', '../users/', '../about/', '../links/']
+    return [
+      '../',
+      'index/', 'blog/', 'works/', 'photos/', 'wiki/', 'users/', 'about/', 'links/',
+      '../blog/', '../works/', '../photos/', '../wiki/', '../users/', '../about/', '../links/'
+    ]
   }
   return ['../', './', ...listedResourceNames()]
 }
