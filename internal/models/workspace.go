@@ -14,6 +14,7 @@ type Workspace struct {
 	Icon        string         `gorm:"size:255" json:"icon"`
 	Sort        int            `gorm:"default:0" json:"sort"`
 	DocCount    int            `gorm:"default:0;not null" json:"doc_count"`
+	IsPublic    bool           `gorm:"default:false;index;not null" json:"is_public"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
@@ -24,6 +25,7 @@ type WorkspaceRequest struct {
 	Description string `json:"description" binding:"max=500"`
 	Icon        string `json:"icon" binding:"max=255"`
 	Sort        int    `json:"sort"`
+	IsPublic    *bool  `json:"is_public"`
 }
 
 type WorkspaceResponse struct {
@@ -33,6 +35,7 @@ type WorkspaceResponse struct {
 	Icon        string    `json:"icon"`
 	Sort        int       `json:"sort"`
 	DocCount    int       `json:"doc_count"`
+	IsPublic    bool      `json:"is_public"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -40,6 +43,6 @@ type WorkspaceResponse struct {
 func (w *Workspace) ToResponse() *WorkspaceResponse {
 	return &WorkspaceResponse{
 		ID: w.ID, Name: w.Name, Description: w.Description, Icon: w.Icon,
-		Sort: w.Sort, DocCount: w.DocCount, CreatedAt: w.CreatedAt, UpdatedAt: w.UpdatedAt,
+		Sort: w.Sort, DocCount: w.DocCount, IsPublic: w.IsPublic, CreatedAt: w.CreatedAt, UpdatedAt: w.UpdatedAt,
 	}
 }

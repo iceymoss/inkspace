@@ -227,7 +227,22 @@ onMounted(() => {
 }
 
 .user-card {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--theme-border) !important;
+  box-shadow: none;
+}
+
+.dashboard :deep(.el-card) {
+  border-top: 1px solid var(--theme-border) !important;
+  background: transparent !important;
+}
+
+.dashboard :deep(.el-card__header) {
+  padding: 20px 4px 16px;
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.dashboard :deep(.el-card__body) {
+  padding: 26px 4px 34px;
 }
 
 .user-info {
@@ -252,13 +267,18 @@ onMounted(() => {
 
 .stats {
   display: flex;
-  gap: 40px;
+  gap: 0;
+  border-top: 1px solid var(--theme-border);
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 88px;
+  padding: 14px 18px;
+  border-right: 1px solid var(--theme-border);
 }
 
 .stat-item.clickable {
@@ -312,21 +332,23 @@ onMounted(() => {
 .recent-items {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 0;
   min-height: 200px;
 }
 
 .recent-item {
   display: flex;
   gap: 15px;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 16px 2px;
+  border-bottom: 1px solid var(--theme-border);
+  border-radius: 0;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .recent-item:hover {
-  background-color: var(--theme-bg-secondary);
+  padding-left: 8px;
+  background-color: var(--theme-bg-hover);
 }
 
 .item-info {

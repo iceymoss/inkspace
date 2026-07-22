@@ -5,6 +5,38 @@
     <el-tabs v-model="activeGroup">
       <el-tab-pane label="首页轮播" name="carousel">
         <el-form :model="carouselSettings" label-width="150px">
+          <el-divider content-position="left">无轮播时的首页文案</el-divider>
+          <el-form-item label="期号标签">
+            <el-input v-model="carouselSettings.hero.issue" placeholder="例如：VOL. 26" />
+          </el-form-item>
+          <el-form-item label="栏目标签">
+            <el-input v-model="carouselSettings.hero.eyebrow" placeholder="例如：持续记录 · 自由生长" />
+          </el-form-item>
+          <el-form-item label="主标题">
+            <el-input v-model="carouselSettings.hero.title" placeholder="例如：把日常的观察，写成可以停留的文字。" />
+          </el-form-item>
+          <el-form-item label="标题强调词">
+            <el-input v-model="carouselSettings.hero.accent" placeholder="例如：停留" />
+            <div style="margin-top: 8px; color: #909399; font-size: 12px;">主标题中首次出现的这个词会使用主题强调色。</div>
+          </el-form-item>
+          <el-form-item label="简介">
+            <el-input v-model="carouselSettings.hero.description" type="textarea" :rows="3" maxlength="300" show-word-limit />
+          </el-form-item>
+          <el-form-item label="主按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="carouselSettings.hero.primary_text" placeholder="文案，例如：开始阅读" />
+              <el-input v-model="carouselSettings.hero.primary_link" placeholder="链接，例如：/blog" />
+            </div>
+          </el-form-item>
+          <el-form-item label="次按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="carouselSettings.hero.secondary_text" placeholder="文案，例如：或先看看照片" />
+              <el-input v-model="carouselSettings.hero.secondary_link" placeholder="链接，例如：/photos" />
+            </div>
+          </el-form-item>
+          <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅在下方没有轮播项时显示；留空字段会使用屿刊默认文案。</div>
+
+          <el-divider content-position="left">轮播图</el-divider>
           <el-form-item>
             <el-button type="primary" @click="addCarouselItem">添加轮播项</el-button>
             <div style="margin-top: 8px; color: #909399; font-size: 12px;">
@@ -507,6 +539,17 @@ const themeSettings = reactive({
 })
 
 const carouselSettings = reactive({
+  hero: {
+    issue: `VOL. ${String(new Date().getFullYear()).slice(-2)}`,
+    eyebrow: '持续记录 · 自由生长',
+    title: '把日常的观察，写成可以停留的文字。',
+    accent: '停留',
+    description: '这里收录关于技术与设计的长文、正在生长的知识库，以及在生活与远方之间留下的作品。',
+    primary_text: '开始阅读',
+    primary_link: '/blog',
+    secondary_text: '或先看看照片',
+    secondary_link: '/photos'
+  },
   items: [
     {
       title: '欢迎来到我的个人网站',
@@ -589,6 +632,12 @@ const loadAllSettings = async () => {
             carouselSettings.items = JSON.parse(setting.value)
           } catch (e) {
             console.error('Failed to parse carousel data:', e)
+          }
+        } else if (setting.key === 'home_hero' && setting.value) {
+          try {
+            Object.assign(carouselSettings.hero, JSON.parse(setting.value))
+          } catch (e) {
+            console.error('Failed to parse home hero data:', e)
           }
         }
       } else if (setting.group === 'about' || setting.key === 'about_page') {
@@ -794,7 +843,8 @@ const saveCarouselSettings = async () => {
   saving.value = true
   try {
     const settings = {
-      home_carousel: JSON.stringify(carouselSettings.items)
+      home_carousel: JSON.stringify(carouselSettings.items),
+      home_hero: JSON.stringify(carouselSettings.hero)
     }
     await adminApi.put('/admin/settings/batch', settings)
     ElMessage.success('保存成功')

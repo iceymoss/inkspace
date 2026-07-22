@@ -1,9 +1,17 @@
 <template>
-  <section v-loading="pageLoading" class="workspace-detail">
+  <section
+    v-loading="pageLoading"
+    class="workspace-detail"
+  >
     <div class="workspace-shell">
       <header class="workspace-header">
         <div class="workspace-heading">
-          <el-button text circle aria-label="返回知识库" @click="$router.push('/dashboard/workspaces')">
+          <el-button
+            text
+            circle
+            aria-label="返回知识库"
+            @click="$router.push('/dashboard/workspaces')"
+          >
             <el-icon><ArrowLeft /></el-icon>
           </el-button>
           <span class="workspace-cover-thumb">
@@ -11,22 +19,44 @@
               v-if="isCoverImage(store.currentWorkspace?.icon)"
               :src="store.currentWorkspace.icon"
               :alt="`${store.currentWorkspace.name}封面`"
-            />
+            >
             <template v-else>{{ store.currentWorkspace?.icon || store.currentWorkspace?.name?.slice(0, 1) || '知' }}</template>
           </span>
           <div>
-            <h1>{{ store.currentWorkspace?.name || '工作空间' }}</h1>
+            <div class="workspace-title-line">
+              <h1>{{ store.currentWorkspace?.name || '工作空间' }}</h1>
+              <el-tag
+                :type="store.currentWorkspace?.is_public ? 'success' : 'info'"
+                size="small"
+                effect="plain"
+              >
+                {{ store.currentWorkspace?.is_public ? '公开 Wiki' : '私有空间' }}
+              </el-tag>
+            </div>
             <p>{{ store.currentWorkspace?.description || '整理目录，沉淀你的知识。' }}</p>
           </div>
         </div>
-        <el-button type="primary" @click="createDoc"><el-icon><Plus /></el-icon>新建文档</el-button>
+        <div class="workspace-header-actions">
+          <el-button
+            v-if="store.currentWorkspace?.is_public"
+            @click="router.push(`/wiki/${workspaceId}`)"
+          >
+            查看 Wiki
+          </el-button>
+          <el-button
+            type="primary"
+            @click="createDoc"
+          >
+            <el-icon><Plus /></el-icon>新建文档
+          </el-button>
+        </div>
       </header>
       <button
         v-if="catalogOpen"
         class="catalog-backdrop"
         aria-label="关闭目录"
         @click="catalogOpen = false"
-      ></button>
+      />
       <aside :class="['catalog-panel', { open: catalogOpen }]">
         <div class="panel-title">
           <div>
@@ -34,11 +64,30 @@
             <small>{{ store.treeDocs.length }} 篇文档</small>
           </div>
           <div class="panel-actions">
-            <el-button text circle title="新建根目录" aria-label="新建根目录" @click="openCatalogCreate(null)"><el-icon><FolderAdd /></el-icon></el-button>
-            <el-button class="catalog-close" text circle aria-label="关闭目录" @click="catalogOpen = false"><el-icon><Close /></el-icon></el-button>
+            <el-button
+              text
+              circle
+              title="新建根目录"
+              aria-label="新建根目录"
+              @click="openCatalogCreate(null)"
+            >
+              <el-icon><FolderAdd /></el-icon>
+            </el-button>
+            <el-button
+              class="catalog-close"
+              text
+              circle
+              aria-label="关闭目录"
+              @click="catalogOpen = false"
+            >
+              <el-icon><Close /></el-icon>
+            </el-button>
           </div>
         </div>
-        <button :class="['root-row', { active: selectedCatalogId === null }]" @click="selectCatalog(null)">
+        <button
+          :class="['root-row', { active: selectedCatalogId === null }]"
+          @click="selectCatalog(null)"
+        >
           <el-icon><Files /></el-icon><span>根目录</span>
         </button>
         <el-tree
@@ -61,17 +110,42 @@
                 <el-icon><Folder v-if="data.type === 'catalog'" /><Document v-else /></el-icon>
                 <span>{{ data.name }}</span>
               </span>
-              <el-dropdown v-if="data.type === 'catalog'" trigger="click" @command="command => handleCatalogCommand(command, data.catalog)" @click.stop>
-                <el-button text circle size="small" :aria-label="`${data.name}目录操作`"><el-icon><MoreFilled /></el-icon></el-button>
+              <el-dropdown
+                v-if="data.type === 'catalog'"
+                trigger="click"
+                @command="command => handleCatalogCommand(command, data.catalog)"
+                @click.stop
+              >
+                <el-button
+                  text
+                  circle
+                  size="small"
+                  :aria-label="`${data.name}目录操作`"
+                >
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="create">新建子目录</el-dropdown-item>
-                    <el-dropdown-item command="rename">重命名</el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                    <el-dropdown-item command="create">
+                      新建子目录
+                    </el-dropdown-item>
+                    <el-dropdown-item command="rename">
+                      重命名
+                    </el-dropdown-item>
+                    <el-dropdown-item
+                      command="delete"
+                      divided
+                    >
+                      删除
+                    </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-              <span v-else-if="data.doc.article_id" class="blog-link-dot" title="已发布到博客"></span>
+              <span
+                v-else-if="data.doc.article_id"
+                class="blog-link-dot"
+                title="已发布到博客"
+              />
             </div>
           </template>
         </el-tree>
@@ -87,7 +161,9 @@
               aria-label="打开目录"
               :aria-expanded="catalogOpen"
               @click="catalogOpen = !catalogOpen"
-            ><el-icon><Menu /></el-icon></el-button>
+            >
+              <el-icon><Menu /></el-icon>
+            </el-button>
             <div>
               <h2>{{ listTitle }}</h2>
               <span>{{ store.docs.length }} 篇文档{{ searching ? ' · 搜索范围：整个知识库' : '' }}</span>
@@ -101,14 +177,24 @@
             @keyup.enter="runSearch"
             @clear="clearSearch"
           >
-            <template #prefix><el-icon><Search /></el-icon></template>
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
             <template #append>
-              <el-button aria-label="搜索" @click="runSearch"><el-icon><Search /></el-icon></el-button>
+              <el-button
+                aria-label="搜索"
+                @click="runSearch"
+              >
+                <el-icon><Search /></el-icon>
+              </el-button>
             </template>
           </el-input>
         </div>
 
-        <div v-loading="docsLoading" class="doc-list">
+        <div
+          v-loading="docsLoading"
+          class="doc-list"
+        >
           <article
             v-for="(doc, index) in store.docs"
             :key="doc.id"
@@ -130,24 +216,54 @@
               @dragend="draggedDocIndex = null"
               @click.stop
             ><el-icon><Rank /></el-icon></span>
-            <div class="doc-mark"><el-icon><Document /></el-icon></div>
+            <div class="doc-mark">
+              <el-icon><Document /></el-icon>
+            </div>
             <div class="doc-main">
               <div class="doc-title">
                 <strong>{{ doc.title }}</strong>
-                <el-tag v-if="doc.article_id" type="success" size="small">已发布到博客</el-tag>
+                <el-tag
+                  :type="doc.status === 1 ? 'success' : 'info'"
+                  size="small"
+                  effect="plain"
+                >
+                  {{ doc.status === 1 ? '已发布' : '草稿' }}
+                </el-tag>
+                <el-tag
+                  v-if="doc.article_id"
+                  type="success"
+                  size="small"
+                >
+                  已发布到博客
+                </el-tag>
               </div>
               <p>{{ doc.summary || doc.excerpt || contentExcerpt(doc.content) || '暂无内容' }}</p>
               <span>{{ doc.word_count || 0 }} 字 · 更新于 {{ formatTime(doc.updated_at) }}</span>
             </div>
-            <span class="doc-actions" @click.stop @keydown.stop>
-              <el-dropdown trigger="click" @command="command => handleDocCommand(command, doc)">
-                <el-button text circle :aria-label="`${doc.title}文档操作`"><el-icon><MoreFilled /></el-icon></el-button>
+            <span
+              class="doc-actions"
+              @click.stop
+              @keydown.stop
+            >
+              <el-dropdown
+                trigger="click"
+                @command="command => handleDocCommand(command, doc)"
+              >
+                <el-button
+                  text
+                  circle
+                  :aria-label="`${doc.title}文档操作`"
+                ><el-icon><MoreFilled /></el-icon></el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
+                    <el-dropdown-item command="wiki-publish">{{ doc.status === 1 ? '重新发布到 Wiki' : '发布到 Wiki' }}</el-dropdown-item>
                     <el-dropdown-item command="publish">{{ doc.article_id ? '更新到博客' : '发布到博客' }}</el-dropdown-item>
                     <el-dropdown-item command="edit">编辑</el-dropdown-item>
                     <el-dropdown-item command="share">分享</el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                    <el-dropdown-item
+                      command="delete"
+                      divided
+                    >删除</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -155,26 +271,60 @@
           </article>
         </div>
 
-        <el-empty v-if="!docsLoading && store.docs.length === 0" :description="searching ? '没有找到匹配的文档' : '这里还没有文档'">
-          <el-button v-if="!searching" type="primary" @click="createDoc">新建文档</el-button>
-          <el-button v-else @click="clearSearch">清除搜索</el-button>
+        <el-empty
+          v-if="!docsLoading && store.docs.length === 0"
+          :description="searching ? '没有找到匹配的文档' : '这里还没有文档'"
+        >
+          <el-button
+            v-if="!searching"
+            type="primary"
+            @click="createDoc"
+          >
+            新建文档
+          </el-button>
+          <el-button
+            v-else
+            @click="clearSearch"
+          >
+            清除搜索
+          </el-button>
         </el-empty>
       </main>
     </div>
 
-    <el-dialog v-model="catalogDialog.visible" :title="catalogDialog.mode === 'rename' ? '重命名目录' : '新建目录'" width="min(440px, 92vw)">
+    <el-dialog
+      v-model="catalogDialog.visible"
+      :title="catalogDialog.mode === 'rename' ? '重命名目录' : '新建目录'"
+      width="min(440px, 92vw)"
+    >
       <el-form @submit.prevent="submitCatalog">
         <el-form-item label="目录名称">
-          <el-input v-model="catalogDialog.name" maxlength="100" autofocus />
+          <el-input
+            v-model="catalogDialog.name"
+            maxlength="100"
+            autofocus
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="catalogDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="catalogDialog.loading" @click="submitCatalog">确定</el-button>
+        <el-button @click="catalogDialog.visible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="catalogDialog.loading"
+          @click="submitCatalog"
+        >
+          确定
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="moveDialog.visible" title="移动文档" width="min(440px, 92vw)">
+    <el-dialog
+      v-model="moveDialog.visible"
+      title="移动文档"
+      width="min(440px, 92vw)"
+    >
       <el-tree-select
         v-model="moveDialog.catalogId"
         :data="catalogOptions"
@@ -185,8 +335,16 @@
         style="width: 100%"
       />
       <template #footer>
-        <el-button @click="moveDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="moveDialog.loading" @click="submitDocMove">移动</el-button>
+        <el-button @click="moveDialog.visible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="moveDialog.loading"
+          @click="submitDocMove"
+        >
+          移动
+        </el-button>
       </template>
     </el-dialog>
   </section>
@@ -414,6 +572,7 @@ async function dropDoc(targetIndex) {
 }
 
 async function handleDocCommand(command, doc) {
+  if (command === 'wiki-publish') return editDoc(doc.id, 'wiki-publish')
   if (command === 'publish') return editDoc(doc.id, 'publish')
   if (command === 'edit') return editDoc(doc.id)
   if (command === 'share') return editDoc(doc.id, 'share')
@@ -462,10 +621,11 @@ onMounted(async () => {
 .workspace-header { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 20px; border-bottom: 1px solid var(--theme-border); background: color-mix(in srgb, var(--theme-primary) 3%, var(--theme-bg-card)); }
 .workspace-heading { display: flex; align-items: center; gap: 13px; min-width: 0; }
 .workspace-heading h1 { margin: 0; font-size: 25px; }
+.workspace-title-line, .workspace-header-actions { display: flex; align-items: center; gap: 9px; }
 .workspace-heading p { margin: 2px 0 0; color: var(--theme-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .workspace-cover-thumb { display: grid; place-items: center; flex: none; width: 64px; height: 44px; overflow: hidden; border: 1px solid var(--theme-border); border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 80%, #18243a), color-mix(in srgb, var(--theme-primary) 25%, var(--theme-bg-card))); color: #fff; font-size: 20px; font-weight: 700; box-shadow: 0 4px 12px var(--theme-shadow); }
 .workspace-cover-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.workspace-shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: calc(100vh - 112px); background: var(--theme-bg-card); border: 1px solid var(--theme-border); border-radius: 14px; overflow: hidden; box-shadow: 0 8px 30px var(--theme-shadow); }
+.workspace-shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: calc(100vh - 112px); background: transparent; border: 0; border-top: 1px solid var(--theme-border); border-bottom: 1px solid var(--theme-border); border-radius: 0; overflow: hidden; box-shadow: none; }
 .catalog-backdrop { display: none; }
 .catalog-panel { grid-column: 1; grid-row: 2; padding: 18px 12px; border-right: 1px solid var(--theme-border); background: color-mix(in srgb, var(--theme-bg-secondary) 65%, var(--theme-bg-card)); overflow: auto; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 10px; }
@@ -506,5 +666,5 @@ onMounted(async () => {
 .doc-main > span { color: var(--theme-text-tertiary); font-size: 12px; }
 .doc-actions { flex: none; }
 @media (max-width: 900px) { .workspace-shell { grid-template-columns: 220px minmax(0, 1fr); } .docs-panel { padding: 18px; } }
-@media (max-width: 700px) { .workspace-header { align-items: flex-start; padding: 14px; } .workspace-heading { gap: 9px; } .workspace-heading p { white-space: normal; } .workspace-cover-thumb { width: 52px; } .workspace-header > .el-button { flex: none; } .workspace-shell { display: block; position: relative; min-height: calc(100vh - 90px); overflow: hidden; } .catalog-backdrop { display: block; position: absolute; inset: 0; z-index: 19; padding: 0; border: 0; background: rgb(0 0 0 / 38%); } .catalog-panel { display: block; position: absolute; inset: 0 auto 0 0; z-index: 20; width: min(290px, 86vw); box-shadow: 8px 0 24px var(--theme-shadow); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility .2s; } .catalog-panel.open { transform: translateX(0); visibility: visible; } .catalog-close { display: inline-flex; } .mobile-catalog-button { display: inline-flex; } .docs-panel { padding: 14px; } .docs-toolbar { align-items: stretch; flex-direction: column; } .search-input { width: 100%; } .doc-row { gap: 10px; } .drag-handle { display: none; } .doc-main p { display: none; } }
+@media (max-width: 700px) { .workspace-header { align-items: flex-start; padding: 14px; } .workspace-heading { gap: 9px; } .workspace-heading p { white-space: normal; } .workspace-cover-thumb { width: 52px; } .workspace-header-actions { align-items: stretch; flex-direction: column; flex: none; } .workspace-header-actions .el-button { margin-left: 0; } .workspace-shell { display: block; position: relative; min-height: calc(100vh - 90px); overflow: hidden; } .catalog-backdrop { display: block; position: absolute; inset: 0; z-index: 19; padding: 0; border: 0; background: rgb(0 0 0 / 38%); } .catalog-panel { display: block; position: absolute; inset: 0 auto 0 0; z-index: 20; width: min(290px, 86vw); box-shadow: 8px 0 24px var(--theme-shadow); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility .2s; } .catalog-panel.open { transform: translateX(0); visibility: visible; } .catalog-close { display: inline-flex; } .mobile-catalog-button { display: inline-flex; } .docs-panel { padding: 14px; } .docs-toolbar { align-items: stretch; flex-direction: column; } .search-input { width: 100%; } .doc-row { gap: 10px; } .drag-handle { display: none; } .doc-main p { display: none; } }
 </style>

@@ -66,6 +66,7 @@ func autoMigrate() error {
 	return DB.AutoMigrate(
 		// 核心表
 		&models.User{},
+		&models.UserAppearance{},
 		&models.Article{},
 		&models.Category{},
 		&models.Tag{},

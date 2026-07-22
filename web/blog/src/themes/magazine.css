@@ -1,0 +1,481 @@
+html[data-ui-theme="magazine"][data-theme="light"] {
+  --bg: #faf9f6;
+  --bg-soft: #f2f0ea;
+  --surface: #fffefa;
+  --ink: #1b1a18;
+  --sub: #6e6a62;
+  --hairline: #e2dfd6;
+  --accent: #33544a;
+  --accent-hover: #263f38;
+  --accent-soft: #e4ebe7;
+  --shadow-color: rgba(38, 35, 30, 0.08);
+}
+
+html[data-ui-theme="magazine"][data-theme="dark"] {
+  --bg: #171614;
+  --bg-soft: #201f1c;
+  --surface: #1d1c19;
+  --ink: #eae7e0;
+  --sub: #98938a;
+  --hairline: #2d2b27;
+  --accent: #8fb3a5;
+  --accent-hover: #afd0c4;
+  --accent-soft: #24312c;
+  --shadow-color: rgba(0, 0, 0, 0.28);
+}
+
+/* Site-wide editorial overrides keep precedence over the selected light/dark palette. */
+html[data-ui-theme="magazine"][data-site-theme="holiday"] {
+  --bg: var(--site-holiday-bg, #fff5f2);
+  --bg-soft: var(--site-holiday-bg-soft, #ffe9e4);
+  --surface: color-mix(in srgb, var(--bg) 86%, white);
+  --ink: var(--site-holiday-ink, #741f1f);
+  --sub: color-mix(in srgb, var(--ink) 70%, var(--bg));
+  --hairline: color-mix(in srgb, var(--site-holiday-accent, #b52a32) 28%, var(--bg));
+  --accent: var(--site-holiday-accent, #b52a32);
+  --accent-hover: color-mix(in srgb, var(--accent) 82%, black);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+
+html[data-ui-theme="magazine"] body {
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Source Han Sans SC', sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+html[data-ui-theme="magazine"] h1,
+html[data-ui-theme="magazine"] h2,
+html[data-ui-theme="magazine"] h3,
+html[data-ui-theme="magazine"] h4,
+html[data-ui-theme="magazine"] h5,
+html[data-ui-theme="magazine"] h6,
+html[data-ui-theme="magazine"] .serif {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-weight: 500;
+}
+
+html[data-ui-theme="magazine"] h1,
+html[data-ui-theme="magazine"] h2,
+html[data-ui-theme="magazine"] h3 {
+  letter-spacing: .035em;
+}
+
+html[data-ui-theme="magazine"] .container {
+  width: 100%;
+  max-width: 1060px;
+  padding-inline: 32px;
+}
+
+/* Existing pages become editorial spreads: paper, rules and typography carry hierarchy. */
+html[data-ui-theme="magazine"] :is(
+  .home,
+  .blog,
+  .works,
+  .blog-detail,
+  .work-detail,
+  .favorites,
+  .user-profile,
+  .notifications-page,
+  .about-page,
+  .links-page,
+  .follow-list-page,
+  .share-page,
+  .login-page
+) {
+  background: var(--bg) !important;
+}
+
+html[data-ui-theme="magazine"] :is(.page-header, .section-header, .header-section, .hero-section) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--hairline);
+  box-shadow: none !important;
+}
+
+html[data-ui-theme="magazine"] :is(.page-header, .section-header, .header-section)::before {
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-size: 10px;
+  letter-spacing: .24em;
+}
+
+html[data-ui-theme="magazine"] :is(.el-card, .card) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* A full perimeter is reserved for objects that stand on their own. */
+html[data-ui-theme="magazine"] :is(
+  .link-card,
+  .masonry-item,
+  .user-works-masonry-item,
+  .workspace-card,
+  .theme-card,
+  .login-card,
+  .article-card,
+  .comments-card,
+  .detail-card
+) {
+  border: 1px solid var(--hairline) !important;
+  background: var(--surface) !important;
+}
+
+html[data-ui-theme="magazine"] :is(
+  .article-list,
+  .user-article-list,
+  .user-favorite-list
+) > :is(.article-item, .user-article-item, .user-favorite-item):last-child {
+  border-bottom: 0 !important;
+}
+
+html[data-ui-theme="magazine"] .el-card__header {
+  padding: 22px 26px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: 18px;
+  letter-spacing: .04em;
+}
+
+html[data-ui-theme="magazine"] .el-card__body {
+  color: var(--ink);
+}
+
+html[data-ui-theme="magazine"] :is(
+  .article-item,
+  .notification-item,
+  .comment-item,
+  .favorite-item,
+  .user-article-item,
+  .user-favorite-item,
+  .workspace-item,
+  .document-item
+) {
+  border: 0 !important;
+  border-bottom: 1px solid var(--hairline) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: padding-left .25s ease, color .25s ease !important;
+}
+
+html[data-ui-theme="magazine"] :is(
+  .article-item,
+  .notification-item,
+  .comment-item,
+  .favorite-item,
+  .user-article-item,
+  .user-favorite-item,
+  .workspace-item,
+  .document-item
+):hover {
+  border-bottom-color: var(--hairline) !important;
+}
+
+html[data-ui-theme="magazine"] :is(.article-title, .work-title, .user-article-title, .user-works-title, .workspace-title) {
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif !important;
+  font-weight: 500 !important;
+  letter-spacing: .035em;
+}
+
+html[data-ui-theme="magazine"] :is(.article-meta, .work-meta, .user-article-meta, .user-works-meta, .date, time) {
+  color: var(--sub) !important;
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+
+html[data-ui-theme="magazine"] :is(.el-tag, .tag, .category-tag) {
+  min-height: 24px;
+  padding-inline: 10px;
+  border-color: var(--hairline) !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: var(--sub) !important;
+  font-weight: 400;
+}
+
+html[data-ui-theme="magazine"] :is(
+  .el-tag--success,
+  .el-tag--warning,
+  .el-tag--danger,
+  .el-tag--info
+) {
+  border-color: transparent !important;
+  background: var(--accent-soft) !important;
+  color: var(--ink) !important;
+}
+
+/* Element Plus controls remain familiar but lose application-dashboard gloss. */
+html[data-ui-theme="magazine"] :is(.el-button, .el-input__wrapper, .el-textarea__inner, .el-select__wrapper) {
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px var(--hairline) inset !important;
+}
+
+html[data-ui-theme="magazine"] .el-button {
+  border-color: var(--hairline);
+  background: transparent;
+  color: var(--ink);
+  letter-spacing: .04em;
+}
+
+html[data-ui-theme="magazine"] .el-button:hover,
+html[data-ui-theme="magazine"] .el-button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+html[data-ui-theme="magazine"] .el-button--primary {
+  border-color: var(--ink) !important;
+  background: var(--ink) !important;
+  color: var(--bg) !important;
+  box-shadow: none !important;
+}
+
+html[data-ui-theme="magazine"] .el-button--primary:hover,
+html[data-ui-theme="magazine"] .el-button--primary:focus-visible {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
+html[data-ui-theme="magazine"] :is(.el-input__wrapper, .el-textarea__inner, .el-select__wrapper) {
+  min-height: 40px;
+  padding-inline: 13px;
+  background: var(--surface) !important;
+}
+
+html[data-ui-theme="magazine"] :is(.el-input__wrapper, .el-textarea__inner, .el-select__wrapper):focus-within {
+  box-shadow: 0 0 0 1px var(--accent) inset !important;
+}
+
+html[data-ui-theme="magazine"] :is(.el-dialog, .el-drawer, .el-message-box, .el-popper) {
+  border: 1px solid var(--hairline) !important;
+  border-radius: 0 !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+
+html[data-ui-theme="magazine"] :is(.el-dialog__header, .el-drawer__header) {
+  margin: 0;
+  padding: 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+html[data-ui-theme="magazine"] :is(.el-dialog__title, .el-drawer__title) {
+  color: var(--ink);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  letter-spacing: .04em;
+}
+
+html[data-ui-theme="magazine"] :is(.el-dropdown-menu, .el-select-dropdown__list) {
+  border-radius: 0;
+  background: var(--surface) !important;
+}
+
+html[data-ui-theme="magazine"] :is(.el-dropdown-menu__item, .el-select-dropdown__item):hover,
+html[data-ui-theme="magazine"] :is(.el-dropdown-menu__item, .el-select-dropdown__item).is-selected {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+
+html[data-ui-theme="magazine"] :is(.el-tabs__nav-wrap, .el-table__header-wrapper) {
+  border-bottom-color: var(--hairline);
+}
+
+html[data-ui-theme="magazine"] .el-tabs__nav-wrap::after {
+  height: 1px;
+  background: var(--hairline);
+}
+
+html[data-ui-theme="magazine"] :is(.el-table, .el-table tr, .el-table th.el-table__cell, .el-table td.el-table__cell) {
+  border-color: var(--hairline);
+  background: transparent;
+  color: var(--ink);
+}
+
+html[data-ui-theme="magazine"] .el-table th.el-table__cell {
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: .12em;
+}
+
+html[data-ui-theme="magazine"] .el-table__inner-wrapper::before {
+  background: var(--hairline);
+}
+
+html[data-ui-theme="magazine"] .el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-disabled-bg-color: transparent;
+  gap: 3px;
+}
+
+html[data-ui-theme="magazine"] .el-pagination :is(.btn-prev, .btn-next, .el-pager li) {
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--sub);
+  font-family: Georgia, serif;
+}
+
+html[data-ui-theme="magazine"] .el-pagination .el-pager li.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+html[data-ui-theme="magazine"] .el-menu {
+  border-color: var(--hairline);
+  background: var(--surface);
+}
+
+html[data-ui-theme="magazine"] .el-menu-item {
+  margin: 3px 18px;
+  padding-inline: 12px !important;
+  border-left: 1px solid transparent;
+  color: var(--sub);
+}
+
+html[data-ui-theme="magazine"] .el-menu-item:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+html[data-ui-theme="magazine"] .el-menu-item.is-active {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+html[data-ui-theme="magazine"] .el-breadcrumb__inner,
+html[data-ui-theme="magazine"] .el-breadcrumb__separator {
+  color: var(--sub) !important;
+  font-size: 12px;
+  font-weight: 400 !important;
+}
+
+/* Markdown palette follows the resolved UI color scheme. */
+html[data-ui-theme="magazine"] [data-markdown-theme="light"] {
+  --markdown-bg: #ffffff;
+  --markdown-bg-soft: #f6f8fa;
+  --markdown-ink: #24292f;
+  --markdown-sub: #57606a;
+  --markdown-border: #d0d7de;
+  --markdown-accent: #0969da;
+  color-scheme: light;
+}
+
+html[data-ui-theme="magazine"] [data-markdown-theme="dark"] {
+  --markdown-bg: #0d1117;
+  --markdown-bg-soft: #161b22;
+  --markdown-ink: #e6edf3;
+  --markdown-sub: #9da7b3;
+  --markdown-border: #30363d;
+  --markdown-accent: #58a6ff;
+  color-scheme: dark;
+}
+
+html[data-ui-theme="magazine"] :is(
+  #article-preview,
+  .markdown-body,
+  .vditor-reset,
+  #work-description-preview-photography,
+  #work-description-preview-project,
+  .document-body
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--markdown-bg) !important;
+  box-shadow: none !important;
+  color: var(--markdown-ink) !important;
+  font-size: 16px;
+  line-height: 1.95;
+}
+
+html[data-ui-theme="magazine"] #article-preview {
+  background: transparent !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) :is(h1, h2, h3, h4) {
+  margin-top: 1.8em;
+  color: var(--markdown-ink) !important;
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-weight: 500;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) h2 {
+  padding-bottom: .45em;
+  border-bottom: 1px solid var(--markdown-border);
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) :is(p, li) {
+  color: var(--markdown-ink) !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) a {
+  color: var(--markdown-accent) !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) blockquote {
+  margin-inline: 0;
+  padding: 8px 0 8px 22px;
+  border-left: 1px solid var(--markdown-accent) !important;
+  background: transparent !important;
+  color: var(--markdown-sub) !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) :is(pre, table) {
+  border: 1px solid var(--markdown-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) table {
+  background: var(--markdown-bg) !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) :not(pre) > code {
+  border-radius: 0 !important;
+  background: var(--markdown-bg-soft) !important;
+  color: var(--markdown-ink) !important;
+}
+
+html[data-ui-theme="magazine"] :is(#article-preview, .markdown-body, .vditor-reset, #work-description-preview-photography, #work-description-preview-project, .document-body) img {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 900px) {
+  html[data-ui-theme="magazine"] .container {
+    padding-inline: 24px;
+  }
+
+  html[data-ui-theme="magazine"] :is(.el-card__header, .el-card__body) {
+    padding-inline: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-ui-theme="magazine"] .container {
+    padding-inline: 16px;
+  }
+
+  html[data-ui-theme="magazine"] h1 {
+    font-size: clamp(30px, 10vw, 40px);
+  }
+
+  html[data-ui-theme="magazine"] h2 {
+    font-size: 25px;
+  }
+
+  html[data-ui-theme="magazine"] :is(.el-card__header, .el-card__body) {
+    padding-inline: 16px;
+  }
+
+  html[data-ui-theme="magazine"] .el-dialog {
+    width: calc(100vw - 24px) !important;
+    margin-inline: 12px;
+  }
+}

@@ -79,8 +79,9 @@ func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models
 		doc.Title = req.Title
 		doc.Content = req.Content
 		doc.WordCount = countWords(req.Content)
+		doc.Status = statusAfterContentMutation(doc.Status)
 		if err := tx.Model(&doc).Updates(map[string]interface{}{
-			"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount,
+			"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount, "status": doc.Status,
 		}).Error; err != nil {
 			return err
 		}
@@ -101,13 +102,19 @@ func (s *DocService) Autosave(id, ownerID uint, req *models.DocAutosaveRequest) 
 			}
 			return err
 		}
+		newStatus := statusAfterContentMutation(doc.Status)
 		if doc.Content == req.Content {
+			if newStatus != doc.Status {
+				doc.Status = newStatus
+				return tx.Model(&doc).Update("status", doc.Status).Error
+			}
 			return nil
 		}
 		doc.Content = req.Content
 		doc.WordCount = countWords(req.Content)
+		doc.Status = newStatus
 		if err := tx.Model(&doc).Updates(map[string]interface{}{
-			"content": doc.Content, "word_count": doc.WordCount,
+			"content": doc.Content, "word_count": doc.WordCount, "status": doc.Status,
 		}).Error; err != nil {
 			return err
 		}
@@ -278,8 +285,9 @@ func (s *DocService) Rollback(id, ownerID uint, version int) (*models.Doc, error
 		doc.Title = snapshot.Title
 		doc.Content = snapshot.Content
 		doc.WordCount = countWords(snapshot.Content)
+		doc.Status = statusAfterContentMutation(doc.Status)
 		if err := tx.Model(&doc).Updates(map[string]interface{}{
-			"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount,
+			"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount, "status": doc.Status,
 		}).Error; err != nil {
 			return err
 		}
@@ -363,6 +371,13 @@ func renderMarkdown(content string) (string, error) {
 		return "", err
 	}
 	return output.String(), nil
+}
+
+func statusAfterContentMutation(status int) int {
+	if status == models.DocStatusPublished {
+		return models.DocStatusDraft
+	}
+	return status
 }
 
 func countWords(content string) int {

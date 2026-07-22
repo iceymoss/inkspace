@@ -1,9 +1,26 @@
 <template>
-  <div class="user-center-layout">
+  <div
+    class="user-center-layout"
+    :class="{ 'sidebar-is-open': sidebarOpen }"
+  >
     <el-container>
-      <el-aside width="200px" class="sidebar">
+      <button
+        v-if="sidebarOpen"
+        class="sidebar-scrim"
+        type="button"
+        aria-label="关闭用户中心导航"
+        @click="sidebarOpen = false"
+      />
+      <el-aside
+        width="240px"
+        class="sidebar"
+        :class="{ 'is-open': sidebarOpen }"
+      >
         <div class="logo">
-          <router-link to="/">InkSpace</router-link>
+          <router-link to="/">
+            Ink<span>Space</span>
+          </router-link>
+          <small class="serif">MEMBER · 01</small>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -37,11 +54,19 @@
           <el-menu-item index="/dashboard/notifications">
             <el-icon><Bell /></el-icon>
             <span>我的通知</span>
-            <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge" />
+            <el-badge
+              :value="unreadCount"
+              :hidden="unreadCount === 0"
+              class="notification-badge"
+            />
           </el-menu-item>
           <el-menu-item index="/profile/edit">
             <el-icon><User /></el-icon>
             <span>个人设置</span>
+          </el-menu-item>
+          <el-menu-item index="/dashboard/appearance">
+            <el-icon><Brush /></el-icon>
+            <span>外观与主题</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -49,18 +74,46 @@
       <el-container>
         <el-header class="header">
           <div class="header-content">
-            <el-breadcrumb separator="/">
-              <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-              <el-breadcrumb-item>{{ breadcrumbTitle }}</el-breadcrumb-item>
-            </el-breadcrumb>
+            <div class="header-leading">
+              <button
+                class="sidebar-toggle"
+                type="button"
+                :aria-expanded="sidebarOpen"
+                :aria-label="sidebarOpen ? '关闭用户中心导航' : '打开用户中心导航'"
+                @click="sidebarOpen = !sidebarOpen"
+              >
+                <Menu />
+              </button>
+              <div class="page-marker">
+                <span class="page-label">PERSONAL EDITION</span>
+                <el-breadcrumb separator="/">
+                  <el-breadcrumb-item :to="{ path: '/' }">
+                    首页
+                  </el-breadcrumb-item>
+                  <el-breadcrumb-item>{{ breadcrumbTitle }}</el-breadcrumb-item>
+                </el-breadcrumb>
+              </div>
+            </div>
             <div class="header-actions">
-              <el-button text @click="$router.push('/')">返回网站</el-button>
-              <el-button v-if="userStore.isAdmin" type="primary" @click="goToAdminBackend">
+              <el-button
+                text
+                @click="$router.push('/')"
+              >
+                返回网站
+              </el-button>
+              <el-button
+                v-if="userStore.isAdmin"
+                type="primary"
+                @click="goToAdminBackend"
+              >
                 管理后台
               </el-button>
               <el-dropdown @command="handleCommand">
                 <span class="user-info">
-                  <el-avatar :size="32" :src="userStore.user?.avatar" />
+                  <el-avatar
+                    :size="32"
+                    :src="userStore.user?.avatar"
+                  />
                   <span>{{ userStore.user?.nickname || userStore.user?.username }}</span>
                 </span>
                 <template #dropdown>
@@ -84,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
@@ -97,7 +150,9 @@ import {
   User,
   SwitchButton,
   ChatDotRound,
-  Reading
+  Reading,
+  Brush,
+  Menu
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -105,6 +160,11 @@ const router = useRouter()
 const userStore = useUserStore()
 const unreadCount = ref(0)
 const adminBackendUrl = ref('')
+const sidebarOpen = ref(false)
+
+watch(() => route.fullPath, () => {
+  sidebarOpen.value = false
+})
 
 const loadUnreadCount = async () => {
   try {
@@ -161,6 +221,7 @@ const breadcrumbTitle = computed(() => {
     '/dashboard/comments': '我的评论',
     '/favorites': '我的收藏',
     '/dashboard/notifications': '我的通知',
+    '/dashboard/appearance': '外观与主题',
     '/profile/edit': '个人设置'
   }
   // 检查文章编辑路径
@@ -235,16 +296,17 @@ const handleCommand = (command) => {
   height: 100vh;
   height: 100dvh;
   background-color: var(--theme-bg-card);
-  box-shadow: 2px 0 8px var(--theme-shadow);
   border-right: 1px solid var(--theme-border);
   overflow: hidden;
 }
 
 .logo {
-  height: 60px;
+  height: 96px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  flex-direction: column;
+  padding: 0 28px;
   font-size: 20px;
   font-weight: bold;
   border-bottom: 1px solid var(--theme-border);
@@ -252,41 +314,30 @@ const handleCommand = (command) => {
 }
 
 .logo a {
-  font-size: 24px;
+  color: var(--theme-text-primary);
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif;
+  font-size: 23px;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, var(--theme-primary) 30%, #764ba2 70%, #f093fb 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   text-decoration: none;
-  letter-spacing: 2px;
-  position: relative;
+  letter-spacing: .1em;
   display: inline-block;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  font-style: italic;
-  text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
-  animation: gradientShift 3s ease infinite;
 }
 
-.logo a:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.15);
-  letter-spacing: 3px;
+.logo a span {
+  color: var(--theme-primary);
 }
 
-@keyframes gradientShift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+.logo small {
+  margin-top: 3px;
+  color: var(--theme-primary);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: .2em;
 }
 
 .menu {
-  height: calc(100vh - 60px);
-  height: calc(100dvh - 60px);
+  height: calc(100vh - 96px);
+  height: calc(100dvh - 96px);
   border-right: none;
   background-color: var(--theme-bg-card);
   overflow-y: auto;
@@ -294,9 +345,10 @@ const handleCommand = (command) => {
 }
 
 .header {
+  height: 72px;
   background-color: var(--theme-bg-card);
   border-bottom: 1px solid var(--theme-border);
-  padding: 0 20px;
+  padding: 0 32px;
   color: var(--theme-text-primary);
 }
 
@@ -313,6 +365,47 @@ const handleCommand = (command) => {
   gap: 15px;
 }
 
+.header-leading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.page-marker {
+  display: grid;
+  gap: 2px;
+}
+
+.page-label {
+  color: var(--theme-primary);
+  font-family: Georgia, serif;
+  font-size: 9px;
+  letter-spacing: .24em;
+}
+
+.sidebar-toggle {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 16px;
+  padding: 8px;
+  border: 1px solid var(--theme-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--theme-text-primary);
+  cursor: pointer;
+}
+
+.sidebar-toggle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-scrim {
+  display: none;
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -321,7 +414,7 @@ const handleCommand = (command) => {
 }
 
 .main {
-  padding: 20px;
+  padding: 34px clamp(20px, 4vw, 56px) 56px;
 }
 
 /* 修复通知气泡位置 */
@@ -342,36 +435,49 @@ const handleCommand = (command) => {
   transform: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .sidebar {
-    width: 64px !important;
+    position: fixed;
+    z-index: 1100;
+    left: 0;
+    width: min(280px, calc(100vw - 48px)) !important;
     height: 100vh;
     height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
   }
 
-  .logo a {
-    width: 38px;
-    overflow: hidden;
-    font-size: 0;
-    letter-spacing: 0;
+  .sidebar.is-open {
+    transform: none;
   }
 
-  .logo a::after {
-    content: 'Ink';
-    font-size: 17px;
+  .sidebar-scrim {
+    position: fixed;
+    z-index: 1090;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: color-mix(in srgb, var(--theme-text-primary) 38%, transparent);
+    cursor: pointer;
   }
 
-  :deep(.el-menu-item) {
-    justify-content: center;
-    padding: 0 !important;
-  }
-
-  :deep(.el-menu-item span) {
-    display: none;
+  .sidebar-toggle {
+    display: grid;
   }
 
   .header {
-    padding: 0 10px;
+    padding-inline: 20px;
+  }
+
+  .main {
+    padding: 28px 20px 48px;
+  }
+}
+
+@media (max-width: 560px) {
+  .header {
+    height: 62px;
+    padding: 0 12px;
   }
 
   .header-actions {
@@ -383,8 +489,17 @@ const handleCommand = (command) => {
     display: none;
   }
 
+  .page-label,
+  :deep(.el-breadcrumb__item:first-child) {
+    display: none;
+  }
+
+  .sidebar-toggle {
+    margin-right: 10px;
+  }
+
   .main {
-    padding: 12px 10px;
+    padding: 20px 12px 40px;
   }
 }
 </style>

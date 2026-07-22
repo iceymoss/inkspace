@@ -1,0 +1,81 @@
+html[data-ui-theme] {
+  color-scheme: light;
+  background: var(--bg);
+  --theme-bg-primary: var(--bg);
+  --theme-bg-secondary: var(--bg-soft);
+  --theme-bg-card: var(--surface);
+  --theme-bg-hover: var(--accent-soft);
+  --theme-text-primary: var(--ink);
+  --theme-text-secondary: var(--sub);
+  --theme-text-tertiary: var(--sub);
+  --theme-border: var(--hairline);
+  --theme-border-light: var(--hairline);
+  --theme-primary: var(--accent);
+  --theme-primary-hover: var(--accent-hover);
+  --theme-shadow: var(--shadow-color);
+  --theme-content-bg: var(--surface);
+  --theme-hero-gradient: var(--bg-soft);
+  --theme-accent: var(--accent);
+
+  --el-color-primary: var(--accent);
+  --el-color-primary-light-3: color-mix(in srgb, var(--accent) 72%, var(--bg));
+  --el-color-primary-light-5: color-mix(in srgb, var(--accent) 52%, var(--bg));
+  --el-color-primary-light-7: color-mix(in srgb, var(--accent) 28%, var(--bg));
+  --el-color-primary-light-9: var(--accent-soft);
+  --el-color-primary-dark-2: var(--accent-hover);
+  --el-bg-color: var(--surface);
+  --el-bg-color-page: var(--bg-soft);
+  --el-bg-color-overlay: var(--surface);
+  --el-text-color-primary: var(--ink);
+  --el-text-color-regular: var(--sub);
+  --el-text-color-secondary: var(--sub);
+  --el-border-color: var(--hairline);
+  --el-border-color-light: var(--hairline);
+  --el-fill-color-light: var(--bg-soft);
+  --el-fill-color-blank: var(--surface);
+  --el-border-radius-base: 0;
+  --el-box-shadow-light: none;
+  --el-box-shadow: none;
+  --el-box-shadow-dark: none;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-site-theme="holiday"] {
+  --bg: var(--site-holiday-bg, #fff5f2);
+  --bg-soft: var(--site-holiday-bg-soft, #ffe9e4);
+  --surface: color-mix(in srgb, var(--bg) 86%, white);
+  --ink: var(--site-holiday-ink, #741f1f);
+  --sub: color-mix(in srgb, var(--ink) 70%, var(--bg));
+  --hairline: color-mix(in srgb, var(--site-holiday-accent, #b52a32) 28%, var(--bg));
+  --accent: var(--site-holiday-accent, #b52a32);
+  --accent-hover: color-mix(in srgb, var(--accent) 82%, black);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+
+html[data-site-theme="mourning"] body,
+html[data-site-theme="mourning"] img {
+  filter: grayscale(1);
+}
+
+html[data-site-theme="mourning"] body {
+  min-height: 100vh;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

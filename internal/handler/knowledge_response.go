@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"net/http"
 	"strconv"
 
 	"go.uber.org/zap"
@@ -19,6 +20,8 @@ func knowledgeError(c *gin.Context, err error) {
 		utils.Forbidden(c, err.Error())
 	case errors.Is(err, service.ErrCatalogCycle), errors.Is(err, service.ErrKnowledgeInvalid):
 		utils.BadRequest(c, err.Error())
+	case errors.Is(err, service.ErrPublicWikiTooLarge):
+		c.JSON(http.StatusUnprocessableEntity, utils.Response{Code: http.StatusUnprocessableEntity, Message: err.Error()})
 	default:
 		zap.L().Error("knowledge base request failed", zap.Error(err))
 		utils.InternalServerError(c, "服务暂时不可用")

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHEN YU® · 瑞士网格风</title>
+<style>
+  :root { color-scheme: light; }
+  [data-theme="light"] {
+    --bg: #FFFFFF;
+    --ink: #111111;
+    --sub: #767676;
+    --line: #E4E4E4;
+    --blue: #002FA7;
+    --blue-ink: #FFFFFF;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0C0C0C;
+    --ink: #F2F2F2;
+    --sub: #8C8C8C;
+    --line: #262626;
+    --blue: #3B62E0;
+    --blue-ink: #FFFFFF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    line-height: 1.7; font-size: 15px;
+    transition: background .3s, color .3s;
+  }
+  .mono { font-family: 'SF Mono', 'IBM Plex Mono', Consolas, monospace; }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .cap { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--sub); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+
+  /* ===== Nav ===== */
+  header { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--ink); }
+  nav { display: grid; grid-template-columns: 1fr auto auto; gap: 40px; align-items: center; height: 58px; }
+  .brand { font-weight: 700; font-size: 16px; letter-spacing: .04em; }
+  .brand sup { color: var(--blue); }
+  .nav-links { display: flex; gap: 2px; }
+  .nav-links a {
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    padding: 8px 16px; transition: background .15s, color .15s;
+  }
+  .nav-links a:hover { background: var(--ink); color: var(--bg); }
+  .nav-links a.active { background: var(--blue); color: var(--blue-ink); }
+  .theme-btn {
+    width: 32px; height: 32px; border: 1px solid var(--ink); background: none;
+    color: var(--ink); cursor: pointer; font-size: 13px;
+    transition: background .15s, color .15s;
+  }
+  .theme-btn:hover { background: var(--ink); color: var(--bg); }
+
+  /* ===== Hero ===== */
+  .hero { border-bottom: 1px solid var(--ink); position: relative; }
+  .hero-grid { display: grid; grid-template-columns: repeat(12, 1fr); }
+  .hero-main { grid-column: 1 / 9; padding: 72px 40px 72px 0; border-right: 1px solid var(--line); }
+  .coord { display: flex; gap: 10px; margin-bottom: 30px; }
+  .coord span { font-size: 10.5px; letter-spacing: .15em; border: 1px solid var(--line); padding: 3px 10px; color: var(--sub); }
+  .coord span.hl { border-color: var(--blue); color: var(--blue); }
+  .hero h1 {
+    font-size: clamp(44px, 7.2vw, 96px); line-height: 1.04; font-weight: 800;
+    letter-spacing: -.015em; text-transform: uppercase;
+  }
+  .hero h1 .cn { display: block; font-size: clamp(20px, 2.6vw, 34px); font-weight: 400; letter-spacing: .3em; margin-top: 18px; color: var(--sub); }
+  .hero h1 .blue { color: var(--blue); }
+  .hero-side { grid-column: 9 / 13; display: flex; flex-direction: column; }
+  .side-cell { flex: 1; padding: 28px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+  .side-cell:last-child { border-bottom: none; }
+  .side-cell .n { font-size: 32px; font-weight: 800; }
+  .side-cell .n em { font-style: normal; color: var(--blue); }
+  .side-cell p { font-size: 12.5px; color: var(--sub); }
+  .hero-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding: 16px 0; }
+  .hero-foot .marquee { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--sub); overflow: hidden; white-space: nowrap; }
+  .btn-solid {
+    display: inline-block; background: var(--blue); color: var(--blue-ink);
+    font-size: 12.5px; letter-spacing: .15em; text-transform: uppercase;
+    padding: 12px 32px; transition: background .2s;
+  }
+  .btn-solid:hover { background: var(--ink); }
+
+  /* ===== Section frame ===== */
+  section { border-bottom: 1px solid var(--ink); }
+  .sec-head {
+    display: grid; grid-template-columns: 120px 1fr auto; align-items: baseline;
+    padding: 22px 0; border-bottom: 1px solid var(--line);
+  }
+  .sec-head .no { font-size: 13px; color: var(--blue); letter-spacing: .1em; }
+  .sec-head h2 { font-size: 22px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+  .sec-head h2 span { font-weight: 400; color: var(--sub); margin-left: 16px; font-size: 15px; letter-spacing: .2em; }
+  .sec-head .more { font-size: 12px; letter-spacing: .15em; text-transform: uppercase; color: var(--sub); }
+  .sec-head .more:hover { color: var(--blue); }
+
+  /* ===== Index (blog) ===== */
+  .row {
+    display: grid; grid-template-columns: 120px 1fr 200px 60px; align-items: center;
+    padding: 22px 0; border-bottom: 1px solid var(--line);
+    transition: background .15s;
+  }
+  .row:hover { background: color-mix(in srgb, var(--blue) 5%, var(--bg)); }
+  .row .idx { font-size: 13px; color: var(--sub); }
+  .row:hover .idx { color: var(--blue); }
+  .row h3 { font-size: 17px; font-weight: 600; }
+  .row .meta { font-size: 12px; color: var(--sub); letter-spacing: .08em; text-transform: uppercase; }
+  .row .arr { text-align: right; font-size: 18px; color: var(--sub); transition: transform .2s, color .2s; }
+  .row:hover .arr { transform: translateX(6px); color: var(--blue); }
+
+  /* ===== Works ===== */
+  .work-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .work { border-right: 1px solid var(--line); padding: 34px 30px 40px; position: relative; transition: background .2s; }
+  .work:last-child { border-right: none; }
+  .work:hover { background: var(--ink); color: var(--bg); }
+  .work:hover .cap, .work:hover p { color: color-mix(in srgb, var(--bg) 65%, var(--ink)); }
+  .work .w-no { font-size: 56px; font-weight: 800; color: var(--line); line-height: 1; transition: color .2s; }
+  .work:hover .w-no { color: var(--blue); }
+  .work h3 { font-size: 20px; font-weight: 700; margin: 22px 0 4px; text-transform: uppercase; letter-spacing: .02em; }
+  .work .cap { display: block; margin-bottom: 12px; }
+  .work p { font-size: 13.5px; color: var(--sub); }
+
+  /* ===== Photo plates ===== */
+  .plate-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; background: var(--line); border-bottom: 1px solid var(--ink); }
+  .plate { position: relative; background: var(--bg); overflow: hidden; }
+  .plate .img { position: absolute; inset: 0; transition: transform .5s cubic-bezier(.2,.6,.2,1), filter .5s; filter: grayscale(35%); }
+  .plate:hover .img { transform: scale(1.04); filter: grayscale(0%); }
+  .plate .tag {
+    position: absolute; top: 12px; left: 12px; z-index: 2;
+    background: var(--bg); color: var(--ink); font-size: 10px; letter-spacing: .15em;
+    padding: 4px 10px; text-transform: uppercase;
+  }
+  .plate.big { grid-column: span 6; aspect-ratio: 3/2; }
+  .plate.sm { grid-column: span 3; aspect-ratio: 3/4; }
+  .g1 { background: linear-gradient(155deg, #8FA6B8 0%, #51697E 55%, #2C3E4E 100%); }
+  .g2 { background: linear-gradient(200deg, #C9B08C 0%, #8F7350 55%, #4E3D28 100%); }
+  .g3 { background: linear-gradient(170deg, #7E9884 0%, #46604F 60%, #263A2E 100%); }
+  .g4 { background: linear-gradient(150deg, #B8BECC 0%, #7A85A0 55%, #43506B 100%); }
+
+  /* ===== KB table ===== */
+  .kb-table { border-bottom: 1px solid var(--ink); }
+  .kb-row {
+    display: grid; grid-template-columns: 120px 1fr 1fr 140px 60px; align-items: center;
+    padding: 24px 0; border-bottom: 1px solid var(--line); transition: background .15s;
+  }
+  .kb-row:hover { background: color-mix(in srgb, var(--blue) 5%, var(--bg)); }
+  .kb-row .code { font-size: 12px; color: var(--blue); letter-spacing: .1em; }
+  .kb-row h3 { font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+  .kb-row p { font-size: 13px; color: var(--sub); }
+  .kb-row .count { font-size: 12px; color: var(--sub); letter-spacing: .1em; text-align: right; }
+  .kb-row .arr { text-align: right; font-size: 18px; color: var(--sub); }
+  .kb-row:hover .arr { color: var(--blue); }
+
+  /* ===== Footer ===== */
+  footer { padding: 0; }
+  .foot-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--ink); }
+  .foot-cell { padding: 44px 32px; }
+  .foot-cell:first-child { border-right: 1px solid var(--line); }
+  .foot-cell .big { font-size: clamp(34px, 4.5vw, 56px); font-weight: 800; text-transform: uppercase; letter-spacing: -.01em; line-height: 1.1; }
+  .foot-cell .big .blue { color: var(--blue); }
+  .foot-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
+  .foot-links a { color: var(--sub); text-transform: uppercase; letter-spacing: .12em; font-size: 12px; }
+  .foot-links a:hover { color: var(--blue); }
+  .colophon { display: flex; justify-content: space-between; padding: 16px 32px; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--sub); }
+
+  @media (max-width: 900px) {
+    .hero-main { grid-column: 1 / 13; border-right: none; padding-right: 0; }
+    .hero-side { grid-column: 1 / 13; flex-direction: row; border-top: 1px solid var(--line); }
+    .side-cell { border-bottom: none; border-right: 1px solid var(--line); }
+    .side-cell:last-child { border-right: none; }
+    .work-grid { grid-template-columns: 1fr; }
+    .work { border-right: none; border-bottom: 1px solid var(--line); }
+    .plate.big, .plate.sm { grid-column: span 6; }
+    .row { grid-template-columns: 60px 1fr 40px; }
+    .row .meta { display: none; }
+    .kb-row { grid-template-columns: 80px 1fr 40px; }
+    .kb-row p, .kb-row .count { display: none; }
+    .nav-links a:not(.keep) { display: none; }
+    .foot-grid { grid-template-columns: 1fr; }
+    .foot-cell:first-child { border-right: none; border-bottom: 1px solid var(--line); }
+  }
+  @media (max-width: 560px) { .plate.big, .plate.sm { grid-column: span 12; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#">CHEN YU<sup>®</sup></a>
+      <div class="nav-links">
+        <a href="#" class="active">Index</a>
+        <a href="#writing">Writing</a>
+        <a href="#works">Works</a>
+        <a href="#plates">Photos</a>
+        <a href="#kb">Wiki</a>
+      </div>
+      <button class="theme-btn keep" id="themeToggle" aria-label="切换深浅色模式">◐</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero wrap">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <div class="coord mono">
+          <span class="hl">A1 / INDEX</span><span>SHANGHAI</span><span>31.23°N 121.47°E</span><span>EST. 2020</span>
+        </div>
+        <h1>Engineer<br>&amp; <span class="blue">Photo</span>grapher
+          <span class="cn">代码 × 摄影 × 知识的系统化整理</span>
+        </h1>
+      </div>
+      <div class="hero-side">
+        <div class="side-cell">
+          <div class="n">42<em>+</em></div>
+          <p>长文，关于前端工程与设计的思考</p>
+        </div>
+        <div class="side-cell">
+          <div class="n">03</div>
+          <p>开源项目，共 3.4k stars</p>
+        </div>
+        <div class="side-cell">
+          <div class="n">258</div>
+          <p>知识库笔记，双向链接互联</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-foot">
+      <span class="marquee">Blog — Works — Photography — Knowledge Base — 记录是为了更好地思考 —</span>
+      <a class="btn-solid" href="#writing">Start Reading</a>
+    </div>
+  </div>
+
+  <section id="writing" class="wrap">
+    <div class="sec-head">
+      <span class="no mono">01</span>
+      <h2>Writing<span>文章</span></h2>
+      <a class="more" href="#">All 42 →</a>
+    </div>
+    <a class="row" href="#">
+      <span class="idx mono">W–042</span>
+      <h3>给个人网站做减法：我删掉了三分之二的功能</h3>
+      <span class="meta">Design · 2026.07.14</span>
+      <span class="arr">→</span>
+    </a>
+    <a class="row" href="#">
+      <span class="idx mono">W–041</span>
+      <h3>View Transitions API 实战：丝滑的无刷新页面切换</h3>
+      <span class="meta">Frontend · 2026.06.28</span>
+      <span class="arr">→</span>
+    </a>
+    <a class="row" href="#">
+      <span class="idx mono">W–040</span>
+      <h3>胶片模拟不是滤镜：谈谈数码时代的影调审美</h3>
+      <span class="meta">Photo · 2026.06.09</span>
+      <span class="arr">→</span>
+    </a>
+  </section>
+
+  <section id="works" class="wrap">
+    <div class="sec-head">
+      <span class="no mono">02</span>
+      <h2>Works<span>作品</span></h2>
+      <a class="more" href="#">GitHub →</a>
+    </div>
+    <div class="work-grid">
+      <a class="work" href="#">
+        <div class="w-no">01</div>
+        <h3>Lumo</h3>
+        <span class="cap">Open Source · Rust · ★ 2.1k</span>
+        <p>为摄影师设计的本地图库：RAW 预览、EXIF 检索、胶片风格标签体系。</p>
+      </a>
+      <a class="work" href="#">
+        <div class="w-no">02</div>
+        <h3>Inkwell</h3>
+        <span class="cap">Open Source · TypeScript · ★ 876</span>
+        <p>专注排版的 Markdown 博客引擎，内置中文排版优化。</p>
+      </a>
+      <a class="work" href="#">
+        <div class="w-no">03</div>
+        <h3>Gridfolio</h3>
+        <span class="cap">Template · Vue · ★ 430</span>
+        <p>面向创作者的作品集模板，三种布局体系，深浅色自适应。</p>
+      </a>
+    </div>
+  </section>
+
+  <section id="plates" class="wrap" style="border-bottom:none;">
+    <div class="sec-head">
+      <span class="no mono">03</span>
+      <h2>Photos<span>摄影</span></h2>
+      <a class="more" href="#">Full Gallery →</a>
+    </div>
+    <div class="plate-grid">
+      <figure class="plate big"><span class="tag mono">PL.01 — 外滩</span><div class="img g1"></div></figure>
+      <figure class="plate sm"><span class="tag mono">PL.02 — 敦煌</span><div class="img g2"></div></figure>
+      <figure class="plate sm"><span class="tag mono">PL.03 — 莫干山</span><div class="img g3"></div></figure>
+      <figure class="plate sm"><span class="tag mono">PL.04 — 北海道</span><div class="img g4"></div></figure>
+      <figure class="plate sm"><span class="tag mono">PL.05 — 泉州</span><div class="img g2"></div></figure>
+      <figure class="plate big"><span class="tag mono">PL.06 — 维港</span><div class="img g1"></div></figure>
+    </div>
+  </section>
+
+  <section id="kb" class="wrap">
+    <div class="sec-head">
+      <span class="no mono">04</span>
+      <h2>Wiki<span>知识库</span></h2>
+      <a class="more" href="#">Enter →</a>
+    </div>
+    <div class="kb-table">
+      <a class="kb-row" href="#">
+        <span class="code mono">K–FE</span>
+        <h3>前端工程</h3>
+        <p>渲染原理、性能优化、工程化实践</p>
+        <span class="count">128 Notes</span>
+        <span class="arr">→</span>
+      </a>
+      <a class="kb-row" href="#">
+        <span class="code mono">K–DS</span>
+        <h3>设计的常识</h3>
+        <p>排版、配色、栅格系统</p>
+        <span class="count">54 Notes</span>
+        <span class="arr">→</span>
+      </a>
+      <a class="kb-row" href="#">
+        <span class="code mono">K–RD</span>
+        <h3>阅读与摘录</h3>
+        <p>书、划线，与被改变的想法</p>
+        <span class="count">76 Notes</span>
+        <span class="arr">→</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="foot-grid">
+    <div class="foot-cell">
+      <div class="big">Let's build<br>something <span class="blue">honest.</span></div>
+    </div>
+    <div class="foot-cell">
+      <div class="foot-links">
+        <a href="#">GitHub</a><a href="#">RSS Feed</a><a href="#">Email</a><a href="#">About</a><a href="#">Uses</a><a href="#">Colophon</a>
+      </div>
+    </div>
+  </div>
+  <div class="colophon mono">
+    <span>© 2026 Chen Yu</span>
+    <span>Grid 12 col / Klein Blue 002FA7</span>
+  </div>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  root.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+  });
+</script>
+</body>
+</html>

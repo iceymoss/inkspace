@@ -1,16 +1,22 @@
 <template>
   <div class="blog-detail">
     <div class="container">
-      <el-card v-if="article" class="article-card">
+      <el-card
+        v-if="article"
+        class="article-card"
+      >
         <div class="article-header">
+          <div class="article-kicker">
+            JOURNAL · ISSUE {{ article.id }}
+          </div>
           <div class="article-title-row">
             <h1>{{ article.title }}</h1>
             <el-button 
               v-if="isArticleOwner"
               type="primary"
               size="default"
-              @click="handleEdit"
               class="edit-btn-header"
+              @click="handleEdit"
             >
               <el-icon><Edit /></el-icon> 
               编辑
@@ -52,14 +58,24 @@
           </div>
         </div>
 
-        <div class="article-content" id="article-preview" v-if="article"></div>
-        <div v-else class="article-loading">正在加载内容...</div>
+        <div
+          v-if="article"
+          id="article-preview"
+          class="article-content"
+          :data-markdown-theme="markdownTheme"
+        />
+        <div
+          v-else
+          class="article-loading"
+        >
+          正在加载内容...
+        </div>
 
         <div class="article-actions">
           <el-button 
             :type="isLiked ? 'primary' : 'default'"
-            @click="handleLike"
             :loading="likeLoading"
+            @click="handleLike"
           >
             <el-icon><Star /></el-icon> 
             {{ isLiked ? '已点赞' : '点赞' }}
@@ -69,8 +85,8 @@
           <el-button 
             v-if="userStore.isLoggedIn"
             :type="isFavorited ? 'warning' : 'default'"
-            @click="handleFavorite"
             :loading="favoriteLoading"
+            @click="handleFavorite"
           >
             <el-icon><Collection /></el-icon> 
             {{ isFavorited ? '已收藏' : '收藏' }} 
@@ -88,10 +104,17 @@
         </div>
       </el-card>
 
-      <el-card v-if="articleCommentEnabled" class="comments-card">
+      <el-card
+        v-if="articleCommentEnabled"
+        class="comments-card"
+      >
         <h3>评论区</h3>
         
-        <el-form v-if="userStore.isLoggedIn" @submit.prevent="submitComment" class="comment-form">
+        <el-form
+          v-if="userStore.isLoggedIn"
+          class="comment-form"
+          @submit.prevent="submitComment"
+        >
           <el-input
             v-model="commentContent"
             type="textarea"
@@ -100,14 +123,33 @@
             maxlength="500"
             show-word-limit
           />
-          <el-button type="primary" @click="submitComment" :loading="submitting">发表评论</el-button>
+          <el-button
+            type="primary"
+            :loading="submitting"
+            @click="submitComment"
+          >
+            发表评论
+          </el-button>
         </el-form>
-        <el-alert v-else type="info" :closable="false">
-          请<el-link type="primary" @click="$router.push('/login')">登录</el-link>后发表评论
+        <el-alert
+          v-else
+          type="info"
+          :closable="false"
+        >
+          请<el-link
+            type="primary"
+            @click="$router.push('/login')"
+          >
+            登录
+          </el-link>后发表评论
         </el-alert>
 
         <div class="comment-list">
-          <div v-for="comment in comments" :key="comment.id" class="comment-item">
+          <div
+            v-for="comment in comments"
+            :key="comment.id"
+            class="comment-item"
+          >
             <el-avatar 
               :src="comment.user?.avatar" 
               class="clickable-avatar"
@@ -119,7 +161,13 @@
                   <span class="comment-author">
                     {{ comment.user?.nickname || comment.nickname }}
                   </span>
-                  <el-tag v-if="isCommentAuthor(comment)" type="warning" size="small" effect="plain" class="author-tag">
+                  <el-tag
+                    v-if="isCommentAuthor(comment)"
+                    type="warning"
+                    size="small"
+                    effect="plain"
+                    class="author-tag"
+                  >
                     作者
                   </el-tag>
                 </div>
@@ -133,8 +181,8 @@
                   text 
                   size="small" 
                   :type="comment.isLiked ? 'primary' : 'default'"
-                  @click="handleCommentLike(comment)"
                   :loading="comment.likeLoading"
+                  @click="handleCommentLike(comment)"
                 >
                   <el-icon><Star /></el-icon> 
                   {{ comment.like_count || 0 }}
@@ -159,7 +207,10 @@
               </div>
               
               <!-- 回复输入框 -->
-              <div v-if="comment.showReply" class="reply-input">
+              <div
+                v-if="comment.showReply"
+                class="reply-input"
+              >
                 <el-input
                   v-model="comment.replyContent"
                   type="textarea"
@@ -169,16 +220,33 @@
                   show-word-limit
                 />
                 <div class="reply-actions">
-                  <el-button size="small" @click="cancelReply(comment)">取消</el-button>
-                  <el-button type="primary" size="small" @click="submitReply(comment)" :loading="comment.replying">
+                  <el-button
+                    size="small"
+                    @click="cancelReply(comment)"
+                  >
+                    取消
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    :loading="comment.replying"
+                    @click="submitReply(comment)"
+                  >
                     发表回复
                   </el-button>
                 </div>
               </div>
               
               <!-- 回复列表 -->
-              <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
-                <div v-for="reply in getDisplayedReplies(comment)" :key="reply.id" class="reply-item">
+              <div
+                v-if="comment.replies && comment.replies.length > 0"
+                class="replies-list"
+              >
+                <div
+                  v-for="reply in getDisplayedReplies(comment)"
+                  :key="reply.id"
+                  class="reply-item"
+                >
                   <el-avatar 
                     :src="reply.user?.avatar" 
                     size="small"
@@ -189,10 +257,19 @@
                     <div class="reply-header">
                       <span class="reply-author">
                         {{ reply.user?.nickname || reply.nickname }}
-                        <el-tag v-if="isCommentAuthor(reply)" type="warning" size="small" effect="plain" class="author-tag">
+                        <el-tag
+                          v-if="isCommentAuthor(reply)"
+                          type="warning"
+                          size="small"
+                          effect="plain"
+                          class="author-tag"
+                        >
                           作者
                         </el-tag>
-                        <span v-if="reply.parent_id" class="reply-to">
+                        <span
+                          v-if="reply.parent_id"
+                          class="reply-to"
+                        >
                           <template v-if="reply.parent_id === comment.id">
                             回复 @{{ comment.user?.nickname || comment.nickname }}
                           </template>
@@ -209,8 +286,8 @@
                         text 
                         size="small" 
                         :type="reply.isLiked ? 'primary' : 'default'"
-                        @click="handleCommentLike(reply)"
                         :loading="reply.likeLoading"
+                        @click="handleCommentLike(reply)"
                       >
                         <el-icon><Star /></el-icon> 
                         {{ reply.like_count || 0 }}
@@ -235,7 +312,10 @@
                     </div>
                     
                     <!-- 回复的回复输入框 -->
-                    <div v-if="reply.showReply" class="reply-input">
+                    <div
+                      v-if="reply.showReply"
+                      class="reply-input"
+                    >
                       <el-input
                         v-model="reply.replyContent"
                         type="textarea"
@@ -245,8 +325,18 @@
                         show-word-limit
                       />
                       <div class="reply-actions">
-                        <el-button size="small" @click="cancelReplyToReply(reply)">取消</el-button>
-                        <el-button type="primary" size="small" @click="submitReplyToReply(comment, reply)" :loading="reply.replying">
+                        <el-button
+                          size="small"
+                          @click="cancelReplyToReply(reply)"
+                        >
+                          取消
+                        </el-button>
+                        <el-button
+                          type="primary"
+                          size="small"
+                          :loading="reply.replying"
+                          @click="submitReplyToReply(comment, reply)"
+                        >
                           发表回复
                         </el-button>
                       </div>
@@ -255,12 +345,15 @@
                 </div>
                 
                 <!-- 展开更多子评论按钮 -->
-                <div v-if="hasMoreReplies(comment)" class="load-more-replies">
+                <div
+                  v-if="hasMoreReplies(comment)"
+                  class="load-more-replies"
+                >
                   <el-button 
                     text 
                     size="small" 
-                    @click="loadMoreReplies(comment)"
                     :loading="comment.loadingReplies"
+                    @click="loadMoreReplies(comment)"
                   >
                     <el-icon><ArrowDown /></el-icon>
                     {{ comment.loadingReplies ? '加载中...' : `展开更多回复 (${comment.reply_count - getDisplayedReplies(comment).length} 条)` }}
@@ -271,20 +364,28 @@
           </div>
         </div>
 
-        <div class="load-more-container" v-if="hasMoreComments">
+        <div
+          v-if="hasMoreComments"
+          class="load-more-container"
+        >
           <el-button 
-            @click="loadMoreComments"
             :loading="loadingMoreComments"
             class="load-more-btn"
+            @click="loadMoreComments"
           >
-            <el-icon v-if="!loadingMoreComments"><ArrowDown /></el-icon>
+            <el-icon v-if="!loadingMoreComments">
+              <ArrowDown />
+            </el-icon>
             {{ loadingMoreComments ? '加载中...' : '加载更多评论' }}
           </el-button>
           <div class="comment-count-info">
             已显示 {{ comments.length }} / {{ commentsTotal }} 条评论
           </div>
         </div>
-        <div v-else-if="comments.length > 0" class="no-more-comments">
+        <div
+          v-else-if="comments.length > 0"
+          class="no-more-comments"
+        >
           已显示全部 {{ comments.length }} 条评论
         </div>
       </el-card>
@@ -293,22 +394,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, Collection, User, View, Clock, Edit, ChatDotRound, ArrowDown } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
+import { useAppearanceStore } from '@/stores/appearance'
 import dayjs from 'dayjs'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
+import { loadCodeTheme, loadHighlightTheme } from '@/utils/codeTheme'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const appearanceStore = useAppearanceStore()
 
 const article = ref(null)
+const markdownTheme = computed(() => appearanceStore.resolvedColorScheme)
 const comments = ref([])
 const commentsPage = ref(1)
 const commentsTotal = ref(0)
@@ -331,11 +435,9 @@ const renderMarkdown = async () => {
   
   // 加载代码主题配置
   const codeThemeValue = await loadCodeTheme()
+  const mdTheme = markdownTheme.value
   // 加载 highlight.js 主题样式
   await loadHighlightTheme(codeThemeValue)
-  // 加载 Markdown 主题配置
-  const mdTheme = await getMarkdownTheme()
-  
   nextTick(() => {
     const previewDiv = document.getElementById('article-preview')
     if (!previewDiv) {
@@ -348,6 +450,9 @@ const renderMarkdown = async () => {
     // 使用 Vditor.preview 进行渲染
     Vditor.preview(previewDiv, article.value.content, {
       mode: mdTheme || 'light',
+      theme: {
+        current: mdTheme,
+      },
       markdown: {
         toc: true,
         mark: true,
@@ -1015,9 +1120,13 @@ const loadCommentSettings = async () => {
   } catch (error) {
     console.error('Failed to load comment settings:', error)
     // 默认允许评论（向后兼容）
-    articleCommentEnabled.value = true
+  articleCommentEnabled.value = true
   }
 }
+
+watch(markdownTheme, () => {
+  if (article.value?.content) renderMarkdown()
+})
 
 onMounted(async () => {
   // 如果已登录但用户信息未加载，先获取用户信息
@@ -1036,6 +1145,7 @@ onMounted(async () => {
   checkLiked()
   checkFavorited()
 })
+
 </script>
 
 <style>
@@ -1170,10 +1280,8 @@ onMounted(async () => {
 
 /* 内联代码样式 */
 #article-preview :deep(code:not(pre code)) {
-  background-color: rgba(175, 184, 193, 0.2);
-  color: #24292e;
   padding: 0.2em 0.4em;
-  border-radius: 3px;
+  border-radius: 0;
   font-size: 85%;
 }
 
@@ -1357,6 +1465,46 @@ onMounted(async () => {
   padding: 20px;
   background-color: var(--theme-bg-secondary);
   border-radius: 4px;
+}
+
+/* Magazine adaptation */
+.blog-detail { padding: 62px 0 80px; background: var(--theme-bg-primary); }
+.blog-detail .container { max-width: 1120px; padding: 0 32px; }
+.article-card, .comments-card { border: 1px solid var(--theme-border) !important; border-radius: 0; box-shadow: none; background: var(--theme-bg-card) !important; }
+.article-card :deep(.el-card__body) { padding: clamp(38px, 7vw, 72px) clamp(30px, 7vw, 68px); }
+.comments-card :deep(.el-card__body) { padding: clamp(30px, 5vw, 48px) clamp(24px, 6vw, 56px); }
+.comments-card { margin-top: 36px; }
+.article-header { padding-bottom: 28px; margin-bottom: 46px; border-bottom: 1px solid var(--theme-border); }
+.article-kicker { margin-bottom: 18px; color: var(--theme-primary); font-family: Georgia, 'Songti SC', serif; font-size: 11px; letter-spacing: .24em; }
+.article-title-row h1 { font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: clamp(36px, 6vw, 58px); font-weight: 500; letter-spacing: .03em; line-height: 1.3; }
+.article-meta { color: var(--theme-text-secondary); font-size: 13px; letter-spacing: .03em; }
+.clickable-author { padding: 0; border-radius: 0; }
+.clickable-author:hover { background: transparent; color: var(--theme-primary); }
+.clickable-tag:hover { transform: none; border-color: var(--theme-primary); }
+.clickable-avatar:hover { box-shadow: none; transform: scale(1.04); }
+#article-preview { max-width: 900px; padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; font-size: 16px; line-height: 1.85; }
+#article-preview :deep(h1), #article-preview :deep(h2), #article-preview :deep(h3) { font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-weight: 500; }
+#article-preview :deep(img) { border-radius: 0; }
+#article-preview :deep(blockquote) { border-left: 1px solid var(--theme-primary); }
+.article-actions { margin-top: 52px; padding-top: 24px; border-top: 1px solid var(--theme-border); }
+.comments-card h3 { font-family: Georgia, 'Songti SC', serif; font-size: 26px; font-weight: 500; letter-spacing: .06em; }
+.comment-item, .reply-item { border-bottom: 1px solid var(--theme-border); }
+.reply-input, .no-more-comments { background: var(--theme-bg-secondary); border: 1px solid var(--theme-border); border-radius: 0; }
+.replies-list { border-left: 1px solid var(--theme-border); }
+.blog-detail :deep(.el-button), .blog-detail :deep(.el-tag), .blog-detail :deep(.el-textarea__inner), .blog-detail :deep(.el-alert) { border-radius: 1px; box-shadow: none; }
+
+@media (max-width: 900px) { .blog-detail .container { padding: 0 24px; } }
+@media (max-width: 560px) {
+  .blog-detail { padding: 38px 0 56px; }
+  .blog-detail .container { padding: 0 12px; }
+  .article-card :deep(.el-card__body) { padding: 32px 20px 40px; }
+  .comments-card :deep(.el-card__body) { padding: 28px 18px 34px; }
+  .article-title-row { flex-direction: column; }
+  .article-title-row h1 { font-size: 34px; }
+  .article-meta { gap: 10px; }
+  .comment-item { gap: 10px; }
+  .comment-header, .reply-header { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .replies-list { padding-left: 12px; }
 }
 </style>
 

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四种风格对比 · 个人站点 UI 提案</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #F3F3F1; color: #1C1C1A;
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    line-height: 1.75; padding: 56px 28px 72px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .kicker { font-size: 12px; letter-spacing: .25em; color: #8A8A84; text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; margin: 12px 0 10px; }
+  .lede { color: #6B6B65; max-width: 42em; margin-bottom: 44px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  a.card {
+    display: block; text-decoration: none; color: inherit;
+    background: #FFF; border-radius: 16px; overflow: hidden;
+    border: 1px solid #E4E4E0;
+    transition: transform .25s, box-shadow .25s, border-color .25s;
+  }
+  a.card:hover { transform: translateY(-5px); box-shadow: 0 16px 40px rgba(20,20,10,.10); border-color: #B9B9B2; }
+  a.card:focus-visible { outline: 2px solid #1C1C1A; outline-offset: 3px; }
+  .preview { height: 180px; position: relative; overflow: hidden; }
+  .preview .chip {
+    position: absolute; top: 14px; left: 14px; font-size: 11px; letter-spacing: .15em;
+    background: rgba(255,255,255,.9); color: #333; padding: 4px 12px; border-radius: 99px;
+  }
+  /* mini mockups */
+  .pv-a { background: #FAF9F6; }
+  .pv-a .mock { position: absolute; inset: 30px 40px auto; }
+  .pv-a .t1 { font-family: Georgia, 'Songti SC', serif; font-size: 26px; color: #1B1A18; }
+  .pv-a .t1 b { color: #33544A; font-weight: 500; }
+  .pv-a .ln { height: 1px; background: #E2DFD6; margin: 16px 0; }
+  .pv-a .bar { height: 8px; width: 55%; background: #ECEAE2; border-radius: 2px; margin-top: 8px; }
+  .pv-b { background: #0D1320; }
+  .pv-b .term {
+    position: absolute; inset: 34px 44px auto; background: #131B2C; border: 1px solid #1F2B42;
+    border-radius: 10px; padding: 14px 16px; font-family: Consolas, monospace; font-size: 12px;
+  }
+  .pv-b .dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .pv-b .out { color: #64748F; margin-top: 8px; }
+  .pv-b .p { color: #6FCF8E; } .pv-b .c { color: #EDF3FB; } .pv-b .k { color: #5CB2FF; }
+  .pv-c { background: #FBF6ED; }
+  .pv-c .pola {
+    position: absolute; background: #FFFEFA; padding: 7px 7px 20px; border-radius: 3px;
+    box-shadow: 0 5px 16px rgba(122,98,70,.18);
+  }
+  .pv-c .pola i { display: block; width: 84px; height: 84px; border-radius: 2px; }
+  .pv-c .p1 { top: 26px; left: 60px; transform: rotate(-7deg); }
+  .pv-c .p1 i { background: linear-gradient(160deg, #A8C0D0, #45607A); }
+  .pv-c .p2 { top: 40px; left: 190px; transform: rotate(4deg); }
+  .pv-c .p2 i { background: linear-gradient(200deg, #E3CBA4, #6E5636); }
+  .pv-c .p3 { top: 30px; left: 320px; transform: rotate(-3deg); }
+  .pv-c .p3 i { background: linear-gradient(170deg, #94A87E, #37472F); }
+  .pv-d { background: #FFF; }
+  .pv-d .gridlines {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(#EDEDED 1px, transparent 1px), linear-gradient(90deg, #EDEDED 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .pv-d .big {
+    position: absolute; left: 40px; top: 42px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 800; font-size: 40px;
+    text-transform: uppercase; letter-spacing: -.01em; color: #111; line-height: 1.02;
+  }
+  .pv-d .big span { color: #002FA7; }
+  .body { padding: 22px 24px 26px; }
+  .body h2 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .body h2 .tagname { font-size: 11px; font-weight: 400; color: #8A8A84; letter-spacing: .12em; }
+  .body p { font-size: 13.5px; color: #6B6B65; margin-top: 8px; }
+  .body .traits { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .body .traits span {
+    font-size: 12px; color: #55554F; background: #F1F1ED; padding: 3px 12px; border-radius: 99px;
+  }
+  .tips { margin-top: 40px; font-size: 13px; color: #8A8A84; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">UI Proposal · 4 Directions</div>
+  <h1>博客 + 作品 + 知识库 · 四种风格提案</h1>
+  <p class="lede">同一套内容（虚拟人设「陈屿」：前端工程师 × 摄影师），四种完全不同的视觉方向。每一版都支持明暗双模式（右上角按钮切换）、响应式布局。点击卡片打开完整页面对比。</p>
+
+  <div class="grid">
+    <a class="card" href="style-a-magazine.html">
+      <div class="preview pv-a">
+        <span class="chip">A · 极简杂志风</span>
+        <div class="mock">
+          <div class="t1">把日常的观察，写成可以<b>停留</b>的文字。</div>
+          <div class="ln"></div>
+          <div class="bar"></div><div class="bar" style="width:38%"></div>
+        </div>
+      </div>
+      <div class="body">
+        <h2>屿刊 <span class="tagname">STYLE A · MAGAZINE</span></h2>
+        <p>纸白 + 墨黑 + 黛绿，衬线标题与大量留白。签名元素：中文竖排与期刊号。最能衬托摄影和长文阅读。</p>
+        <div class="traits"><span>安静克制</span><span>文字优先</span><span>衬线排版</span><span>适合长文</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="style-b-terminal.html">
+      <div class="preview pv-b">
+        <span class="chip">B · 暗色科技感</span>
+        <div class="term">
+          <div class="dots"><span style="background:#F26D6D"></span><span style="background:#F2C46D"></span><span style="background:#6DD087"></span></div>
+          <div style="margin-top:8px"><span class="p">❯</span> <span class="c">whoami</span></div>
+          <div class="out">陈屿 · <span class="k">frontend engineer</span> &amp; photographer</div>
+          <div style="margin-top:6px"><span class="p">❯</span> <span class="c">ls photos/2026/</span></div>
+        </div>
+      </div>
+      <div class="body">
+        <h2>yu.log <span class="tagname">STYLE B · TERMINAL</span></h2>
+        <p>深蓝黑 + 冰蓝 + 琥珀，等宽字体点缀。签名元素：会打字的终端 Hero，摄影带 EXIF 参数，知识库是文件树。</p>
+        <div class="traits"><span>开发者气质</span><span>暗色为主</span><span>细节彩蛋多</span><span>个性鲜明</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="style-c-cozy.html">
+      <div class="preview pv-c">
+        <span class="chip">C · 温暖手作感</span>
+        <div class="pola p1"><i></i></div>
+        <div class="pola p2"><i></i></div>
+        <div class="pola p3"><i></i></div>
+      </div>
+      <div class="body">
+        <h2>小屿的角落 <span class="tagname">STYLE C · COZY</span></h2>
+        <p>暖纸色 + 苔绿 + 芥黄，圆角与手绘波浪线。签名元素：胶带拍立得照片墙。亲切、有温度，像一间小屋。</p>
+        <div class="traits"><span>温暖亲切</span><span>圆角软阴影</span><span>拍立得照片</span><span>生活气息</span></div>
+      </div>
+    </a>
+
+    <a class="card" href="style-d-swiss.html">
+      <div class="preview pv-d">
+        <span class="chip" style="background:rgba(255,255,255,.95)">D · 瑞士网格风</span>
+        <div class="gridlines"></div>
+        <div class="big">Engineer<br>&amp; <span>Photo</span>grapher</div>
+      </div>
+      <div class="body">
+        <h2>CHEN YU® <span class="tagname">STYLE D · SWISS GRID</span></h2>
+        <p>纯白/纯黑 + 克莱因蓝，超大无衬线字与外露网格线。签名元素：坐标编号系统（W–042 / PL.01 / K–FE）。</p>
+        <div class="traits"><span>理性现代</span><span>强网格</span><span>大字排版</span><span>国际范</span></div>
+      </div>
+    </a>
+  </div>
+
+  <p class="tips">提示：每个页面右上角的 ◐ 按钮可切换明暗模式；页面默认跟随系统配色。选定方向后可继续深化：完整子页面（文章详情/相册/知识库图谱）、设计规范文档与 Vue 组件版。</p>
+</div>
+</body>
+</html>

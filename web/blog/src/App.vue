@@ -5,12 +5,8 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { initTheme } from '@/utils/theme'
 
 const userStore = useUserStore()
-
-// 初始化主题
-initTheme()
 
 // 如果有token，尝试获取用户信息
 onMounted(() => {
@@ -24,8 +20,6 @@ onMounted(() => {
 </script>
 
 <style>
-@import '@/assets/main.css';
-
 * {
   margin: 0;
   padding: 0;

@@ -3,20 +3,42 @@
     <div class="container">
       <!-- 用户信息卡片 -->
       <el-card class="profile-card">
+        <div class="profile-kicker">
+          CONTRIBUTOR · PROFILE
+        </div>
         <div class="profile-header">
-          <el-avatar :size="120" :src="user?.avatar" />
+          <el-avatar
+            :size="120"
+            :src="user?.avatar"
+          />
           <div class="profile-info">
             <h2>{{ user?.nickname || user?.username }}</h2>
-            <p class="bio">{{ user?.bio || '这个人很懒，什么都没写' }}</p>
+            <p class="bio">
+              {{ user?.bio || '这个人很懒，什么都没写' }}
+            </p>
             
             <div class="stats">
-              <div class="stat-item clickable" @click="goToArticles">
-                <div class="stat-value">{{ user?.article_count || 0 }}</div>
-                <div class="stat-label">文章</div>
+              <div
+                class="stat-item clickable"
+                @click="goToArticles"
+              >
+                <div class="stat-value">
+                  {{ user?.article_count || 0 }}
+                </div>
+                <div class="stat-label">
+                  文章
+                </div>
               </div>
-              <div class="stat-item clickable" @click="goToWorks">
-                <div class="stat-value">{{ worksTotal || 0 }}</div>
-                <div class="stat-label">作品</div>
+              <div
+                class="stat-item clickable"
+                @click="goToWorks"
+              >
+                <div class="stat-value">
+                  {{ worksTotal || 0 }}
+                </div>
+                <div class="stat-label">
+                  作品
+                </div>
               </div>
               <!-- 只有自己的主页才能点击查看粉丝列表 -->
               <div 
@@ -24,8 +46,12 @@
                 :class="{ clickable: isCurrentUser }" 
                 @click="isCurrentUser && goToFollowers()"
               >
-                <div class="stat-value">{{ followStats?.follower_count || 0 }}</div>
-                <div class="stat-label">粉丝</div>
+                <div class="stat-value">
+                  {{ followStats?.follower_count || 0 }}
+                </div>
+                <div class="stat-label">
+                  粉丝
+                </div>
               </div>
               <!-- 只有自己的主页才能点击查看关注列表 -->
               <div 
@@ -33,8 +59,12 @@
                 :class="{ clickable: isCurrentUser }" 
                 @click="isCurrentUser && goToFollowing()"
               >
-                <div class="stat-value">{{ followStats?.following_count || 0 }}</div>
-                <div class="stat-label">关注</div>
+                <div class="stat-value">
+                  {{ followStats?.following_count || 0 }}
+                </div>
+                <div class="stat-label">
+                  关注
+                </div>
               </div>
               <!-- 只有自己的主页才能点击查看收藏列表 -->
               <div 
@@ -42,38 +72,52 @@
                 :class="{ clickable: isCurrentUser }" 
                 @click="isCurrentUser && goToFavorites()"
               >
-                <div class="stat-value">{{ user?.favorite_count || 0 }}</div>
-                <div class="stat-label">收藏</div>
+                <div class="stat-value">
+                  {{ user?.favorite_count || 0 }}
+                </div>
+                <div class="stat-label">
+                  收藏
+                </div>
               </div>
             </div>
 
             <!-- 未登录用户：不显示任何操作按钮 -->
             <!-- 登录用户查看自己的主页：显示编辑资料按钮 -->
-            <div class="profile-actions" v-if="isCurrentUser && userStore.isLoggedIn">
+            <div
+              v-if="isCurrentUser && userStore.isLoggedIn"
+              class="profile-actions"
+            >
               <el-button @click="$router.push('/profile/edit')">
                 <el-icon><Edit /></el-icon> 编辑资料
               </el-button>
             </div>
             
             <!-- 登录用户查看他人的主页：显示关注/已关注按钮 -->
-            <div class="profile-actions" v-else-if="!isCurrentUser && userStore.isLoggedIn">
+            <div
+              v-else-if="!isCurrentUser && userStore.isLoggedIn"
+              class="profile-actions"
+            >
               <el-button 
                 v-if="!followStats?.is_following"
                 type="primary" 
-                @click="handleFollow"
                 :loading="followLoading"
+                @click="handleFollow"
               >
                 <el-icon><Plus /></el-icon> 关注
               </el-button>
               <el-button 
                 v-else
-                @click="handleUnfollow"
                 :loading="followLoading"
+                @click="handleUnfollow"
               >
                 <el-icon><Check /></el-icon> 已关注
               </el-button>
               
-              <el-tag v-if="followStats?.is_follower" type="info" size="large">
+              <el-tag
+                v-if="followStats?.is_follower"
+                type="info"
+                size="large"
+              >
                 <el-icon><Star /></el-icon> 关注了你
               </el-tag>
             </div>
@@ -82,13 +126,28 @@
       </el-card>
 
       <!-- 标签页 -->
-      <el-tabs v-model="activeTab" class="profile-tabs" @tab-change="onTabChange">
-        <el-tab-pane label="文章" name="articles">
+      <el-tabs
+        v-model="activeTab"
+        class="profile-tabs"
+        @tab-change="onTabChange"
+      >
+        <el-tab-pane
+          label="文章"
+          name="articles"
+        >
           <!-- 排序选择器 -->
           <div class="article-sort-header">
-            <el-radio-group v-model="articleSortBy" @change="handleArticleSortChange" size="default">
-              <el-radio-button label="latest">最新排序</el-radio-button>
-              <el-radio-button label="hot">最热排序</el-radio-button>
+            <el-radio-group
+              v-model="articleSortBy"
+              size="default"
+              @change="handleArticleSortChange"
+            >
+              <el-radio-button label="latest">
+                最新排序
+              </el-radio-button>
+              <el-radio-button label="hot">
+                最热排序
+              </el-radio-button>
             </el-radio-group>
           </div>
 
@@ -102,23 +161,46 @@
               @click="$router.push(`/blog/${article.id}`)"
             >
               <div class="user-article-content">
-                <img v-if="article.cover" :src="article.cover" class="user-article-cover" />
+                <img
+                  v-if="article.cover"
+                  :src="article.cover"
+                  class="user-article-cover"
+                >
                 <div class="user-article-info">
                   <div class="user-article-header">
                     <h2>{{ article.title }}</h2>
-                    <el-tag v-if="article.is_top" type="danger" size="small">置顶</el-tag>
+                    <el-tag
+                      v-if="article.is_top"
+                      type="danger"
+                      size="small"
+                    >
+                      置顶
+                    </el-tag>
                   </div>
-                  <p class="user-article-summary">{{ article.summary }}</p>
+                  <p class="user-article-summary">
+                    {{ article.summary }}
+                  </p>
                   <div class="user-article-meta">
-                    <el-tag v-if="article.category" size="small">{{ article.category.name }}</el-tag>
+                    <el-tag
+                      v-if="article.category"
+                      size="small"
+                    >
+                      {{ article.category.name }}
+                    </el-tag>
                     <span class="user-article-author">
-                      <el-avatar :size="20" :src="article.author?.avatar" />
+                      <el-avatar
+                        :size="20"
+                        :src="article.author?.avatar"
+                      />
                       <span>{{ article.author?.nickname || article.author?.username }}</span>
                     </span>
                     <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
                     <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
                     <!-- 书签样式的标签 -->
-                    <div class="user-article-bookmarks" v-if="article.tags && article.tags.length > 0">
+                    <div
+                      v-if="article.tags && article.tags.length > 0"
+                      class="user-article-bookmarks"
+                    >
                       <span 
                         v-for="tag in article.tags.slice(0, 3)" 
                         :key="tag.id" 
@@ -135,7 +217,10 @@
             </el-card>
           </div>
           
-          <div class="pagination" v-if="articlesTotal > 0">
+          <div
+            v-if="articlesTotal > 0"
+            class="pagination"
+          >
             <el-pagination
               v-model:current-page="articlesPage"
               :page-size="pageSize"
@@ -145,17 +230,36 @@
             />
           </div>
           
-          <el-empty v-if="articles.length === 0" description="还没有发布文章" />
+          <el-empty
+            v-if="articles.length === 0"
+            description="还没有发布文章"
+          />
         </el-tab-pane>
 
         <!-- 作品标签页 -->
-        <el-tab-pane label="作品" name="works">
+        <el-tab-pane
+          label="作品"
+          name="works"
+        >
           <!-- 筛选条件 -->
           <div class="user-works-filters">
-            <el-segmented v-model="workFilterType" :options="workTypeOptions" @change="handleWorkFilterChange" />
-            <el-radio-group v-model="workSortBy" @change="handleWorkSortChange" size="default" style="margin-left: 15px;">
-              <el-radio-button label="latest">最新</el-radio-button>
-              <el-radio-button label="hot">最热</el-radio-button>
+            <el-segmented
+              v-model="workFilterType"
+              :options="workTypeOptions"
+              @change="handleWorkFilterChange"
+            />
+            <el-radio-group
+              v-model="workSortBy"
+              size="default"
+              style="margin-left: 15px;"
+              @change="handleWorkSortChange"
+            >
+              <el-radio-button label="latest">
+                最新
+              </el-radio-button>
+              <el-radio-button label="hot">
+                最热
+              </el-radio-button>
             </el-radio-group>
           </div>
           
@@ -178,7 +282,10 @@
                 <div class="user-works-overlay">
                   <div class="user-works-overlay-content">
                     <div class="user-works-type-badge">
-                      <el-tag :type="work.type === 'photography' ? 'warning' : 'primary'" size="small">
+                      <el-tag
+                        :type="work.type === 'photography' ? 'warning' : 'primary'"
+                        size="small"
+                      >
                         {{ work.type === 'photography' ? '📷' : '💻' }}
                       </el-tag>
                     </div>
@@ -187,10 +294,15 @@
               </div>
               
               <div class="user-works-info">
-                <h3 class="user-works-title">{{ work.title }}</h3>
+                <h3 class="user-works-title">
+                  {{ work.title }}
+                </h3>
                 <div class="user-works-meta">
                   <div class="user-works-author">
-                    <el-avatar :size="20" :src="work.author?.avatar" />
+                    <el-avatar
+                      :size="20"
+                      :src="work.author?.avatar"
+                    />
                     <span>{{ work.author?.nickname || work.author?.username }}</span>
                   </div>
                   <div class="user-works-stats">
@@ -204,7 +316,10 @@
             </div>
           </div>
 
-          <div class="pagination" v-if="worksTotal > 0">
+          <div
+            v-if="worksTotal > 0"
+            class="pagination"
+          >
             <el-pagination
               v-model:current-page="worksPage"
               v-model:page-size="worksPageSize"
@@ -214,14 +329,24 @@
             />
           </div>
 
-          <el-empty v-if="works.length === 0" description="暂无作品" />
+          <el-empty
+            v-if="works.length === 0"
+            description="暂无作品"
+          />
         </el-tab-pane>
 
         <!-- 只有自己的主页才显示收藏标签页 -->
-        <el-tab-pane v-if="isCurrentUser" label="收藏" name="favorites">
+        <el-tab-pane
+          v-if="isCurrentUser"
+          label="收藏"
+          name="favorites"
+        >
           <!-- 用户收藏列表（独立样式，不与博客列表页共用） -->
           <div class="user-favorite-list">
-            <template v-for="favorite in favorites" :key="favorite.id">
+            <template
+              v-for="favorite in favorites"
+              :key="favorite.id"
+            >
               <!-- 文章收藏 -->
               <el-card
                 v-if="favorite && favorite.article"
@@ -230,24 +355,52 @@
                 @click="$router.push(`/blog/${favorite.article.id}`)"
               >
                 <div class="user-favorite-content">
-                  <img v-if="favorite.article.cover" :src="favorite.article.cover" class="user-favorite-cover" />
+                  <img
+                    v-if="favorite.article.cover"
+                    :src="favorite.article.cover"
+                    class="user-favorite-cover"
+                  >
                   <div class="user-favorite-info">
                     <div class="user-favorite-header">
                       <h2>{{ favorite.article.title }}</h2>
-                      <el-tag type="info" size="small">文章</el-tag>
-                      <el-tag v-if="favorite.article.is_top" type="danger" size="small">置顶</el-tag>
+                      <el-tag
+                        type="info"
+                        size="small"
+                      >
+                        文章
+                      </el-tag>
+                      <el-tag
+                        v-if="favorite.article.is_top"
+                        type="danger"
+                        size="small"
+                      >
+                        置顶
+                      </el-tag>
                     </div>
-                    <p class="user-favorite-summary">{{ favorite.article.summary }}</p>
+                    <p class="user-favorite-summary">
+                      {{ favorite.article.summary }}
+                    </p>
                     <div class="user-favorite-meta">
-                      <el-tag v-if="favorite.article.category" size="small">{{ favorite.article.category.name }}</el-tag>
+                      <el-tag
+                        v-if="favorite.article.category"
+                        size="small"
+                      >
+                        {{ favorite.article.category.name }}
+                      </el-tag>
                       <span class="user-favorite-author">
-                        <el-avatar :size="20" :src="favorite.article.author?.avatar" />
+                        <el-avatar
+                          :size="20"
+                          :src="favorite.article.author?.avatar"
+                        />
                         <span>{{ favorite.article.author?.nickname || favorite.article.author?.username }}</span>
                       </span>
                       <span><el-icon><View /></el-icon> {{ favorite.article.view_count }}</span>
                       <span><el-icon><Clock /></el-icon> {{ formatDate(favorite.created_at) }}</span>
                       <!-- 书签样式的标签 -->
-                      <div class="user-favorite-bookmarks" v-if="favorite.article.tags && favorite.article.tags.length > 0">
+                      <div
+                        v-if="favorite.article.tags && favorite.article.tags.length > 0"
+                        class="user-favorite-bookmarks"
+                      >
                         <span 
                           v-for="tag in favorite.article.tags.slice(0, 3)" 
                           :key="tag.id" 
@@ -289,13 +442,26 @@
                   <div class="user-favorite-info">
                     <div class="user-favorite-header">
                       <h2>{{ favorite.work.title }}</h2>
-                      <el-tag type="success" size="small">作品</el-tag>
+                      <el-tag
+                        type="success"
+                        size="small"
+                      >
+                        作品
+                      </el-tag>
                     </div>
                     <!-- 摄影作品显示描述，开源作品不显示 -->
-                    <p v-if="favorite.work.type === 'photography' && favorite.work.description" class="user-favorite-summary">{{ favorite.work.description }}</p>
+                    <p
+                      v-if="favorite.work.type === 'photography' && favorite.work.description"
+                      class="user-favorite-summary"
+                    >
+                      {{ favorite.work.description }}
+                    </p>
                     <div class="user-favorite-meta">
                       <span class="user-favorite-author">
-                        <el-avatar :size="20" :src="favorite.work.author?.avatar" />
+                        <el-avatar
+                          :size="20"
+                          :src="favorite.work.author?.avatar"
+                        />
                         <span>{{ favorite.work.author?.nickname || favorite.work.author?.username }}</span>
                       </span>
                       <span><el-icon><View /></el-icon> {{ favorite.work.view_count || 0 }}</span>
@@ -310,7 +476,10 @@
             </template>
           </div>
           
-          <div class="pagination" v-if="favoritesTotal > 0">
+          <div
+            v-if="favoritesTotal > 0"
+            class="pagination"
+          >
             <el-pagination
               v-model:current-page="favoritesPage"
               :page-size="12"
@@ -320,11 +489,18 @@
             />
           </div>
           
-          <el-empty v-if="favorites.length === 0" description="还没有收藏" />
+          <el-empty
+            v-if="favorites.length === 0"
+            description="还没有收藏"
+          />
         </el-tab-pane>
 
         <!-- 只有自己的主页才显示关注标签页 -->
-        <el-tab-pane v-if="isCurrentUser" :label="`关注 ${followStats?.following_count || 0}`" name="following">
+        <el-tab-pane
+          v-if="isCurrentUser"
+          :label="`关注 ${followStats?.following_count || 0}`"
+          name="following"
+        >
           <div class="user-list">
             <el-card 
               v-for="follow in following" 
@@ -332,8 +508,14 @@
               class="user-card"
             >
               <div class="user-card-content">
-                <div class="user-info" @click="goToUserProfile(follow.user?.id)">
-                  <el-avatar :size="60" :src="follow.user?.avatar" />
+                <div
+                  class="user-info"
+                  @click="goToUserProfile(follow.user?.id)"
+                >
+                  <el-avatar
+                    :size="60"
+                    :src="follow.user?.avatar"
+                  />
                   <div class="user-details">
                     <h4>{{ follow.user?.nickname || follow.user?.username }}</h4>
                     <p>{{ follow.user?.bio || '这个人很懒，什么都没写' }}</p>
@@ -343,7 +525,10 @@
                     </div>
                   </div>
                 </div>
-                <div class="user-actions" v-if="userStore.isLoggedIn && follow.user?.id !== userStore.user?.id">
+                <div
+                  v-if="userStore.isLoggedIn && follow.user?.id !== userStore.user?.id"
+                  class="user-actions"
+                >
                   <el-button
                     :type="follow.is_following ? 'default' : 'primary'"
                     size="small"
@@ -357,7 +542,10 @@
             </el-card>
           </div>
           
-          <div class="pagination" v-if="followingTotal > 0">
+          <div
+            v-if="followingTotal > 0"
+            class="pagination"
+          >
             <el-pagination
               v-model:current-page="followingPage"
               :page-size="20"
@@ -367,11 +555,18 @@
             />
           </div>
           
-          <el-empty v-if="following.length === 0" description="还没有关注任何人" />
+          <el-empty
+            v-if="following.length === 0"
+            description="还没有关注任何人"
+          />
         </el-tab-pane>
 
         <!-- 只有自己的主页才显示粉丝标签页 -->
-        <el-tab-pane v-if="isCurrentUser" :label="`粉丝 ${followStats?.follower_count || 0}`" name="followers">
+        <el-tab-pane
+          v-if="isCurrentUser"
+          :label="`粉丝 ${followStats?.follower_count || 0}`"
+          name="followers"
+        >
           <div class="user-list">
             <el-card 
               v-for="follower in followers" 
@@ -379,8 +574,14 @@
               class="user-card"
             >
               <div class="user-card-content">
-                <div class="user-info" @click="goToUserProfile(follower.user?.id)">
-                  <el-avatar :size="60" :src="follower.user?.avatar" />
+                <div
+                  class="user-info"
+                  @click="goToUserProfile(follower.user?.id)"
+                >
+                  <el-avatar
+                    :size="60"
+                    :src="follower.user?.avatar"
+                  />
                   <div class="user-details">
                     <h4>{{ follower.user?.nickname || follower.user?.username }}</h4>
                     <p>{{ follower.user?.bio || '这个人很懒，什么都没写' }}</p>
@@ -390,7 +591,10 @@
                     </div>
                   </div>
                 </div>
-                <div class="user-actions" v-if="userStore.isLoggedIn && follower.user?.id !== userStore.user?.id">
+                <div
+                  v-if="userStore.isLoggedIn && follower.user?.id !== userStore.user?.id"
+                  class="user-actions"
+                >
                   <el-button
                     :type="follower.is_following ? 'default' : 'primary'"
                     size="small"
@@ -404,7 +608,10 @@
             </el-card>
           </div>
           
-          <div class="pagination" v-if="followersTotal > 0">
+          <div
+            v-if="followersTotal > 0"
+            class="pagination"
+          >
             <el-pagination
               v-model:current-page="followersPage"
               :page-size="20"
@@ -414,7 +621,10 @@
             />
           </div>
           
-          <el-empty v-if="followers.length === 0" description="还没有粉丝" />
+          <el-empty
+            v-if="followers.length === 0"
+            description="还没有粉丝"
+          />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -1540,6 +1750,62 @@ const handleFollowToggle = async (item) => {
   display: flex;
   align-items: center;
   gap: 3px;
+}
+
+/* Magazine adaptation */
+.user-profile { padding: 62px 0 80px; background: var(--theme-bg-primary); }
+.user-profile .container { max-width: 1060px; padding: 0 32px; }
+.profile-card { margin-bottom: 48px; border: 0; border-bottom: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; background: transparent; }
+.profile-card :deep(.el-card__body) { padding: 0 0 42px; }
+.profile-kicker { margin-bottom: 22px; color: var(--theme-primary); font-family: Georgia, 'Songti SC', serif; font-size: 11px; letter-spacing: .26em; }
+.profile-header { align-items: flex-start; }
+.profile-header > :deep(.el-avatar) { border: 1px solid var(--theme-border); }
+.profile-info h2 { margin-top: -8px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: clamp(34px, 5vw, 48px); font-weight: 500; letter-spacing: .04em; }
+.stats { gap: 0; border-top: 1px solid var(--theme-border); border-bottom: 1px solid var(--theme-border); }
+.stat-item { min-width: 82px; padding: 14px 18px; border-right: 1px solid var(--theme-border); }
+.stat-value { color: var(--theme-primary); font-family: Georgia, serif; font-weight: 500; }
+.stat-item.clickable:hover { background: var(--theme-bg-secondary); transform: none; }
+.profile-actions { margin-top: 20px; }
+.profile-tabs :deep(.el-tabs__header) { margin-bottom: 34px; }
+.profile-tabs :deep(.el-tabs__nav-wrap::after) { height: 1px; background: var(--theme-border); }
+.profile-tabs :deep(.el-tabs__active-bar) { height: 1px; background: var(--theme-primary); }
+.profile-tabs :deep(.el-tabs__item) { font-size: 13px; letter-spacing: .08em; }
+.article-sort-header { border-bottom: 1px solid var(--theme-border); }
+.user-article-list, .user-favorite-list { gap: 0 !important; padding: 10px 32px; border: 1px solid var(--theme-border); background: var(--theme-bg-card); }
+.user-article-item, .user-favorite-item, .user-card { height: auto; min-height: 142px; border: 0 !important; border-bottom: 1px solid var(--theme-border) !important; border-radius: 0; box-shadow: none; transition: padding-left .25s ease; }
+.user-article-item:hover, .user-favorite-item:hover, .user-card:hover { padding-left: 8px; box-shadow: none; transform: none; }
+.user-article-item :deep(.el-card__body), .user-favorite-item :deep(.el-card__body) { padding: 26px 8px; }
+.user-article-header h2, .user-favorite-header h2, .user-details h4, .user-works-title { font-family: Georgia, 'Songti SC', serif; font-weight: 500; letter-spacing: .03em; }
+.user-article-cover, .user-favorite-cover, .user-favorite-work-cover-container { border-radius: 0; filter: saturate(.82) contrast(.96); }
+.user-bookmark-tag, .user-favorite-bookmark-tag { padding: 3px 7px; background: transparent !important; border: 1px solid var(--theme-border); color: var(--theme-text-secondary); clip-path: none; box-shadow: none; }
+.user-bookmark-tag:hover, .user-favorite-bookmark-tag:hover { border-color: var(--theme-primary); color: var(--theme-primary); box-shadow: none; }
+.user-works-filters { padding: 0 0 20px; background: transparent; border-bottom: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
+.user-works-masonry-grid { grid-template-columns: repeat(3, 1fr); }
+.user-works-masonry-item { background: transparent; border: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
+.user-works-masonry-item:hover { border-color: var(--theme-primary); box-shadow: none; transform: translateY(-4px); }
+.user-works-image { filter: saturate(.82) contrast(.96); transition: transform .6s cubic-bezier(.2,.6,.2,1); }
+.user-works-masonry-item:hover .user-works-image { transform: scale(1.045); }
+.user-profile :deep(.el-button), .user-profile :deep(.el-tag), .user-profile :deep(.el-radio-button__inner), .user-profile :deep(.el-segmented) { border-radius: 1px; box-shadow: none; }
+.stat-item.clickable:focus-visible, .user-article-item:focus-visible, .user-favorite-item:focus-visible, .user-works-masonry-item:focus-visible, .user-card:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .user-profile .container { padding: 0 24px; }
+  .profile-header { flex-direction: column; }
+  .stats { flex-wrap: wrap; }
+  .user-works-masonry-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .user-profile { padding: 38px 0 56px; }
+  .user-profile .container { padding: 0 18px; }
+  .profile-header { text-align: left; }
+  .stats { justify-content: flex-start; }
+  .stat-item { min-width: 33.333%; flex: 1; }
+  .user-article-item, .user-favorite-item { height: auto; }
+  .user-article-item :deep(.el-card__body), .user-favorite-item :deep(.el-card__body) { padding: 23px 2px; }
+  .user-article-list, .user-favorite-list { padding: 4px 16px; }
+  .user-article-content, .user-favorite-content { align-items: stretch; }
+  .user-works-masonry-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {

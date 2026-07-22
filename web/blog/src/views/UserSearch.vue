@@ -2,6 +2,9 @@
   <div class="user-search-page">
     <div class="container">
       <div class="search-card">
+        <div class="page-kicker">
+          PEOPLE · INDEX
+        </div>
         <h1>搜索用户</h1>
         <div class="search-bar">
           <el-input
@@ -12,16 +15,25 @@
             @keyup.enter="handleSearch"
           >
             <template #append>
-              <el-button :icon="Search" :loading="loading" @click="handleSearch">
+              <el-button
+                :icon="Search"
+                :loading="loading"
+                @click="handleSearch"
+              >
                 搜索
               </el-button>
             </template>
           </el-input>
         </div>
-        <p class="search-tip">按昵称或账号搜索，将优先显示最佳匹配的用户</p>
+        <p class="search-tip">
+          按昵称或账号搜索，将优先显示最佳匹配的用户
+        </p>
       </div>
 
-      <div v-if="topResults.length || userResults.length" class="results-card">
+      <div
+        v-if="topResults.length || userResults.length"
+        class="results-card"
+      >
         <template v-if="topResults.length">
           <h2>最佳匹配</h2>
           <div class="user-list">
@@ -30,10 +42,15 @@
               :key="user.id"
               class="user-card"
               shadow="hover"
+              tabindex="0"
               @click="goToUser(user.id)"
+              @keyup.enter="goToUser(user.id)"
             >
               <div class="user-card-header">
-                <el-avatar :size="40" :src="user.avatar" />
+                <el-avatar
+                  :size="40"
+                  :src="user.avatar"
+                />
                 <div class="user-info">
                   <div class="user-name-line">
                     <span class="nickname">{{ user.nickname || user.username }}</span>
@@ -45,8 +62,15 @@
                       最佳匹配
                     </el-tag>
                   </div>
-                  <div class="username">@{{ user.username }}</div>
-                  <p v-if="user.bio" class="bio">{{ user.bio }}</p>
+                  <div class="username">
+                    @{{ user.username }}
+                  </div>
+                  <p
+                    v-if="user.bio"
+                    class="bio"
+                  >
+                    {{ user.bio }}
+                  </p>
                   <div class="user-stats">
                     <span>文章 {{ user.article_count }}</span>
                     <span>作品 {{ user.work_count }}</span>
@@ -59,23 +83,37 @@
         </template>
 
         <template v-if="userResults.length">
-          <h2 class="section-title">相关用户</h2>
+          <h2 class="section-title">
+            相关用户
+          </h2>
           <div class="user-list">
             <el-card
               v-for="user in userResults"
               :key="user.id"
               class="user-card"
               shadow="hover"
+              tabindex="0"
               @click="goToUser(user.id)"
+              @keyup.enter="goToUser(user.id)"
             >
               <div class="user-card-header">
-                <el-avatar :size="40" :src="user.avatar" />
+                <el-avatar
+                  :size="40"
+                  :src="user.avatar"
+                />
                 <div class="user-info">
                   <div class="user-name-line">
                     <span class="nickname">{{ user.nickname || user.username }}</span>
                   </div>
-                  <div class="username">@{{ user.username }}</div>
-                  <p v-if="user.bio" class="bio">{{ user.bio }}</p>
+                  <div class="username">
+                    @{{ user.username }}
+                  </div>
+                  <p
+                    v-if="user.bio"
+                    class="bio"
+                  >
+                    {{ user.bio }}
+                  </p>
                   <div class="user-stats">
                     <span>文章 {{ user.article_count }}</span>
                     <span>作品 {{ user.work_count }}</span>
@@ -262,6 +300,23 @@ onMounted(() => {
 .user-stats span {
   white-space: nowrap;
 }
+
+/* Magazine adaptation */
+.user-search-page { padding: 62px 0 80px; background: var(--theme-bg-primary); }
+.user-search-page .container { max-width: 860px; padding: 0 32px; }
+.search-card, .results-card { padding: 0 0 32px; background: transparent; border-bottom: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; }
+.search-card { margin-bottom: 42px; }
+.page-kicker { margin-bottom: 10px; color: var(--theme-primary); font-family: Georgia, 'Songti SC', serif; font-size: 11px; letter-spacing: .26em; }
+.search-card h1 { margin-bottom: 24px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: clamp(38px, 6vw, 54px); font-weight: 500; letter-spacing: .04em; }
+.search-bar :deep(.el-input__wrapper), .search-bar :deep(.el-input-group__append), .user-search-page :deep(.el-tag) { border-radius: 1px; box-shadow: none; }
+.results-card h2 { padding-bottom: 12px; border-bottom: 1px solid var(--theme-border); font-family: Georgia, 'Songti SC', serif; font-size: 24px; font-weight: 500; letter-spacing: .05em; }
+.section-title { margin-top: 44px !important; }
+.user-card { margin: 0; border: 0; border-bottom: 1px solid var(--theme-border); border-radius: 0; box-shadow: none; transition: padding-left .25s ease; }
+.user-card:hover { padding-left: 8px; box-shadow: none; transform: none; }
+.user-card:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
+.nickname { font-family: Georgia, 'Songti SC', serif; font-size: 18px; font-weight: 500; }
+@media (max-width: 900px) { .user-search-page .container { padding: 0 24px; } }
+@media (max-width: 560px) { .user-search-page { padding: 38px 0 56px; } .user-search-page .container { padding: 0 18px; } .search-card h1 { font-size: 36px; } .user-stats { flex-wrap: wrap; } }
 </style>
 
 

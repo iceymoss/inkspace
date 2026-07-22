@@ -1,13 +1,18 @@
 <template>
-  <div ref="vditorRef" class="vditor-container"></div>
+  <div
+    ref="vditorRef"
+    class="vditor-container"
+    :data-markdown-theme="markdownTheme"
+  ></div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import 'vditor/dist/js/i18n/zh_CN.js'
-import { loadCodeTheme, loadHighlightTheme, getMarkdownTheme } from '@/utils/codeTheme'
+import { loadCodeTheme, loadHighlightTheme } from '@/utils/codeTheme'
+import { useAppearanceStore } from '@/stores/appearance'
 
 const props = defineProps({
   modelValue: {
@@ -23,7 +28,10 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const vditorRef = ref(null)
+const appearanceStore = useAppearanceStore()
+const markdownTheme = computed(() => appearanceStore.resolvedColorScheme)
 let vditor = null
+let codeThemeValue = 'github'
 
 onMounted(async () => {
   // 等待 DOM 准备好
@@ -36,9 +44,8 @@ onMounted(async () => {
   }
   
   // 先同步加载主题配置，确保在初始化 Vditor 前配置已准备好
-  const codeThemeValue = await loadCodeTheme()
+  codeThemeValue = await loadCodeTheme()
   await loadHighlightTheme(codeThemeValue)
-  const mdTheme = await getMarkdownTheme()
   
   // 使用加载的配置初始化 Vditor
   // 中文资源随前端一起打包，避免运行时依赖 CDN。
@@ -47,7 +54,7 @@ onMounted(async () => {
     height: props.height,
     mode: 'sv', // 分屏预览模式
     placeholder: '请输入文章内容，支持 Markdown 语法...',
-    theme: 'classic',
+    theme: markdownTheme.value === 'dark' ? 'dark' : 'classic',
     icon: 'material',
     typewriterMode: false,
     lang: 'zh_CN',
@@ -63,6 +70,9 @@ onMounted(async () => {
       type: 'markdown',
     },
     preview: {
+      theme: {
+        current: markdownTheme.value,
+      },
       delay: 500,
       hljs: {
         style: codeThemeValue || 'github', // 使用配置的代码主题
@@ -139,6 +149,10 @@ defineExpose({
   getValue: () => vditor?.getValue(),
   setValue: (value) => vditor?.setValue(value),
   focus: () => vditor?.focus(),
+})
+
+watch(markdownTheme, (theme) => {
+  vditor?.setTheme(theme === 'dark' ? 'dark' : 'classic', theme, codeThemeValue)
 })
 </script>
 
@@ -238,17 +252,6 @@ defineExpose({
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.8;
-  color: var(--theme-text-primary);
-}
-
-:deep(.vditor-reset p),
-:deep(.vditor-reset li) {
-  color: var(--theme-text-secondary);
-}
-
-:deep(.vditor-reset blockquote) {
-  color: var(--theme-text-tertiary);
-  border-left-color: var(--theme-primary);
 }
 
 @media (max-width: 700px) {

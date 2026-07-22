@@ -1,34 +1,76 @@
 <template>
   <div class="about">
     <div class="container">
-      <el-card>
+      <el-card class="about-sheet">
+        <div class="page-kicker">
+          ABOUT · PROFILE
+        </div>
         <h1>{{ aboutData.title || '关于我' }}</h1>
         
         <div class="about-content">
-          <div class="profile" v-if="aboutData.avatar || aboutData.name || aboutData.bio">
-            <el-avatar :size="120" :src="aboutData.avatar" v-if="aboutData.avatar" />
-            <h2 v-if="aboutData.name">{{ aboutData.name }}</h2>
-            <p class="bio" v-if="aboutData.bio">{{ aboutData.bio }}</p>
+          <div
+            v-if="aboutData.avatar || aboutData.name || aboutData.bio"
+            class="profile"
+          >
+            <el-avatar
+              v-if="aboutData.avatar"
+              :size="120"
+              :src="aboutData.avatar"
+            />
+            <h2 v-if="aboutData.name">
+              {{ aboutData.name }}
+            </h2>
+            <p
+              v-if="aboutData.bio"
+              class="bio"
+            >
+              {{ aboutData.bio }}
+            </p>
           </div>
 
           <div class="intro">
-            <h3 v-if="aboutData.introduction">简介</h3>
-            <p v-if="aboutData.introduction" v-html="formatContent(aboutData.introduction)"></p>
+            <h3 v-if="aboutData.introduction">
+              简介
+            </h3>
+            <p
+              v-if="aboutData.introduction"
+              v-html="formatContent(aboutData.introduction)"
+            />
 
-            <h3 v-if="aboutData.skills && aboutData.skills.length > 0">技能</h3>
-            <div class="skills" v-if="aboutData.skills && aboutData.skills.length > 0">
-              <el-tag v-for="skill in aboutData.skills" :key="skill" type="primary">{{ skill }}</el-tag>
+            <h3 v-if="aboutData.skills && aboutData.skills.length > 0">
+              技能
+            </h3>
+            <div
+              v-if="aboutData.skills && aboutData.skills.length > 0"
+              class="skills"
+            >
+              <el-tag
+                v-for="skill in aboutData.skills"
+                :key="skill"
+                type="primary"
+              >
+                {{ skill }}
+              </el-tag>
             </div>
 
-            <h3 v-if="hasContact">联系方式</h3>
-            <div class="contact" v-if="hasContact">
+            <h3 v-if="hasContact">
+              联系方式
+            </h3>
+            <div
+              v-if="hasContact"
+              class="contact"
+            >
               <p v-if="aboutData.email">
                 <el-icon><Message /></el-icon> 
                 <a :href="`mailto:${aboutData.email}`">{{ aboutData.email }}</a>
               </p>
               <p v-if="aboutData.github">
                 <el-icon><Link /></el-icon> 
-                <a :href="formatGithubUrl(aboutData.github)" target="_blank" rel="noopener noreferrer">{{ aboutData.github }}</a>
+                <a
+                  :href="formatGithubUrl(aboutData.github)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >{{ aboutData.github }}</a>
               </p>
               <p v-if="aboutData.wechat">
                 <el-icon><ChatLineRound /></el-icon> 
@@ -40,11 +82,18 @@
               </p>
               <p v-if="aboutData.weibo">
                 <el-icon><Link /></el-icon> 
-                <a :href="formatWeiboUrl(aboutData.weibo)" target="_blank" rel="noopener noreferrer">{{ aboutData.weibo }}</a>
+                <a
+                  :href="formatWeiboUrl(aboutData.weibo)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >{{ aboutData.weibo }}</a>
               </p>
             </div>
             
-            <div v-if="!aboutData.avatar && !aboutData.name && !aboutData.bio && !aboutData.introduction && (!aboutData.skills || aboutData.skills.length === 0) && !hasContact" class="empty-tip">
+            <div
+              v-if="!aboutData.avatar && !aboutData.name && !aboutData.bio && !aboutData.introduction && (!aboutData.skills || aboutData.skills.length === 0) && !hasContact"
+              class="empty-tip"
+            >
               <el-empty description="暂无内容，请在管理后台配置关于页面信息" />
             </div>
           </div>
@@ -206,5 +255,23 @@ onMounted(() => {
 .contact a:hover {
   text-decoration: underline;
 }
+
+/* Magazine adaptation */
+.about { padding: 62px 0 80px; background: var(--theme-bg-primary); }
+.about .container { max-width: 920px; padding: 0 32px; }
+.about .about-sheet { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.about-sheet :deep(.el-card__body) { padding: 0; }
+.page-kicker { margin-bottom: 15px; color: var(--theme-primary); font-family: Georgia, 'Songti SC', serif; font-size: 11px; letter-spacing: .26em; text-align: center; }
+.about h1 { margin-bottom: 50px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', SimSun, serif; font-size: clamp(38px, 6vw, 58px); font-weight: 500; letter-spacing: .05em; }
+.profile { margin-bottom: 46px; padding: 0 0 46px; border-bottom: 1px solid var(--theme-border); }
+.profile :deep(.el-avatar) { border: 1px solid var(--theme-border); }
+.profile h2, .intro h3 { font-family: Georgia, 'Songti SC', serif; font-weight: 500; letter-spacing: .05em; }
+.intro h3 { margin-top: 42px; padding-top: 18px; border-top: 1px solid var(--theme-border); color: var(--theme-text-primary); font-size: 22px; }
+.intro p { line-height: 1.9; }
+.skills :deep(.el-tag) { border-radius: 1px; background: transparent; }
+.contact a { color: var(--theme-primary); }
+.contact a:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
+@media (max-width: 900px) { .about .container { padding: 0 24px; } }
+@media (max-width: 560px) { .about { padding: 38px 0 56px; } .about .container { padding: 0 18px; } .about h1 { margin-bottom: 36px; font-size: 36px; } }
 </style>
 

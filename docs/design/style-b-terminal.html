@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>yu.log · 暗色科技感</title>
+<style>
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0D1320;
+    --panel: #131B2C;
+    --panel-2: #182238;
+    --ink: #C9D5E6;
+    --bright: #EDF3FB;
+    --sub: #64748F;
+    --line: #1F2B42;
+    --accent: #5CB2FF;
+    --amber: #F0A94B;
+    --green: #6FCF8E;
+    --shadow: 0 12px 40px rgba(0,0,0,.45);
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #F4F6FA;
+    --panel: #FFFFFF;
+    --panel-2: #EBEFF6;
+    --ink: #23304A;
+    --bright: #0E1730;
+    --sub: #7C88A1;
+    --line: #DDE4EF;
+    --accent: #1668C7;
+    --amber: #C07A17;
+    --green: #1F9D57;
+    --shadow: 0 10px 30px rgba(30,50,90,.10);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    line-height: 1.75;
+    transition: background .3s, color .3s;
+  }
+  .mono { font-family: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', Consolas, 'Courier New', monospace; }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+
+  /* bg grid decoration */
+  .bg-deco {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 44px 44px; opacity: .25;
+    mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 25%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 25%, transparent 75%);
+  }
+  main, header, footer { position: relative; z-index: 1; }
+
+  /* ===== Nav ===== */
+  header {
+    position: sticky; top: 0; z-index: 60;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { font-size: 16px; color: var(--bright); }
+  .brand .dollar { color: var(--green); margin-right: 8px; }
+  .brand .cursor { display: inline-block; width: 8px; height: 16px; background: var(--accent); vertical-align: -2px; margin-left: 6px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .nav-links { display: flex; gap: 8px; align-items: center; }
+  .nav-links a {
+    font-size: 13px; color: var(--sub); padding: 6px 14px; border-radius: 8px;
+    transition: color .2s, background .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--bright); background: var(--panel-2); }
+  .nav-links a.active::before { content: '// '; color: var(--accent); }
+  .theme-btn {
+    margin-left: 10px; background: var(--panel); border: 1px solid var(--line);
+    color: var(--ink); border-radius: 8px; width: 34px; height: 34px;
+    cursor: pointer; font-size: 14px;
+    transition: border-color .2s;
+  }
+  .theme-btn:hover { border-color: var(--accent); }
+
+  /* ===== Hero terminal ===== */
+  .hero { padding: 84px 0 72px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+  .hero-copy .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+    padding: 4px 14px; border-radius: 99px; margin-bottom: 26px;
+  }
+  .hero-copy .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .hero-copy h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.3; color: var(--bright); font-weight: 700; }
+  .hero-copy h1 .hl { color: var(--accent); }
+  .hero-copy p { margin-top: 20px; color: var(--sub); font-size: 15px; max-width: 32em; }
+  .hero-cta { margin-top: 36px; display: flex; gap: 14px; }
+  .btn {
+    padding: 11px 26px; border-radius: 10px; font-size: 14px;
+    border: 1px solid transparent; transition: all .2s;
+  }
+  .btn.solid { background: var(--accent); color: #08101E; font-weight: 600; }
+  .btn.solid:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .btn.line { border-color: var(--line); color: var(--ink); }
+  .btn.line:hover { border-color: var(--accent); color: var(--accent); }
+
+  .terminal {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden; font-size: 13.5px;
+  }
+  .term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.r { background: #F26D6D; } .dot.y { background: #F2C46D; } .dot.g { background: #6DD087; }
+  .term-bar .title { margin-left: auto; margin-right: auto; font-size: 12px; color: var(--sub); }
+  .term-body { padding: 20px 22px 26px; line-height: 2.05; }
+  .term-body .ln .p { color: var(--green); }
+  .term-body .ln .cmd { color: var(--bright); }
+  .term-body .out { color: var(--sub); }
+  .term-body .out b { color: var(--amber); font-weight: 600; }
+  .term-body .out .k { color: var(--accent); }
+  .type-caret { display: inline-block; width: 8px; height: 15px; background: var(--accent); vertical-align: -2px; animation: blink 1.1s steps(1) infinite; }
+
+  /* ===== Sections ===== */
+  section { padding: 68px 0; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 36px; }
+  .sec-head h2 { font-size: 15px; color: var(--bright); font-weight: 600; letter-spacing: .02em; }
+  .sec-head h2 .path { color: var(--sub); font-weight: 400; }
+  .sec-head h2 .slash { color: var(--accent); }
+  .more { font-size: 13px; color: var(--sub); }
+  .more:hover { color: var(--accent); }
+
+  /* ===== Logs (blog) ===== */
+  .log {
+    display: grid; grid-template-columns: 150px 1fr auto; gap: 24px; align-items: baseline;
+    padding: 20px 18px; border-radius: 12px; border: 1px solid transparent;
+    transition: background .2s, border-color .2s;
+  }
+  .log:hover { background: var(--panel); border-color: var(--line); }
+  .log time { font-size: 12.5px; color: var(--sub); }
+  .log time .lv { color: var(--amber); margin-right: 8px; }
+  .log time .lv.info { color: var(--green); }
+  .log time .lv.feat { color: var(--accent); }
+  .log h3 { font-size: 16.5px; font-weight: 600; color: var(--ink); }
+  .log:hover h3 { color: var(--accent); }
+  .log p { grid-column: 2; margin-top: -6px; font-size: 13.5px; color: var(--sub); }
+  .log .tag { font-size: 12px; color: var(--sub); }
+
+  /* ===== Repo cards ===== */
+  .repo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .repo {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 24px; display: flex; flex-direction: column; gap: 12px;
+    transition: transform .25s, border-color .25s, box-shadow .25s;
+  }
+  .repo:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: var(--shadow); }
+  .repo .rname { font-size: 15px; color: var(--accent); font-weight: 600; }
+  .repo .rname::before { content: '❯ '; color: var(--sub); }
+  .repo p { font-size: 13.5px; color: var(--sub); flex: 1; }
+  .repo .meta { display: flex; gap: 18px; font-size: 12px; color: var(--sub); }
+  .repo .meta .lang::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .repo .l-ts::before { background: #4E7CBF; }
+  .repo .l-rs::before { background: #C0714F; }
+  .repo .l-vue::before { background: #41B883; }
+
+  /* ===== Captures (photography) ===== */
+  .cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .cap { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 3/2; border: 1px solid var(--line); cursor: pointer; }
+  .cap .img { position: absolute; inset: 0; transition: transform .5s cubic-bezier(.2,.6,.2,1); }
+  .cap:hover .img { transform: scale(1.05); }
+  .cap .exif {
+    position: absolute; inset: auto 0 0 0; padding: 34px 14px 12px;
+    background: linear-gradient(transparent, rgba(5,8,15,.82));
+    font-size: 11px; color: #AFC4DE; display: flex; justify-content: space-between;
+    letter-spacing: .04em; opacity: 0; transform: translateY(8px); transition: all .3s;
+  }
+  .cap:hover .exif { opacity: 1; transform: none; }
+  .c1 { background: linear-gradient(155deg, #274A6B 0%, #16293F 60%, #0B1523 100%); }
+  .c2 { background: linear-gradient(200deg, #6B4A27 0%, #3F2C16 55%, #23180B 100%); }
+  .c3 { background: linear-gradient(170deg, #2C5546 0%, #18332A 60%, #0C1B15 100%); }
+  .c4 { background: linear-gradient(150deg, #4E5B77 0%, #2B3550 55%, #151C2E 100%); }
+  .c5 { background: linear-gradient(190deg, #6B3A3A 0%, #3F2222 55%, #201111 100%); }
+  .c6 { background: linear-gradient(165deg, #35406B 0%, #1D2440 60%, #0E1222 100%); }
+  .scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.025) 3px 4px); }
+
+  /* ===== KB file tree ===== */
+  .kb {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden;
+    display: grid; grid-template-columns: 280px 1fr;
+  }
+  .tree { border-right: 1px solid var(--line); padding: 20px 0; font-size: 13.5px; }
+  .tree .t-item { padding: 7px 24px; color: var(--sub); cursor: pointer; transition: background .15s, color .15s; }
+  .tree .t-item:hover { color: var(--ink); background: var(--panel-2); }
+  .tree .t-item.dir::before { content: '▸ '; color: var(--accent); }
+  .tree .t-item.open::before { content: '▾ '; color: var(--accent); }
+  .tree .t-item.file { padding-left: 44px; }
+  .tree .t-item.file::before { content: '· '; color: var(--sub); }
+  .tree .t-item.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .kb-preview { padding: 28px 32px; }
+  .kb-preview .crumb { font-size: 12px; color: var(--sub); margin-bottom: 14px; }
+  .kb-preview .crumb .sep { color: var(--accent); }
+  .kb-preview h3 { color: var(--bright); font-size: 20px; margin-bottom: 12px; }
+  .kb-preview p { font-size: 14px; color: var(--sub); margin-bottom: 10px; }
+  .kb-preview code {
+    font-family: 'SF Mono', Consolas, monospace; font-size: 12.5px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 2px 8px; border-radius: 6px; color: var(--amber);
+  }
+  .kb-stats { display: flex; gap: 28px; margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--line); }
+  .kb-stats .s b { display: block; font-size: 20px; color: var(--accent); }
+  .kb-stats .s span { font-size: 12px; color: var(--sub); }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0 52px; margin-top: 30px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--sub); }
+  .foot a:hover { color: var(--accent); }
+  .foot .links { display: flex; gap: 22px; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .repo-grid, .cap-grid { grid-template-columns: 1fr 1fr; }
+    .kb { grid-template-columns: 1fr; } .tree { display: none; }
+    .nav-links a:not(.keep) { display: none; }
+    .log { grid-template-columns: 1fr; gap: 4px; }
+    .log p { grid-column: 1; margin-top: 0; }
+  }
+  @media (max-width: 560px) { .repo-grid, .cap-grid { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+    .type-caret, .cursor { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-deco" aria-hidden="true"></div>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand mono" href="#"><span class="dollar">$</span>yu.log<span class="cursor"></span></a>
+      <div class="nav-links mono">
+        <a href="#" class="active">home</a>
+        <a href="#logs">blog</a>
+        <a href="#repos">projects</a>
+        <a href="#caps">photos</a>
+        <a href="#kb">wiki</a>
+        <button class="theme-btn keep" id="themeToggle" aria-label="切换深浅色模式">◐</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div class="hero-copy">
+      <span class="status mono">available · shanghai (UTC+8)</span>
+      <h1>写代码，拍照片，<br>偶尔<span class="hl">重新发明轮子</span>。</h1>
+      <p>陈屿 / 前端工程师。白天构建 Web 应用，晚上维护三个开源项目，周末背着相机出门。这里是我的日志、作品与第二大脑。</p>
+      <div class="hero-cta mono">
+        <a class="btn solid" href="#logs">tail -f blog</a>
+        <a class="btn line" href="#repos">ls projects/</a>
+      </div>
+    </div>
+    <div class="terminal mono" aria-label="终端演示">
+      <div class="term-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">chenyu@island: ~</span>
+      </div>
+      <div class="term-body">
+        <div class="ln"><span class="p">❯</span> <span class="cmd">whoami</span></div>
+        <div class="out">陈屿 · frontend engineer &amp; photographer</div>
+        <div class="ln"><span class="p">❯</span> <span class="cmd">cat skills.json | jq .top</span></div>
+        <div class="out">[<span class="k">"typescript"</span>, <span class="k">"vue"</span>, <span class="k">"node"</span>, <span class="k">"lightroom"</span>]</div>
+        <div class="ln"><span class="p">❯</span> <span class="cmd">uptime</span></div>
+        <div class="out">coding <b>9</b> yrs · shooting <b>6</b> yrs · writing <b>4</b> yrs</div>
+        <div class="ln"><span class="p">❯</span> <span id="typeTarget" class="cmd"></span><span class="type-caret"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="logs">
+    <div class="sec-head mono">
+      <h2><span class="path">~</span><span class="slash">/</span>blog <span class="path">— 最近提交的文字</span></h2>
+      <a class="more" href="#">git log --all →</a>
+    </div>
+    <article class="log">
+      <time class="mono"><span class="lv feat">FEAT</span>2026-07-14</time>
+      <h3><a href="#">给个人网站做减法：我删掉了三分之二的功能</a></h3>
+      <span class="tag mono">#design</span>
+      <p>重构第三版个人站时，我意识到问题不是「还能加什么」，而是「哪些东西在阻碍阅读」。</p>
+    </article>
+    <article class="log">
+      <time class="mono"><span class="lv info">INFO</span>2026-06-28</time>
+      <h3><a href="#">View Transitions API 实战：丝滑的无刷新页面切换</a></h3>
+      <span class="tag mono">#frontend</span>
+      <p>不依赖任何框架，用原生 API 为多页应用做出单页应用般的转场体验。</p>
+    </article>
+    <article class="log">
+      <time class="mono"><span class="lv">WARN</span>2026-06-09</time>
+      <h3><a href="#">胶片模拟不是滤镜：谈谈数码时代的影调审美</a></h3>
+      <span class="tag mono">#photo</span>
+      <p>为什么同样的预设，别人的照片有「氛围」而你的没有——问题往往出在拍摄之前。</p>
+    </article>
+  </section>
+
+  <section id="repos">
+    <div class="sec-head mono">
+      <h2><span class="path">~</span><span class="slash">/</span>projects <span class="path">— 正在维护的仓库</span></h2>
+      <a class="more" href="#">github.com/chenyu →</a>
+    </div>
+    <div class="repo-grid">
+      <a class="repo" href="#">
+        <div class="rname mono">lumo</div>
+        <p>为摄影师设计的本地图库：RAW 预览、EXIF 检索、胶片风格标签体系。</p>
+        <div class="meta mono"><span class="lang l-rs">Rust</span><span>★ 2.1k</span><span>v0.9.2</span></div>
+      </a>
+      <a class="repo" href="#">
+        <div class="rname mono">inkwell</div>
+        <p>专注排版的 Markdown 博客引擎，内置中文排版优化与阅读进度记忆。</p>
+        <div class="meta mono"><span class="lang l-ts">TypeScript</span><span>★ 876</span><span>v2.3.0</span></div>
+      </a>
+      <a class="repo" href="#">
+        <div class="rname mono">gridfolio</div>
+        <p>面向创作者的作品集模板，三种布局体系，深浅色自适应。</p>
+        <div class="meta mono"><span class="lang l-vue">Vue</span><span>★ 430</span><span>v1.1.0</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section id="caps">
+    <div class="sec-head mono">
+      <h2><span class="path">~</span><span class="slash">/</span>photos <span class="path">— 光圈优先</span></h2>
+      <a class="more" href="#">open gallery →</a>
+    </div>
+    <div class="cap-grid">
+      <figure class="cap"><div class="img c1"><div class="scan"></div></div><figcaption class="exif mono"><span>雾晨 · 外滩</span><span>35mm f/1.8 ISO400</span></figcaption></figure>
+      <figure class="cap"><div class="img c2"><div class="scan"></div></div><figcaption class="exif mono"><span>暮色 · 敦煌</span><span>85mm f/2.0 ISO100</span></figcaption></figure>
+      <figure class="cap"><div class="img c3"><div class="scan"></div></div><figcaption class="exif mono"><span>苔径 · 莫干山</span><span>24mm f/4.0 ISO200</span></figcaption></figure>
+      <figure class="cap"><div class="img c4"><div class="scan"></div></div><figcaption class="exif mono"><span>初雪 · 北海道</span><span>50mm f/2.8 ISO160</span></figcaption></figure>
+      <figure class="cap"><div class="img c5"><div class="scan"></div></div><figcaption class="exif mono"><span>旧巷 · 泉州</span><span>28mm f/2.8 ISO320</span></figcaption></figure>
+      <figure class="cap"><div class="img c6"><div class="scan"></div></div><figcaption class="exif mono"><span>夜航 · 维港</span><span>70mm f/5.6 ISO800</span></figcaption></figure>
+    </div>
+  </section>
+
+  <section id="kb">
+    <div class="sec-head mono">
+      <h2><span class="path">~</span><span class="slash">/</span>wiki <span class="path">— 第二大脑</span></h2>
+      <a class="more" href="#">grep -r "..." →</a>
+    </div>
+    <div class="kb">
+      <div class="tree mono" aria-label="知识库目录">
+        <div class="t-item open">frontend/</div>
+        <div class="t-item file on">rendering-pipeline.md</div>
+        <div class="t-item file">view-transitions.md</div>
+        <div class="t-item file">perf-checklist.md</div>
+        <div class="t-item dir">design/</div>
+        <div class="t-item dir">photography/</div>
+        <div class="t-item dir">reading/</div>
+      </div>
+      <div class="kb-preview">
+        <div class="crumb mono">wiki <span class="sep">/</span> frontend <span class="sep">/</span> rendering-pipeline.md</div>
+        <h3>浏览器渲染管线笔记</h3>
+        <p>从 HTML 解析到像素上屏的完整链路：Parse → Style → Layout → Paint → Composite。理解每一步的成本，才能知道 <code>transform</code> 为什么比 <code>top/left</code> 便宜。</p>
+        <p>关联笔记：合成层的创建条件、<code>will-change</code> 的代价、Interaction to Next Paint 的优化路径……</p>
+        <div class="kb-stats">
+          <div class="s"><b>258</b><span>笔记总数</span></div>
+          <div class="s"><b>1.2k</b><span>双向链接</span></div>
+          <div class="s"><b>昨天</b><span>最近更新</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot mono">
+    <span>© 2026 chenyu · built with inkwell · <span style="color:var(--green)">■</span> all systems normal</span>
+    <div class="links"><a href="#">rss.xml</a><a href="#">github</a><a href="#">email</a><a href="#">uses</a></div>
+  </div>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  root.dataset.theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+
+  // typing loop
+  const cmds = ['ls photos/2026/', 'npm run build', 'git push origin main', 'vim wiki/today.md'];
+  const target = document.getElementById('typeTarget');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduced) {
+    let ci = 0, pos = 0, deleting = false;
+    (function tick() {
+      const cmd = cmds[ci];
+      target.textContent = cmd.slice(0, pos);
+      if (!deleting) {
+        if (pos++ < cmd.length) return setTimeout(tick, 70 + Math.random() * 90);
+        deleting = true; return setTimeout(tick, 1600);
+      }
+      if (pos-- > 0) return setTimeout(tick, 30);
+      deleting = false; ci = (ci + 1) % cmds.length; setTimeout(tick, 500);
+    })();
+  } else {
+    target.textContent = cmds[0];
+  }
+</script>
+</body>
+</html>

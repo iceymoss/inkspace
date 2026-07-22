@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小屿的角落 · 温暖手作感</title>
+<style>
+  :root { color-scheme: light; }
+  [data-theme="light"] {
+    --bg: #FBF6ED;
+    --card: #FFFDF8;
+    --ink: #43362A;
+    --sub: #93826F;
+    --line: #EADFCD;
+    --moss: #75845C;
+    --moss-soft: #EDEFE2;
+    --mustard: #D9A441;
+    --sky: #8FAABF;
+    --blush: #E5B8A5;
+    --shadow: 0 6px 24px rgba(122, 98, 70, .10);
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #26201A;
+    --card: #2E2721;
+    --ink: #EFE6D9;
+    --sub: #A79681;
+    --line: #3D342B;
+    --moss: #A3B385;
+    --moss-soft: #333A29;
+    --mustard: #E0B25C;
+    --sky: #93B0C6;
+    --blush: #D9A891;
+    --shadow: 0 6px 24px rgba(0,0,0,.35);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    line-height: 1.85; font-size: 15.5px;
+    transition: background .35s, color .35s;
+  }
+  .round { font-family: 'Yuanti SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible { outline: 2px dashed var(--moss); outline-offset: 3px; border-radius: 8px; }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px; }
+
+  /* ===== Nav ===== */
+  header { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); }
+  nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .brand .logo {
+    width: 34px; height: 34px; border-radius: 12px 14px 13px 15px;
+    background: var(--moss); color: #FFFDF6; display: grid; place-items: center;
+    font-size: 17px; transform: rotate(-4deg);
+  }
+  .nav-links { display: flex; gap: 6px; align-items: center; }
+  .nav-links a {
+    font-size: 14px; color: var(--sub); padding: 7px 16px; border-radius: 99px;
+    transition: all .2s;
+  }
+  .nav-links a:hover { color: var(--ink); background: var(--moss-soft); }
+  .nav-links a.active { color: #FFFDF6; background: var(--moss); }
+  .theme-btn {
+    margin-left: 8px; width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--line); background: var(--card); color: var(--ink);
+    cursor: pointer; font-size: 15px; transition: all .2s;
+  }
+  .theme-btn:hover { border-color: var(--mustard); transform: rotate(20deg); }
+
+  /* ===== Hero ===== */
+  .hero { padding: 72px 0 64px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+  .hello {
+    display: inline-block; background: var(--moss-soft); color: var(--moss);
+    font-size: 13px; padding: 6px 18px; border-radius: 99px; margin-bottom: 22px;
+    transform: rotate(-1.5deg);
+  }
+  .hero h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.4; font-weight: 800; }
+  .hero h1 .wavy {
+    background-image: linear-gradient(45deg, var(--mustard) 40%, var(--blush));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    position: relative; white-space: nowrap;
+  }
+  .hero h1 .underline { position: relative; }
+  .hero h1 .underline svg { position: absolute; left: 0; bottom: -10px; width: 100%; height: 12px; }
+  .hero p { margin-top: 24px; color: var(--sub); max-width: 30em; }
+  .hero-cta { margin-top: 36px; display: flex; gap: 16px; align-items: center; }
+  .btn-jam {
+    background: var(--mustard); color: #4A3814; font-weight: 700; font-size: 14.5px;
+    padding: 13px 30px; border-radius: 99px; box-shadow: 0 4px 0 color-mix(in srgb, var(--mustard) 60%, #7A5A16);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn-jam:hover { transform: translateY(2px); box-shadow: 0 2px 0 color-mix(in srgb, var(--mustard) 60%, #7A5A16); }
+  .btn-soft { font-size: 14px; color: var(--sub); border-bottom: 2px dotted var(--sub); padding-bottom: 2px; }
+  .btn-soft:hover { color: var(--moss); border-color: var(--moss); }
+
+  /* polaroid stack (signature) */
+  .stack { position: relative; height: 380px; }
+  .pola {
+    position: absolute; background: #FFFEFA; padding: 12px 12px 40px;
+    border-radius: 4px; box-shadow: var(--shadow);
+    transition: transform .35s cubic-bezier(.3,1.4,.5,1), z-index 0s;
+  }
+  [data-theme="dark"] .pola { background: #3A332B; }
+  .pola .pic { width: 200px; height: 200px; border-radius: 2px; position: relative; overflow: hidden; }
+  .pola .cap { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 13px; color: #8A7B66; }
+  [data-theme="dark"] .pola .cap { color: #BFAF99; }
+  .pola .tape {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%) rotate(-3deg);
+    width: 74px; height: 26px; background: color-mix(in srgb, var(--mustard) 45%, #FFF8E8);
+    opacity: .85; border-radius: 2px;
+  }
+  [data-theme="dark"] .pola .tape { background: color-mix(in srgb, var(--mustard) 50%, #6A5C42); }
+  .pola:nth-child(1) { top: 8%; left: 4%; transform: rotate(-6deg); z-index: 1; }
+  .pola:nth-child(2) { top: 0; left: 38%; transform: rotate(3deg); z-index: 2; }
+  .pola:nth-child(3) { top: 34%; left: 22%; transform: rotate(-2deg); z-index: 3; }
+  .pola:hover { transform: rotate(0deg) scale(1.06); z-index: 9; }
+  .sp1 { background: linear-gradient(160deg, #A8C0D0 0%, #6E8DA5 55%, #45607A 100%); }
+  .sp2 { background: linear-gradient(200deg, #E3CBA4 0%, #B99668 50%, #6E5636 100%); }
+  .sp3 { background: linear-gradient(170deg, #94A87E 0%, #5D7350 60%, #37472F 100%); }
+
+  /* wavy divider */
+  .divider { display: block; width: 100%; height: 26px; margin: 10px 0; color: var(--line); }
+
+  /* ===== Sections ===== */
+  section { padding: 56px 0; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; }
+  .sec-head h2 { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+  .sec-head h2 .dot { width: 12px; height: 12px; border-radius: 40% 60% 55% 45%; background: var(--mustard); }
+  .sec-head .more { font-size: 13.5px; color: var(--sub); }
+  .sec-head .more:hover { color: var(--moss); }
+
+  /* ===== Blog cards ===== */
+  .post-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .post {
+    background: var(--card); border: 2px solid var(--line); border-radius: 20px;
+    padding: 26px 24px; display: flex; flex-direction: column; gap: 10px;
+    transition: transform .25s, border-color .25s, box-shadow .25s;
+  }
+  .post:hover { transform: translateY(-5px) rotate(-.5deg); border-color: var(--moss); box-shadow: var(--shadow); }
+  .post .p-tag { align-self: flex-start; font-size: 12px; padding: 3px 12px; border-radius: 99px; }
+  .post .t-design { background: var(--moss-soft); color: var(--moss); }
+  .post .t-code { background: color-mix(in srgb, var(--sky) 22%, transparent); color: color-mix(in srgb, var(--sky) 60%, var(--ink)); }
+  .post .t-photo { background: color-mix(in srgb, var(--blush) 30%, transparent); color: color-mix(in srgb, var(--blush) 55%, var(--ink)); }
+  .post h3 { font-size: 17px; font-weight: 700; line-height: 1.55; flex: 1; }
+  .post:hover h3 { color: var(--moss); }
+  .post p { font-size: 13.5px; color: var(--sub); }
+  .post time { font-size: 12.5px; color: var(--sub); }
+
+  /* ===== Projects shelf ===== */
+  .shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .craft {
+    background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 28px 24px;
+    position: relative; overflow: hidden; transition: transform .25s, border-color .25s;
+  }
+  .craft:hover { transform: translateY(-5px); border-color: var(--mustard); }
+  .craft .emoji {
+    width: 52px; height: 52px; border-radius: 16px 18px 15px 19px; display: grid; place-items: center;
+    font-size: 25px; margin-bottom: 16px; transform: rotate(-3deg);
+  }
+  .craft:nth-child(1) .emoji { background: var(--moss-soft); }
+  .craft:nth-child(2) .emoji { background: color-mix(in srgb, var(--sky) 22%, transparent); }
+  .craft:nth-child(3) .emoji { background: color-mix(in srgb, var(--blush) 28%, transparent); }
+  .craft h3 { font-size: 17.5px; font-weight: 700; }
+  .craft .role { font-size: 12.5px; color: var(--mustard); margin: 2px 0 10px; }
+  .craft p { font-size: 13.5px; color: var(--sub); }
+
+  /* ===== Photo wall ===== */
+  .wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .wpola {
+    background: #FFFEFA; padding: 10px 10px 34px; border-radius: 4px;
+    box-shadow: var(--shadow); transition: transform .3s cubic-bezier(.3,1.4,.5,1);
+  }
+  [data-theme="dark"] .wpola { background: #3A332B; }
+  .wpola:nth-child(odd) { transform: rotate(-2deg); }
+  .wpola:nth-child(even) { transform: rotate(1.6deg); }
+  .wpola:hover { transform: rotate(0) scale(1.05); z-index: 5; position: relative; }
+  .wpola .pic { aspect-ratio: 1; border-radius: 2px; }
+  .wpola .cap { text-align: center; font-size: 12.5px; color: #8A7B66; margin-top: 10px; }
+  [data-theme="dark"] .wpola .cap { color: #BFAF99; }
+  .w1 { background: linear-gradient(160deg, #A8C0D0, #45607A); }
+  .w2 { background: linear-gradient(200deg, #E3CBA4, #6E5636); }
+  .w3 { background: linear-gradient(170deg, #94A87E, #37472F); }
+  .w4 { background: linear-gradient(190deg, #D9AFA5, #6E4038); }
+
+  /* ===== KB notebooks ===== */
+  .nb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .nb {
+    border-radius: 8px 20px 20px 8px; padding: 30px 26px; position: relative;
+    background: var(--card); border: 2px solid var(--line); border-left: 12px solid var(--moss);
+    transition: transform .25s;
+  }
+  .nb:nth-child(2) { border-left-color: var(--sky); }
+  .nb:nth-child(3) { border-left-color: var(--blush); }
+  .nb:hover { transform: translateY(-5px) rotate(.5deg); }
+  .nb h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .nb p { font-size: 13.5px; color: var(--sub); }
+  .nb .badge {
+    display: inline-block; margin-top: 18px; font-size: 12px; color: var(--sub);
+    border: 1.5px dashed var(--line); padding: 3px 12px; border-radius: 99px;
+  }
+
+  /* ===== Footer ===== */
+  footer { padding: 48px 0 56px; text-align: center; }
+  footer .stamp {
+    display: inline-grid; place-items: center; width: 72px; height: 72px; margin-bottom: 16px;
+    border: 2px dashed var(--mustard); border-radius: 50%; color: var(--mustard);
+    font-size: 12px; transform: rotate(-8deg);
+  }
+  footer p { font-size: 13px; color: var(--sub); }
+  footer .links { display: flex; justify-content: center; gap: 24px; margin: 14px 0; font-size: 13.5px; }
+  footer .links a:hover { color: var(--moss); }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .stack { height: 330px; max-width: 420px; margin: 0 auto; }
+    .post-grid, .shelf, .nb-grid { grid-template-columns: 1fr 1fr; }
+    .wall { grid-template-columns: 1fr 1fr; }
+    .nav-links a:not(.keep) { display: none; }
+  }
+  @media (max-width: 560px) {
+    .post-grid, .shelf, .nb-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#"><span class="logo">屿</span>小屿的角落</a>
+      <div class="nav-links">
+        <a href="#" class="active">家</a>
+        <a href="#posts">随笔</a>
+        <a href="#crafts">手作</a>
+        <a href="#wall">照片墙</a>
+        <a href="#nb">笔记本</a>
+        <button class="theme-btn keep" id="themeToggle" aria-label="切换深浅色模式">☾</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div>
+      <span class="hello">☺ 你好呀，欢迎路过</span>
+      <h1>在互联网的一个角落，<br><span class="underline">慢慢地<svg viewBox="0 0 120 12" preserveAspectRatio="none"><path d="M0 8 Q 15 2 30 8 T 60 8 T 90 8 T 120 8" fill="none" stroke="var(--mustard)" stroke-width="3" stroke-linecap="round"/></svg></span>记录<span class="wavy">生活与创造</span>。</h1>
+      <p>我是陈屿，白天写代码，傍晚出门拍照，晚上把想法晒干装罐。这里存放我的随笔、亲手做的小项目，和一整面墙的照片。</p>
+      <div class="hero-cta">
+        <a class="btn-jam" href="#posts">进来坐坐</a>
+        <a class="btn-soft" href="#wall">先看照片墙 →</a>
+      </div>
+    </div>
+    <div class="stack" aria-label="拍立得照片">
+      <div class="pola"><span class="tape"></span><div class="pic sp1"></div><span class="cap">雾晨的外滩</span></div>
+      <div class="pola"><span class="tape"></span><div class="pic sp2"></div><span class="cap">敦煌的暮色</span></div>
+      <div class="pola"><span class="tape"></span><div class="pic sp3"></div><span class="cap">莫干山的苔</span></div>
+    </div>
+  </div>
+
+  <svg class="divider" viewBox="0 0 1200 26" preserveAspectRatio="none" aria-hidden="true"><path d="M0 13 Q 30 0 60 13 T 120 13 T 180 13 T 240 13 T 300 13 T 360 13 T 420 13 T 480 13 T 540 13 T 600 13 T 660 13 T 720 13 T 780 13 T 840 13 T 900 13 T 960 13 T 1020 13 T 1080 13 T 1140 13 T 1200 13" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+
+  <section id="posts">
+    <div class="sec-head">
+      <h2><span class="dot"></span>最近的随笔</h2>
+      <a class="more" href="#">翻翻旧文 →</a>
+    </div>
+    <div class="post-grid">
+      <a class="post" href="#">
+        <span class="p-tag t-design">设计思考</span>
+        <h3>给个人网站做减法：我删掉了三分之二的功能</h3>
+        <p>问题不是「还能加什么」，而是「哪些东西在阻碍阅读」。</p>
+        <time>7 月 14 日 · 约 8 分钟</time>
+      </a>
+      <a class="post" href="#">
+        <span class="p-tag t-code">前端工程</span>
+        <h3>View Transitions API 实战：丝滑的页面切换</h3>
+        <p>不靠框架，用原生 API 做出单页应用般的转场体验。</p>
+        <time>6 月 28 日 · 约 12 分钟</time>
+      </a>
+      <a class="post" href="#">
+        <span class="p-tag t-photo">摄影</span>
+        <h3>胶片模拟不是滤镜：谈谈数码时代的影调审美</h3>
+        <p>照片有没有「氛围」，往往在按快门之前就决定了。</p>
+        <time>6 月 9 日 · 约 10 分钟</time>
+      </a>
+    </div>
+  </section>
+
+  <section id="crafts">
+    <div class="sec-head">
+      <h2><span class="dot"></span>亲手做的东西</h2>
+      <a class="more" href="#">去 GitHub 看看 →</a>
+    </div>
+    <div class="shelf">
+      <a class="craft" href="#">
+        <div class="emoji">🗂️</div>
+        <h3>Lumo</h3>
+        <div class="role">开源 · 图片管理工具</div>
+        <p>给摄影师的本地图库，支持 RAW 预览和胶片风格标签。</p>
+      </a>
+      <a class="craft" href="#">
+        <div class="emoji">✒️</div>
+        <h3>Inkwell</h3>
+        <div class="role">开源 · 博客引擎</div>
+        <p>专注排版的 Markdown 博客引擎，中文排版特别用心。</p>
+      </a>
+      <a class="craft" href="#">
+        <div class="emoji">🧩</div>
+        <h3>Gridfolio</h3>
+        <div class="role">模板 · 作品集</div>
+        <p>给创作者的作品集模板，三种布局，深浅色自适应。</p>
+      </a>
+    </div>
+  </section>
+
+  <section id="wall">
+    <div class="sec-head">
+      <h2><span class="dot"></span>照片墙</h2>
+      <a class="more" href="#">整面墙都在这 →</a>
+    </div>
+    <div class="wall">
+      <div class="wpola"><div class="pic w1"></div><div class="cap">外滩 · 雾晨</div></div>
+      <div class="wpola"><div class="pic w2"></div><div class="cap">敦煌 · 暮色</div></div>
+      <div class="wpola"><div class="pic w3"></div><div class="cap">莫干山 · 苔径</div></div>
+      <div class="wpola"><div class="pic w4"></div><div class="cap">泉州 · 旧巷</div></div>
+    </div>
+  </section>
+
+  <section id="nb">
+    <div class="sec-head">
+      <h2><span class="dot"></span>三本笔记本</h2>
+      <a class="more" href="#">全部翻开 →</a>
+    </div>
+    <div class="nb-grid">
+      <a class="nb" href="#">
+        <h3>前端工程笔记</h3>
+        <p>从渲染原理到工程化实践，持续整理的体系化笔记。</p>
+        <span class="badge">128 页 · 常常更新</span>
+      </a>
+      <a class="nb" href="#">
+        <h3>设计的常识</h3>
+        <p>排版、配色、栅格——写给工程师自己的设计基础。</p>
+        <span class="badge">54 页 · 三天前</span>
+      </a>
+      <a class="nb" href="#">
+        <h3>阅读与摘录</h3>
+        <p>读过的书、划过的线，以及它们如何改变了想法。</p>
+        <span class="badge">76 页 · 昨天</span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="stamp">屿 · 制</div>
+    <div class="links"><a href="#">RSS</a><a href="#">GitHub</a><a href="#">写信给我</a><a href="#">关于</a></div>
+    <p>© 2026 小屿的角落 · 慢慢做，比较快</p>
+  </div>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  root.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const btn = document.getElementById('themeToggle');
+  const sync = () => btn.textContent = root.dataset.theme === 'light' ? '☾' : '☀';
+  sync();
+  btn.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+    sync();
+  });
+</script>
+</body>
+</html>
