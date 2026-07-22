@@ -1,4 +1,4 @@
-# Phase 3：inkspace 温暖手作主题
+# Phase 3：InkSpace 温暖手作主题
 
 ## 状态
 
@@ -6,7 +6,7 @@
 - 状态: 已完成，并于 2026-07-22 通过用户审核
 - 阶段: Phase 3
 - 主题 ID: `cozy`
-- 展示名称: `inkspace · 温暖手作感`
+- 展示名称: `InkSpace · 温暖手作感`
 - 默认明暗: `light`
 - 设计规范: [`style-c-cozy.md`](../design/style-c-cozy.md)
 - 高保真原型: [`style-c-cozy.html`](../design/style-c-cozy.html)
@@ -44,7 +44,7 @@
 
 ## 用户故事
 
-- 作为登录用户，我想预览并保存“inkspace · 温暖手作感”，并在其他设备登录后恢复同一主题。
+- 作为登录用户，我想预览并保存“InkSpace · 温暖手作感”，并在其他设备登录后恢复同一主题。
 - 作为读者，我想在温暖而轻松的页面中阅读长文、浏览作品、摄影和 Wiki，但正文仍然清晰稳定。
 - 作为摄影浏览者，我想看到由真实作品组成的拍立得墙，并能正常进入作品详情和图集。
 - 作为知识库读者，我想把公开工作区理解为一本本笔记本，同时继续使用目录树和文档导航。
@@ -55,7 +55,7 @@
 ## 触发入口
 
 1. 登录用户进入 `/dashboard/appearance`。
-2. 选择“inkspace · 温暖手作感”和 `system|light|dark`。
+2. 选择“InkSpace · 温暖手作感”和 `system|light|dark`。
 3. 点击“预览效果”后调用现有 `appearance.preview()`，立即设置 `data-ui-theme=cozy`，不写服务端。
 4. 点击“应用主题”后调用现有 `PUT /api/profile/appearance`。
 5. 保存成功后写账号缓存；失败、取消或未保存离页时恢复进入页面前的偏好。
