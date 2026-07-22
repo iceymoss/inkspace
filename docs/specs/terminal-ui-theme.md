@@ -29,7 +29,7 @@
 - 不实现真正可执行的终端命令、命令导航、全站快捷键或开发者控制台。
 - 不修改文章、作品、摄影、Wiki、评论、关注、收藏、通知、分享的业务规则。
 - 不删除管理后台轮播图、首页 Hero 文案、代码高亮等现有配置能力。
-- 不在本阶段开放 `cozy` 或 `swiss`。
+- Phase 2 不开放 `cozy` 或 `swiss`；二者已分别在后续独立阶段开放。
 - 不把整站正文改为等宽字体；等宽仅用于路径、命令、标签、时间、EXIF 和状态信息。
 - 不为贴合原型伪造城市、技术栈、工作年限、版本号或不存在的社交链接。
 
@@ -278,7 +278,7 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 
 - [x] `terminal + system|light|dark` 均通过模型校验；MySQL PUT/GET 集成断言已补充，需在提供测试库环境变量时执行。
 - [x] `magazine` 继续合法并保持默认。
-- [x] Phase 2 验收时 `cozy`、`swiss`、未知值和空值返回 400；Phase 3 已按独立规范开放 Cozy，Swiss 与未知值仍返回 400。
+- [x] Phase 2 验收时 `cozy`、`swiss`、未知值和空值返回 400；二者已在 Phase 3/4 按独立规范开放，未知值仍返回 400。
 - [ ] 两个用户偏好互不污染，并发 upsert 每用户仍只有一行。
 - [ ] 未登录调用偏好接口返回 401。
 
@@ -291,7 +291,7 @@ Terminal 首页文案使用公开设置键 `home_hero_terminal`，值仍为 JSON
 - [ ] 登录/登出恢复对应账号或访客上下文。
 - [x] holiday/mourning 与 terminal 并存且不改写保存值。
 - [x] TerminalHero 在 reduced-motion 下静态显示，卸载后无残留计时器。
-- [x] 外观页 terminal 可选且 LIVE PROOF 与当前主题一致；Phase 3 已开放 Cozy，Swiss 仍禁用。
+- [x] 外观页 terminal 可选且 LIVE PROOF 与当前主题一致；Cozy 与 Swiss 已在后续独立阶段开放。
 
 ### 验证命令
 

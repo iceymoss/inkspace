@@ -11,11 +11,12 @@
               <router-link to="/">
                 <template v-if="isTerminal"><span class="terminal-dollar">$</span>inkspace.log<i class="brand-caret" /></template>
                 <template v-else-if="isCozy"><span class="cozy-brand-mark">Ink</span>InkSpace</template>
+                <template v-else-if="isSwiss">{{ siteName }}<sup>GRID</sup></template>
                 <template v-else>Ink<span>Space</span></template>
               </router-link>
             </div>
             <span
-              v-if="!isTerminal && !isCozy"
+              v-if="!isTerminal && !isCozy && !isSwiss"
               class="issue-mark serif"
               aria-hidden="true"
             >{{ issueMark }}</span>
@@ -27,25 +28,25 @@
             aria-label="主导航"
           >
             <router-link to="/">
-              {{ navLabel('首页', 'home', '家') }}
+              {{ navLabel('首页', 'home', '家', 'Index') }}
             </router-link>
             <router-link to="/blog">
-              {{ navLabel('博客', 'blog', '随笔') }}
+              {{ navLabel('博客', 'blog', '随笔', 'Writing') }}
             </router-link>
             <router-link to="/works">
-              {{ navLabel('作品', 'projects', '手作') }}
+              {{ navLabel('作品', 'projects', '手作', 'Works') }}
             </router-link>
             <router-link to="/photos">
-              {{ navLabel('摄影', 'photos', '照片墙') }}
+              {{ navLabel('摄影', 'photos', '照片墙', 'Photos') }}
             </router-link>
             <router-link to="/wiki">
-              {{ navLabel('知识库', 'wiki', '笔记本') }}
+              {{ navLabel('知识库', 'wiki', '笔记本', 'Wiki') }}
             </router-link>
             <router-link to="/links">
-              {{ navLabel('友链', 'links', '邻居') }}
+              {{ navLabel('友链', 'links', '邻居', 'Links') }}
             </router-link>
             <router-link to="/about">
-              {{ navLabel('关于', 'about', '关于') }}
+              {{ navLabel('关于', 'about', '关于', 'About') }}
             </router-link>
           </nav>
           <div class="header-actions">
@@ -141,7 +142,7 @@
 
     <main class="main-content">
       <div
-        v-if="!isTerminal && !isCozy"
+        v-if="!isTerminal && !isCozy && !isSwiss"
         class="publication-signature serif"
         aria-hidden="true"
       >
@@ -153,12 +154,13 @@
     <footer class="footer">
       <div class="container">
         <div class="footer-identity">
-          <strong :class="{ serif: !isTerminal && !isCozy }">{{ isTerminal ? '$inkspace.log' : 'InkSpace' }}</strong>
+          <strong :class="{ serif: !isTerminal && !isCozy && !isSwiss }">{{ isTerminal ? '$inkspace.log' : siteName }}</strong>
           <p>{{ siteSettings.site_description || '以文字收存观察，让思想缓慢生长。' }}</p>
         </div>
         <div class="footer-meta">
           <p v-if="isTerminal" class="system-status"><i /> all systems normal</p>
-          <p>{{ siteSettings.site_copyright || '© 2024 InkSpace. All rights reserved.' }}</p>
+          <p v-if="isSwiss" class="swiss-colophon">GRID 12 COL / KLEIN BLUE 002FA7</p>
+          <p>{{ siteSettings.site_copyright || `© 2024 ${siteName}. All rights reserved.` }}</p>
           <p v-if="siteSettings.site_icp">
             <a
               :href="`https://beian.miit.gov.cn/`"
@@ -197,7 +199,9 @@ const issueMark = computed(() => {
 })
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
 const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
-const navLabel = (fallback, terminal, cozy) => isTerminal.value ? terminal : isCozy.value ? cozy : fallback
+const isSwiss = computed(() => appearance.activePreference.ui_theme === 'swiss')
+const siteName = computed(() => siteSettings.value.site_name?.trim() || 'InkSpace')
+const navLabel = (fallback, terminal, cozy, swiss) => isTerminal.value ? terminal : isCozy.value ? cozy : isSwiss.value ? swiss : fallback
 
 watch(() => router.currentRoute.value.fullPath, () => {
   navOpen.value = false

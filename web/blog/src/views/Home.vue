@@ -22,6 +22,14 @@
           @navigate="handleHeroLink"
           @retry="loadShowcaseSections({ force: true })"
         />
+        <SwissHero
+          v-else-if="isSwiss"
+          :settings="swissHeroSettings"
+          :title="swissHeroTitle"
+          :stats="swissStats"
+          :site-name="siteName"
+          @navigate="handleHeroLink"
+        />
         <el-carousel 
           v-else-if="carouselItems.length > 0"
           :height="carouselHeight"
@@ -95,8 +103,110 @@
       <path d="M0 13 Q 30 0 60 13 T 120 13 T 180 13 T 240 13" />
     </svg>
 
+    <main v-if="isSwiss" class="swiss-home-content">
+      <section class="swiss-section" aria-labelledby="swiss-writing-title">
+        <header class="swiss-section-head">
+          <span>01</span>
+          <h2 id="swiss-writing-title">Writing <small>文章</small></h2>
+          <router-link to="/blog">All articles →</router-link>
+        </header>
+        <div v-if="articles.length" class="swiss-index-list">
+          <router-link v-for="article in articles" :key="article.id" :to="`/blog/${article.id}`" class="swiss-index-row">
+            <span>{{ formatSwissCode('W–', article.id) }}</span>
+            <h3>{{ article.title }}</h3>
+            <small>{{ article.category?.name || 'UNCATEGORIZED' }} · {{ formatDate(article.created_at) }}</small>
+            <i aria-hidden="true">→</i>
+          </router-link>
+        </div>
+        <div v-else class="swiss-empty">NO PUBLISHED ARTICLES</div>
+      </section>
+
+      <section class="swiss-section" aria-labelledby="swiss-works-title">
+        <header class="swiss-section-head">
+          <span>02</span>
+          <h2 id="swiss-works-title">Works <small>作品</small></h2>
+          <router-link to="/works">All works →</router-link>
+        </header>
+        <div v-if="works.length" class="swiss-work-grid">
+          <router-link v-for="work in works" :key="work.id" :to="`/works/${work.id}`" class="swiss-work-cell">
+            <div class="swiss-work-cover">
+              <img
+                v-if="getWorkImage(work) && !failedWorkImages.has(work.id)"
+                :src="getWorkImage(work)"
+                :alt="`${work.title}封面`"
+                loading="lazy"
+                @error="failedWorkImages.add(work.id)"
+              >
+              <strong v-else>{{ formatSwissCode('P–', work.id) }}</strong>
+            </div>
+            <div class="swiss-work-copy">
+              <span>{{ formatSwissCode('P–', work.id) }}</span>
+              <h3>{{ work.title }}</h3>
+              <small>{{ swissWorkMeta(work) }}</small>
+              <p>{{ work.description || '暂无作品简介。' }}</p>
+            </div>
+          </router-link>
+        </div>
+        <div v-else class="swiss-empty">NO PUBLISHED WORKS</div>
+      </section>
+
+      <section class="swiss-section" aria-labelledby="swiss-photos-title">
+        <header class="swiss-section-head">
+          <span>03</span>
+          <h2 id="swiss-photos-title">Photos <small>摄影</small></h2>
+          <router-link to="/photos">Full gallery →</router-link>
+        </header>
+        <div v-if="photos.length" class="swiss-plate-grid">
+          <router-link
+            v-for="(photo, index) in photos.slice(0, 6)"
+            :key="photo.id"
+            :to="`/works/${photo.id}`"
+            class="swiss-plate"
+            :style="{ '--swiss-span': getSwissPlateSpan(index) }"
+          >
+            <span>{{ formatSwissCode('PL.', photo.id) }}<template v-if="photo.metadata?.location"> — {{ photo.metadata.location }}</template></span>
+            <img v-if="getWorkImage(photo) && !failedPhotoImages.has(photo.id)" :src="getWorkImage(photo)" :alt="photo.title" loading="lazy" @error="failedPhotoImages.add(photo.id)">
+            <strong v-else>NO IMAGE</strong>
+          </router-link>
+        </div>
+        <div v-else-if="showcaseSectionsLoading" class="swiss-empty">LOADING PLATES</div>
+        <div v-else-if="showcaseSectionErrors.photos" class="swiss-empty is-error">PLATES UNAVAILABLE <button type="button" @click="loadShowcaseSections({ force: true })">RETRY</button></div>
+        <div v-else class="swiss-empty">NO PUBLISHED PHOTOGRAPHY</div>
+      </section>
+
+      <section class="swiss-section" aria-labelledby="swiss-wiki-title">
+        <header class="swiss-section-head">
+          <span>04</span>
+          <h2 id="swiss-wiki-title">Wiki <small>知识库</small></h2>
+          <router-link to="/wiki">Enter →</router-link>
+        </header>
+        <div v-if="wikiWorkspaces.length" class="swiss-wiki-table">
+          <router-link v-for="workspace in wikiWorkspaces" :key="workspace.id" :to="`/wiki/${workspace.id}`" class="swiss-wiki-row">
+            <span>{{ formatSwissCode('K–', workspace.id) }}</span>
+            <div class="swiss-wiki-cover">
+              <img
+                v-if="isWorkspaceCover(workspace.icon) && !failedWorkspaceCovers.has(workspace.id)"
+                :src="workspace.icon"
+                :alt="`${workspace.name}封面`"
+                loading="lazy"
+                @error="failedWorkspaceCovers.add(workspace.id)"
+              >
+              <strong v-else>{{ workspace.icon || workspace.name?.slice(0, 1) || 'K' }}</strong>
+            </div>
+            <h3>{{ workspace.name }}</h3>
+            <p>{{ workspace.description || '暂无工作区简介。' }}</p>
+            <small>{{ workspace.doc_count }} Notes</small>
+            <i aria-hidden="true">→</i>
+          </router-link>
+        </div>
+        <div v-else-if="showcaseSectionsLoading" class="swiss-empty">LOADING ARCHIVES</div>
+        <div v-else-if="showcaseSectionErrors.wiki" class="swiss-empty is-error">WIKI UNAVAILABLE <button type="button" @click="loadShowcaseSections({ force: true })">RETRY</button></div>
+        <div v-else class="swiss-empty">NO PUBLIC WORKSPACES</div>
+      </section>
+    </main>
+
     <!-- Main Content -->
-    <section class="main-content">
+    <section v-else class="main-content">
       <div class="container">
         <el-row :gutter="30">
           <!-- Left: Articles List -->
@@ -610,17 +720,20 @@ import api from '@/utils/api'
 import dayjs from 'dayjs'
 import TerminalHero from '@/components/theme/TerminalHero.vue'
 import CozyHero from '@/components/theme/CozyHero.vue'
+import SwissHero from '@/components/theme/SwissHero.vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useTerminalStore } from '@/stores/terminal'
 import { getArticleLogLevel } from '@/utils/terminal/articleLogLevel'
 import { getCozyContentTone, getCozyRotation } from '@/utils/cozyContentTone'
+import { formatSwissCode, getSwissPlateSpan } from '@/utils/swissArchive'
 
 const router = useRouter()
 const appearance = useAppearanceStore()
 const terminal = useTerminalStore()
 const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
 const isCozy = computed(() => appearance.activePreference.ui_theme === 'cozy')
-const usesShowcaseSections = computed(() => isTerminal.value || isCozy.value)
+const isSwiss = computed(() => appearance.activePreference.ui_theme === 'swiss')
+const usesShowcaseSections = computed(() => isTerminal.value || isCozy.value || isSwiss.value)
 const articles = ref([])
 const works = ref([])
 const tags = ref([])
@@ -629,6 +742,7 @@ const recommendedWorks = ref([])
 const photos = ref([])
 const wikiWorkspaces = ref([])
 const failedPhotoImages = reactive(new Set())
+const failedWorkImages = reactive(new Set())
 const failedWorkspaceCovers = reactive(new Set())
 const showcaseSectionsLoaded = ref(false)
 const showcaseSectionsLoading = ref(false)
@@ -638,6 +752,15 @@ const stats = ref({
   workCount: 0,
   categoryCount: 0
 })
+const swissStats = reactive({
+  articleCount: null,
+  workCount: null,
+  publicDocCount: null,
+  articleError: false,
+  workError: false,
+  docError: false
+})
+const siteName = ref('InkSpace')
 const carouselItems = ref([])
 const carouselHeight = ref('320px')
 const heroSettings = reactive({
@@ -672,6 +795,19 @@ const cozyHeroSettings = reactive({
   secondary_text: '看看照片',
   secondary_link: '/photos'
 })
+const swissHeroSettings = reactive({
+  eyebrow: 'A1 / INDEX',
+  location: '',
+  coordinates: '',
+  established: '',
+  title: 'WRITE, BUILD & ARCHIVE',
+  accent: 'ARCHIVE',
+  description: '文章 × 作品 × 摄影 × 知识库',
+  primary_text: 'START READING',
+  primary_link: '/blog',
+  secondary_text: 'VIEW WORKS',
+  secondary_link: '/works'
+})
 const splitHeroTitle = settings => {
   const title = settings.title
   const accent = settings.accent
@@ -686,6 +822,7 @@ const splitHeroTitle = settings => {
 const heroTitle = computed(() => splitHeroTitle(heroSettings))
 const terminalHeroTitle = computed(() => splitHeroTitle(terminalHeroSettings))
 const cozyHeroTitle = computed(() => splitHeroTitle(cozyHeroSettings))
+const swissHeroTitle = computed(() => splitHeroTitle(swissHeroSettings))
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 
@@ -693,6 +830,12 @@ const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
 const getTechStack = (techStack) => {
   if (!techStack) return []
   return techStack.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0)
+}
+const swissWorkMeta = work => {
+  if (work.type === 'photography') {
+    return [work.metadata?.location, work.metadata?.shooting_date, work.metadata?.photo_count ? `${work.metadata.photo_count} PHOTOS` : ''].filter(Boolean).join(' · ') || 'PHOTOGRAPHY'
+  }
+  return ['PROJECT', ...getTechStack(work.tech_stack).slice(0, 3), `${work.like_count || 0} LIKES`].join(' · ')
 }
 
 const loadCarousel = async () => {
@@ -702,6 +845,8 @@ const loadCarousel = async () => {
     const heroData = response.data?.home_hero
     const terminalHeroData = response.data?.home_hero_terminal
     const cozyHeroData = response.data?.home_hero_cozy
+    const swissHeroData = response.data?.home_hero_swiss
+    siteName.value = response.data?.site_name?.trim() || 'InkSpace'
     if (heroData) {
       try {
         const parsed = JSON.parse(heroData)
@@ -736,6 +881,20 @@ const loadCarousel = async () => {
         }
       } catch (e) {
         console.error('Failed to parse cozy home hero data:', e)
+      }
+    }
+    if (swissHeroData) {
+      try {
+        const parsed = JSON.parse(swissHeroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(swissHeroSettings).forEach((key) => {
+            if (typeof parsed[key] !== 'string') return
+            const value = parsed[key].trim()
+            if (['location', 'coordinates', 'established'].includes(key) || value) swissHeroSettings[key] = value
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse Swiss home hero data:', e)
       }
     }
     if (carouselData) {
@@ -809,7 +968,7 @@ const loadShowcaseSections = async ({ force = false } = {}) => {
   showcaseSectionErrors.wiki = false
   try {
     const [photosResult, wikiResult] = await Promise.allSettled([
-      api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
+      api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: isSwiss.value ? 6 : 3 } }),
       api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
     ])
     showcaseSectionErrors.photos = photosResult.status === 'rejected'
@@ -822,14 +981,32 @@ const loadShowcaseSections = async ({ force = false } = {}) => {
   }
 }
 
+const loadSwissStats = async () => {
+  const [articlesResult, worksResult, docsResult] = await Promise.allSettled([
+    api.get('/articles', { params: { page: 1, page_size: 1 } }),
+    api.get('/works', { params: { page: 1, page_size: 1 } }),
+    api.get('/wiki/stats')
+  ])
+  swissStats.articleError = articlesResult.status === 'rejected'
+  swissStats.workError = worksResult.status === 'rejected'
+  swissStats.docError = docsResult.status === 'rejected'
+  swissStats.articleCount = articlesResult.status === 'fulfilled' ? articlesResult.value.data?.total ?? 0 : null
+  swissStats.workCount = worksResult.status === 'fulfilled' ? worksResult.value.data?.total ?? 0 : null
+  swissStats.publicDocCount = docsResult.status === 'fulfilled' ? docsResult.value.data?.public_doc_count ?? 0 : null
+}
+
 onMounted(() => {
   loadCarousel()
   loadData()
   if (usesShowcaseSections.value) loadShowcaseSections()
+  if (isSwiss.value) loadSwissStats()
 })
 
 watch(usesShowcaseSections, (enabled) => {
   if (enabled) loadShowcaseSections()
+})
+watch(isSwiss, (enabled) => {
+  if (enabled) loadSwissStats()
 })
 </script>
 

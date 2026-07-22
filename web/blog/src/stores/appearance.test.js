@@ -122,19 +122,22 @@ describe('appearance store', () => {
     })
   })
 
-  it('saves cozy and rejects unavailable themes without sending a request', async () => {
+  it('saves cozy and Swiss preferences', async () => {
     const userStore = useUserStore()
     userStore.token = 'token-without-readable-payload'
     userStore.user = { id: 7 }
     const store = useAppearanceStore()
-    api.put.mockResolvedValue({ data: { ui_theme: 'cozy', color_scheme: 'light' } })
+    api.put
+      .mockResolvedValueOnce({ data: { ui_theme: 'cozy', color_scheme: 'light' } })
+      .mockResolvedValueOnce({ data: { ui_theme: 'swiss', color_scheme: 'dark' } })
 
     await store.save({ ui_theme: 'cozy', color_scheme: 'light' })
 
     expect(store.savedPreference).toEqual({ ui_theme: 'cozy', color_scheme: 'light' })
-    expect(store.preview({ ui_theme: 'swiss', color_scheme: 'light' })).toBe(false)
-    await expect(store.save({ ui_theme: 'swiss', color_scheme: 'light' })).rejects.toThrow('当前主题不可保存')
-    expect(api.put).toHaveBeenCalledTimes(1)
+    expect(store.preview({ ui_theme: 'swiss', color_scheme: 'dark' })).toBe(true)
+    await store.save({ ui_theme: 'swiss', color_scheme: 'dark' })
+    expect(store.savedPreference).toEqual({ ui_theme: 'swiss', color_scheme: 'dark' })
+    expect(api.put).toHaveBeenCalledTimes(2)
   })
 
   it('keeps a site override independent from terminal preference', async () => {

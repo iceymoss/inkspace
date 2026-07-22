@@ -93,6 +93,42 @@
           </el-form-item>
           <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 InkSpace 温暖手作主题；未保存时使用以上默认文案。</div>
 
+          <el-divider content-position="left">InkSpace 瑞士网格主题首页</el-divider>
+          <el-form-item label="档案标签">
+            <el-input v-model="swissHeroSettings.eyebrow" placeholder="例如：A1 / INDEX" />
+          </el-form-item>
+          <el-form-item label="地点">
+            <el-input v-model="swissHeroSettings.location" maxlength="80" show-word-limit placeholder="可选，最多 80 个字符" />
+          </el-form-item>
+          <el-form-item label="坐标">
+            <el-input v-model="swissHeroSettings.coordinates" maxlength="80" show-word-limit placeholder="可选，最多 80 个字符" />
+          </el-form-item>
+          <el-form-item label="成立年份">
+            <el-input v-model="swissHeroSettings.established" maxlength="40" show-word-limit placeholder="可选，最多 40 个字符" />
+          </el-form-item>
+          <el-form-item label="主标题">
+            <el-input v-model="swissHeroSettings.title" placeholder="例如：WRITE, BUILD & ARCHIVE" />
+          </el-form-item>
+          <el-form-item label="标题强调词">
+            <el-input v-model="swissHeroSettings.accent" placeholder="例如：ARCHIVE" />
+          </el-form-item>
+          <el-form-item label="简介">
+            <el-input v-model="swissHeroSettings.description" type="textarea" :rows="3" maxlength="300" show-word-limit />
+          </el-form-item>
+          <el-form-item label="主按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="swissHeroSettings.primary_text" placeholder="文案，例如：START READING" />
+              <el-input v-model="swissHeroSettings.primary_link" placeholder="链接，例如：/blog" />
+            </div>
+          </el-form-item>
+          <el-form-item label="次按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="swissHeroSettings.secondary_text" placeholder="文案，例如：VIEW WORKS" />
+              <el-input v-model="swissHeroSettings.secondary_link" placeholder="链接，例如：/works" />
+            </div>
+          </el-form-item>
+          <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 InkSpace 瑞士网格主题；地点、坐标和成立年份留空时不会显示。</div>
+
           <el-divider content-position="left">轮播图</el-divider>
           <el-form-item>
             <el-button type="primary" @click="addCarouselItem">添加轮播项</el-button>
@@ -641,6 +677,20 @@ const cozyHeroSettings = reactive({
   secondary_link: '/photos'
 })
 
+const swissHeroSettings = reactive({
+  eyebrow: 'A1 / INDEX',
+  location: '',
+  coordinates: '',
+  established: '',
+  title: 'WRITE, BUILD & ARCHIVE',
+  accent: 'ARCHIVE',
+  description: '文章 × 作品 × 摄影 × 知识库',
+  primary_text: 'START READING',
+  primary_link: '/blog',
+  secondary_text: 'VIEW WORKS',
+  secondary_link: '/works'
+})
+
 const aboutSettings = reactive({
   title: '关于我',
   avatar: '',
@@ -706,7 +756,7 @@ const loadAllSettings = async () => {
         }
       } else if (setting.group === 'markdown') {
         markdownSettings[setting.key] = setting.value
-      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal' || setting.key === 'home_hero_cozy') {
+      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal' || setting.key === 'home_hero_cozy' || setting.key === 'home_hero_swiss') {
         if (setting.key === 'home_carousel' && setting.value) {
           try {
             carouselSettings.items = JSON.parse(setting.value)
@@ -730,6 +780,12 @@ const loadAllSettings = async () => {
             Object.assign(cozyHeroSettings, JSON.parse(setting.value))
           } catch (e) {
             console.error('Failed to parse cozy home hero data:', e)
+          }
+        } else if (setting.key === 'home_hero_swiss' && setting.value) {
+          try {
+            Object.assign(swissHeroSettings, JSON.parse(setting.value))
+          } catch (e) {
+            console.error('Failed to parse Swiss home hero data:', e)
           }
         }
       } else if (setting.group === 'about' || setting.key === 'about_page') {
@@ -938,7 +994,8 @@ const saveCarouselSettings = async () => {
       home_carousel: JSON.stringify(carouselSettings.items),
       home_hero: JSON.stringify(carouselSettings.hero),
       home_hero_terminal: JSON.stringify(terminalHeroSettings),
-      home_hero_cozy: JSON.stringify(cozyHeroSettings)
+      home_hero_cozy: JSON.stringify(cozyHeroSettings),
+      home_hero_swiss: JSON.stringify(swissHeroSettings)
     }
     await adminApi.put('/admin/settings/batch', settings)
     ElMessage.success('保存成功')

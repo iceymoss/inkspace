@@ -118,6 +118,10 @@ describe('FloatingTerminal', () => {
     await input.setValue('theme c')
     await input.trigger('keydown', { key: 'Tab' })
     expect(input.element.value).toBe('theme cozy ')
+
+    await input.setValue('theme s')
+    await input.trigger('keydown', { key: 'Tab' })
+    expect(input.element.value).toBe('theme swiss ')
     expect(document.activeElement).toBe(input.element)
   })
 

@@ -48,6 +48,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			public.POST("/register", userHandler.Register)
 			public.POST("/login", userHandler.Login)
 			public.GET("/share/:token", shareHandler.Public)
+			public.GET("/wiki/stats", publicWikiHandler.Stats)
 			public.GET("/wiki/workspaces", publicWikiHandler.Workspaces)
 			public.GET("/wiki/workspaces/:id/tree", publicWikiHandler.Tree)
 			public.GET("/wiki/docs/:id", publicWikiHandler.Doc)

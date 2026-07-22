@@ -14,6 +14,15 @@ func NewPublicWikiHandler() *PublicWikiHandler {
 	return &PublicWikiHandler{service: service.NewPublicWikiService()}
 }
 
+func (h *PublicWikiHandler) Stats(c *gin.Context) {
+	stats, err := h.service.Stats()
+	if err != nil {
+		knowledgeError(c, err)
+		return
+	}
+	utils.Success(c, stats)
+}
+
 func (h *PublicWikiHandler) Workspaces(c *gin.Context) {
 	page, ok := publicWikiPageParam(c, "page", 1, 0)
 	if !ok {

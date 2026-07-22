@@ -78,7 +78,7 @@
               </template>
               <template v-else>
                 <span>04 / GRID</span>
-                <strong>CHEN<br>YU®</strong>
+                <strong>{{ siteName }}</strong>
                 <i />
               </template>
             </div>
@@ -86,7 +86,7 @@
             <div class="theme-card-copy">
               <span class="card-index">{{ String(index + 1).padStart(2, '0') }}</span>
               <div>
-                <h3>{{ theme.name }}</h3>
+                <h3>{{ themeName(theme) }}</h3>
                 <p class="theme-subtitle">
                   {{ theme.subtitle }}
                 </p>
@@ -168,7 +168,7 @@
         </h2>
         <p>{{ previewCopy.description }}</p>
         <dl>
-          <div><dt>风格</dt><dd>{{ selectedThemeMeta.name }}</dd></div>
+          <div><dt>风格</dt><dd>{{ themeName(selectedThemeMeta) }}</dd></div>
           <div><dt>模式</dt><dd>{{ selectedSchemeLabel }}</dd></div>
           <div><dt>实际显示</dt><dd>{{ candidateResolvedScheme === 'dark' ? '深色' : '浅色' }}</dd></div>
         </dl>
@@ -179,7 +179,9 @@
           'mini-terminal': selectedTheme === 'terminal',
           'mini-terminal-light': selectedTheme === 'terminal' && candidateResolvedScheme === 'light',
           'mini-cozy': selectedTheme === 'cozy',
-          'mini-cozy-dark': selectedTheme === 'cozy' && candidateResolvedScheme === 'dark'
+          'mini-cozy-dark': selectedTheme === 'cozy' && candidateResolvedScheme === 'dark',
+          'mini-swiss': selectedTheme === 'swiss',
+          'mini-swiss-dark': selectedTheme === 'swiss' && candidateResolvedScheme === 'dark'
         }"
         aria-hidden="true"
       >
@@ -197,6 +199,14 @@
           <p>随笔、手作、照片和一本本持续生长的笔记。</p>
           <div class="mini-polaroids"><i /><i /><i /></div>
           <small>进来坐坐吧 →</small>
+        </template>
+        <template v-else-if="selectedTheme === 'swiss'">
+          <div class="mini-swiss-top"><strong>{{ siteName }}</strong><span>04 / GRID</span></div>
+          <div class="mini-swiss-grid">
+            <div><small>A1 / INDEX</small><strong>WRITE,<br>BUILD &<br><em>ARCHIVE</em></strong></div>
+            <div><b>12+</b><small>ARTICLES</small><b>06</b><small>WORKS</small></div>
+          </div>
+          <div class="mini-swiss-foot">GRID 12 COL <span>START READING</span></div>
         </template>
         <template v-else>
           <div class="mini-top">
@@ -251,16 +261,18 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Monitor, Moon, Sunny } from '@element-plus/icons-vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { getTheme, themeRegistry } from '@/themes/registry'
+import api from '@/utils/api'
 
 const appearance = useAppearanceStore()
 const selectedTheme = ref(appearance.savedPreference.ui_theme)
 const selectedScheme = ref(appearance.savedPreference.color_scheme)
+const siteName = ref('InkSpace')
 
 const schemeOptions = [
   { value: 'system', label: '跟随系统', description: '随设备设置自动切换' },
@@ -273,10 +285,12 @@ const candidate = computed(() => ({
   color_scheme: selectedScheme.value
 }))
 const selectedThemeMeta = computed(() => getTheme(selectedTheme.value))
+const themeName = theme => theme.id === 'swiss' ? siteName.value : theme.name
 const selectedSchemeLabel = computed(() => schemeOptions.find((item) => item.value === selectedScheme.value)?.label)
 const previewCopy = computed(() => {
   if (selectedTheme.value === 'terminal') return { heading: 'inkspace.log runtime', description: '机器语言负责状态与路径，中文正文保持清晰可读。' }
   if (selectedTheme.value === 'cozy') return { heading: 'InkSpace · 温暖手作感', description: '暖纸、拍立得和笔记本让内容更亲切，操作秩序保持不变。' }
+  if (selectedTheme.value === 'swiss') return { heading: `${siteName.value} · 瑞士网格风`, description: '外露网格、真实档案编号和克莱因蓝构成精确的内容系统。' }
   return { heading: '此刻的屿刊', description: '纸张会随你的选择改变光线，内容的秩序保持不变。' }
 })
 const candidateResolvedScheme = computed(() => selectedScheme.value === 'system'
@@ -322,6 +336,15 @@ async function saveSelection() {
 
 onBeforeRouteLeave(() => {
   if (appearance.isPreviewing) appearance.cancelPreview()
+})
+
+onMounted(async () => {
+  try {
+    const response = await api.get('/settings/public')
+    siteName.value = response.data?.site_name?.trim() || 'InkSpace'
+  } catch {
+    siteName.value = 'InkSpace'
+  }
 })
 </script>
 
@@ -567,6 +590,19 @@ onBeforeRouteLeave(() => {
 .mini-polaroids i::before { display: block; height: 45px; background: #8faabf; content: ''; }
 .mini-polaroids i:nth-child(1) { left: 0; transform: rotate(-7deg); }.mini-polaroids i:nth-child(2) { left: 38px; transform: rotate(3deg); }.mini-polaroids i:nth-child(3) { left: 76px; transform: rotate(-2deg); }.mini-polaroids i:nth-child(2)::before { background: #e5b8a5; }.mini-polaroids i:nth-child(3)::before { background: #75845c; }
 .mini-cozy > small { position: absolute; bottom: 24px; left: 34px; padding-bottom: 2px; border-bottom: 2px dotted #75845c; color: #75845c; }
+.mini-swiss { padding: 0; border: 1px solid #111; border-radius: 0; background: #fff; color: #111; font-family: Helvetica, Arial, sans-serif; }
+.mini-swiss-dark { border-color: #f2f2f2; background: #0c0c0c; color: #f2f2f2; }
+.mini-swiss-top { display: flex; height: 42px; padding: 0 18px; align-items: center; justify-content: space-between; border-bottom: 1px solid currentColor; font-size: 11px; text-transform: uppercase; }
+.mini-swiss-grid { display: grid; min-height: 185px; grid-template-columns: 2fr 1fr; }
+.mini-swiss-grid > div { display: flex; padding: 18px; flex-direction: column; border-right: 1px solid #ddd; }
+.mini-swiss-grid > div:last-child { border-right: 0; }
+.mini-swiss-grid small { color: #767676; font-size: 8px; letter-spacing: .12em; }
+.mini-swiss-grid strong { margin-top: 18px; font-size: 25px; line-height: 1.04; }
+.mini-swiss-grid em { color: #002fa7; font-style: normal; }
+.mini-swiss-grid b { color: #002fa7; font-size: 25px; line-height: 1; }
+.mini-swiss-grid div:last-child small { margin-bottom: 22px; }
+.mini-swiss-foot { display: flex; padding: 10px 18px; align-items: center; justify-content: space-between; border-top: 1px solid #ddd; color: #767676; font-size: 8px; letter-spacing: .1em; }
+.mini-swiss-foot span { padding: 6px 10px; background: #002fa7; color: #fff; }
 @keyframes mini-blink { 50% { opacity: 0; } }
 
 .action-bar {

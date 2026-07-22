@@ -166,14 +166,14 @@ describe('terminal executor', () => {
     expect(context.terminalStore.signalRefresh).toHaveBeenCalledWith('article:12')
   })
 
-  it('applies cozy for guests and rejects unavailable themes', async () => {
+  it('applies cozy and Swiss for guests', async () => {
     const context = setup('/')
 
     await context.executor.execute('theme cozy')
     expect(context.appearanceStore.preview).toHaveBeenCalledWith({ ui_theme: 'cozy', color_scheme: 'system' })
 
     await context.executor.execute('theme swiss')
-    expect(context.appearanceStore.preview).toHaveBeenCalledTimes(1)
-    expect(context.terminalStore.output.at(-1).text).toContain('theme must be one of')
+    expect(context.appearanceStore.preview).toHaveBeenLastCalledWith({ ui_theme: 'swiss', color_scheme: 'system' })
+    expect(context.appearanceStore.preview).toHaveBeenCalledTimes(2)
   })
 })

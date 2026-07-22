@@ -31,13 +31,13 @@ export const themeRegistry = Object.freeze([
   },
   {
     id: 'swiss',
-    name: 'CHEN YU®',
+    name: 'InkSpace',
     subtitle: '瑞士网格风',
     description: '外露网格、精确编号与克莱因蓝构成的视觉系统。',
-    status: 'coming_soon',
+    status: 'available',
     defaultColorScheme: 'light',
     design: 'style-d-swiss',
-    stylesheet: null
+    stylesheet: 'swiss.css'
   }
 ])
 
