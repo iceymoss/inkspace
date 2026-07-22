@@ -7,6 +7,7 @@ import (
 
 const (
 	DefaultUITheme     = "magazine"
+	TerminalUITheme    = "terminal"
 	DefaultColorScheme = "system"
 )
 
@@ -37,7 +38,9 @@ func DefaultUserAppearanceResponse() *UserAppearanceResponse {
 }
 
 func (r *UserAppearanceRequest) Validate() error {
-	if r.UITheme != DefaultUITheme {
+	switch r.UITheme {
+	case DefaultUITheme, TerminalUITheme:
+	default:
 		return errors.New("无效或尚未开放的界面主题")
 	}
 

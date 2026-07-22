@@ -136,7 +136,11 @@
               shadow="hover"
               @click="$router.push(`/blog/${article.id}`)"
             >
-              <div class="article-content">
+              <div class="article-content" :class="{ 'has-cover': article.cover }">
+                <div class="terminal-log-meta">
+                  <span :class="`level-${getLogLevel(article).toLowerCase()}`">{{ getLogLevel(article) }}</span>
+                  <time :datetime="article.created_at">{{ formatDate(article.created_at) }}</time>
+                </div>
                 <img
                   v-if="article.cover"
                   :src="article.cover"
@@ -172,7 +176,7 @@
                         />
                         <span>{{ article.author?.nickname || article.author?.username }}</span>
                       </span>
-                      <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
+                      <span class="article-date"><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
                     </div>
                     <div class="article-counts">
                       <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
@@ -299,6 +303,7 @@ const selectedCategoryData = computed(() => {
 })
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
+const getLogLevel = article => article.is_top ? 'FEAT' : article.category ? 'INFO' : 'WARN'
 
 const loadArticles = async () => {
   try {
@@ -819,6 +824,10 @@ onMounted(() => {
     width: 100%; /* 占满整行 */
     margin-top: 8px; /* 添加顶部间距 */
   }
+}
+
+.terminal-log-meta {
+  display: none;
 }
 
 /* Magazine adaptation */

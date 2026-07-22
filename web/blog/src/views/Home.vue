@@ -3,8 +3,15 @@
     <!-- Hero Carousel Section -->
     <section class="hero-carousel">
       <div class="container">
+        <TerminalHero
+          v-if="isTerminal"
+          :settings="terminalHeroSettings"
+          :title="terminalHeroTitle"
+          :stats="stats"
+          @navigate="handleHeroLink"
+        />
         <el-carousel 
-          v-if="carouselItems.length > 0"
+          v-else-if="carouselItems.length > 0"
           :height="carouselHeight"
           :interval="5000"
           :arrow="carouselItems.length > 1 ? 'always' : 'never'"
@@ -100,7 +107,11 @@
                   shadow="hover"
                   @click="$router.push(`/blog/${article.id}`)"
                 >
-                  <div class="article-content">
+                  <div class="article-content" :class="{ 'has-cover': article.cover }">
+                    <div class="terminal-log-meta">
+                      <span :class="`level-${getArticleLogLevel(article).toLowerCase()}`">{{ getArticleLogLevel(article) }}</span>
+                      <time :datetime="article.created_at">{{ formatDate(article.created_at) }}</time>
+                    </div>
                     <div class="article-main">
                       <div class="article-header-info">
                         <el-tag
@@ -125,7 +136,7 @@
                         {{ article.summary }}
                       </p>
                       <div class="article-meta">
-                        <span class="meta-item">
+                        <span class="meta-item article-date">
                           <el-avatar
                             :size="20"
                             :src="article.author?.avatar"
@@ -267,6 +278,42 @@
                   </el-card>
                 </el-col>
               </el-row>
+            </div>
+
+            <div v-if="isTerminal" class="content-section terminal-captures">
+              <div class="section-header">
+                <h2>photos <small>— captures</small></h2>
+                <router-link class="terminal-more" to="/photos">open gallery <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="photos.length" class="terminal-photo-grid">
+                <router-link v-for="photo in photos" :key="photo.id" :to="`/works/${photo.id}`" class="terminal-photo">
+                  <img v-if="getWorkImage(photo)" :src="getWorkImage(photo)" :alt="photo.title" loading="lazy">
+                  <span v-else class="terminal-photo-fallback">NO IMAGE</span>
+                  <i aria-hidden="true" />
+                  <div><strong>{{ photo.title }}</strong><span>{{ photo.metadata?.location || 'capture' }}</span></div>
+                </router-link>
+              </div>
+              <div v-else-if="terminalSectionErrors.photos" class="terminal-empty terminal-error">
+                [ captures unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              </div>
+              <div v-else class="terminal-empty">[ no published captures ]</div>
+            </div>
+
+            <div v-if="isTerminal" class="content-section terminal-wiki">
+              <div class="section-header">
+                <h2>wiki <small>— public workspaces</small></h2>
+                <router-link class="terminal-more" to="/wiki">open wiki/ <el-icon><ArrowRight /></el-icon></router-link>
+              </div>
+              <div v-if="wikiWorkspaces.length" class="terminal-wiki-panel">
+                <router-link v-for="workspace in wikiWorkspaces" :key="workspace.id" :to="`/wiki/${workspace.id}`">
+                  <span>▸ {{ workspace.name }}/</span>
+                  <small>{{ workspace.doc_count }} docs · {{ workspace.author_name || 'anonymous' }}</small>
+                </router-link>
+              </div>
+              <div v-else-if="terminalSectionErrors.wiki" class="terminal-empty terminal-error">
+                [ wiki unavailable ] <button type="button" @click="loadTerminalSections">retry</button>
+              </div>
+              <div v-else class="terminal-empty">[ no public workspaces ]</div>
             </div>
           </el-col>
 
@@ -439,7 +486,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { navigateToWorkDetail } from '@/utils/workNavigation'
 import { 
@@ -457,13 +504,21 @@ import {
 } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import TerminalHero from '@/components/theme/TerminalHero.vue'
+import { useAppearanceStore } from '@/stores/appearance'
 
 const router = useRouter()
+const appearance = useAppearanceStore()
+const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
 const articles = ref([])
 const works = ref([])
 const tags = ref([])
 const recommendedArticles = ref([])
 const recommendedWorks = ref([])
+const photos = ref([])
+const wikiWorkspaces = ref([])
+const terminalSectionsLoaded = ref(false)
+const terminalSectionErrors = reactive({ photos: false, wiki: false })
 const stats = ref({
   articleCount: 0,
   workCount: 0,
@@ -482,9 +537,20 @@ const heroSettings = reactive({
   secondary_text: '或先看看照片',
   secondary_link: '/photos'
 })
-const heroTitle = computed(() => {
-  const title = heroSettings.title
-  const accent = heroSettings.accent
+const terminalHeroSettings = reactive({
+  status: 'system online',
+  eyebrow: '持续构建 · 持续记录',
+  title: '在代码与生活之间，持续记录。',
+  accent: '持续记录',
+  description: '这里保存技术实践、正在构建的作品，以及偶尔偏离主线的生活片段。',
+  primary_text: 'tail -f blog',
+  primary_link: '/blog',
+  secondary_text: 'ls projects/',
+  secondary_link: '/works'
+})
+const splitHeroTitle = settings => {
+  const title = settings.title
+  const accent = settings.accent
   const index = accent ? title.indexOf(accent) : -1
   if (index < 0) return { before: title, accent: '', after: '' }
   return {
@@ -492,9 +558,12 @@ const heroTitle = computed(() => {
     accent,
     after: title.slice(index + accent.length)
   }
-})
+}
+const heroTitle = computed(() => splitHeroTitle(heroSettings))
+const terminalHeroTitle = computed(() => splitHeroTitle(terminalHeroSettings))
 
 const formatDate = (date) => dayjs(date).format('YYYY-MM-DD')
+const getArticleLogLevel = article => article.is_top ? 'FEAT' : article.category ? 'INFO' : 'WARN'
 
 // 解析技术栈字符串（逗号分隔）
 const getTechStack = (techStack) => {
@@ -507,6 +576,7 @@ const loadCarousel = async () => {
     const response = await api.get('/settings/public')
     const carouselData = response.data?.home_carousel
     const heroData = response.data?.home_hero
+    const terminalHeroData = response.data?.home_hero_terminal
     if (heroData) {
       try {
         const parsed = JSON.parse(heroData)
@@ -517,6 +587,18 @@ const loadCarousel = async () => {
         }
       } catch (e) {
         console.error('Failed to parse home hero data:', e)
+      }
+    }
+    if (terminalHeroData) {
+      try {
+        const parsed = JSON.parse(terminalHeroData)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.keys(terminalHeroSettings).forEach((key) => {
+            if (typeof parsed[key] === 'string' && parsed[key].trim()) terminalHeroSettings[key] = parsed[key].trim()
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse terminal home hero data:', e)
       }
     }
     if (carouselData) {
@@ -542,6 +624,7 @@ const handleCarouselClick = (item) => {
     }
   }
 }
+const getWorkImage = work => work.cover || (typeof work.images?.[0] === 'string' ? work.images[0] : work.images?.[0]?.url) || ''
 
 const handleHeroLink = (event, link) => {
   if (/^https?:\/\//.test(link)) return
@@ -579,9 +662,28 @@ const loadData = async () => {
   }
 }
 
+const loadTerminalSections = async () => {
+  terminalSectionErrors.photos = false
+  terminalSectionErrors.wiki = false
+  const [photosResult, wikiResult] = await Promise.allSettled([
+    api.get('/works', { params: { type: 'photography', status: 1, page: 1, page_size: 3 } }),
+    api.get('/wiki/workspaces', { params: { page: 1, page_size: 4 } })
+  ])
+  terminalSectionErrors.photos = photosResult.status === 'rejected'
+  terminalSectionErrors.wiki = wikiResult.status === 'rejected'
+  photos.value = photosResult.status === 'fulfilled' ? photosResult.value.data?.list || [] : []
+  wikiWorkspaces.value = wikiResult.status === 'fulfilled' ? wikiResult.value.data?.list || [] : []
+  terminalSectionsLoaded.value = true
+}
+
 onMounted(() => {
   loadCarousel()
   loadData()
+  if (isTerminal.value) loadTerminalSections()
+})
+
+watch(isTerminal, (terminal) => {
+  if (terminal && !terminalSectionsLoaded.value) loadTerminalSections()
 })
 </script>
 
@@ -1111,6 +1213,28 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+.terminal-log-meta {
+  display: none;
+}
+
+.terminal-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.terminal-photo { position: relative; display: block; aspect-ratio: 3 / 2; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: #afc4de; }
+.terminal-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s cubic-bezier(.2, .6, .2, 1); }
+.terminal-photo:hover img { transform: scale(1.05); }
+.terminal-photo > i { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, .025) 3px 4px); }
+.terminal-photo > div { position: absolute; inset: auto 0 0; display: flex; justify-content: space-between; gap: 12px; padding: 30px 13px 10px; background: linear-gradient(transparent, rgba(5, 8, 15, .85)); font: 11px var(--terminal-mono); }
+.terminal-photo > div strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terminal-photo > div span { flex: none; }
+.terminal-photo-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--sub); font: 11px var(--terminal-mono); }
+.terminal-wiki-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line); box-shadow: var(--terminal-shadow); }
+.terminal-wiki-panel a { display: grid; gap: 8px; padding: 22px; background: var(--panel); color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
+.terminal-wiki-panel a:hover { background: var(--panel-2); }
+.terminal-wiki-panel small { color: var(--sub); }
+.terminal-empty { padding: 34px; border: 1px dashed var(--line); border-radius: 14px; color: var(--sub); font-family: var(--terminal-mono); text-align: center; }
+.terminal-more { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-family: var(--terminal-mono); text-decoration: none; }
+.terminal-error { color: var(--amber); }
+.terminal-error button { margin-left: 8px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--accent); font: inherit; cursor: pointer; }
+
 /* Responsive */
 @media (max-width: 1200px) {
   .sidebar {
@@ -1167,6 +1291,11 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
   }
+}
+
+@media (max-width: 900px) {
+  .terminal-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .terminal-wiki-panel { grid-template-columns: 1fr; }
 }
 
 /* Magazine adaptation */
@@ -1603,5 +1732,7 @@ onMounted(() => {
   .article-item :deep(.el-card__body) {
     padding: 24px 0;
   }
+
+  .terminal-photo-grid { grid-template-columns: 1fr; }
 }
 </style>

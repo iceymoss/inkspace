@@ -9,10 +9,12 @@
           <div class="masthead">
             <div class="logo">
               <router-link to="/">
-                Ink<span>Space</span>
+                <template v-if="isTerminal"><span class="terminal-dollar">$</span>inkspace.log<i class="brand-caret" /></template>
+                <template v-else>Ink<span>Space</span></template>
               </router-link>
             </div>
             <span
+              v-if="!isTerminal"
               class="issue-mark serif"
               aria-hidden="true"
             >{{ issueMark }}</span>
@@ -24,25 +26,25 @@
             aria-label="主导航"
           >
             <router-link to="/">
-              首页
+              {{ navLabel('首页', 'home') }}
             </router-link>
             <router-link to="/blog">
-              博客
+              {{ navLabel('博客', 'blog') }}
             </router-link>
             <router-link to="/works">
-              作品
+              {{ navLabel('作品', 'projects') }}
             </router-link>
             <router-link to="/photos">
-              摄影
+              {{ navLabel('摄影', 'photos') }}
             </router-link>
             <router-link to="/wiki">
-              知识库
+              {{ navLabel('知识库', 'wiki') }}
             </router-link>
             <router-link to="/links">
-              友链
+              {{ navLabel('友链', 'links') }}
             </router-link>
             <router-link to="/about">
-              关于
+              {{ navLabel('关于', 'about') }}
             </router-link>
           </nav>
           <div class="header-actions">
@@ -138,6 +140,7 @@
 
     <main class="main-content">
       <div
+        v-if="!isTerminal"
         class="publication-signature serif"
         aria-hidden="true"
       >
@@ -149,10 +152,11 @@
     <footer class="footer">
       <div class="container">
         <div class="footer-identity">
-          <strong class="serif">Ink<span>Space</span></strong>
+          <strong :class="{ serif: !isTerminal }">{{ isTerminal ? '$inkspace.log' : 'InkSpace' }}</strong>
           <p>{{ siteSettings.site_description || '以文字收存观察，让思想缓慢生长。' }}</p>
         </div>
         <div class="footer-meta">
+          <p v-if="isTerminal" class="system-status"><i /> all systems normal</p>
           <p>{{ siteSettings.site_copyright || '© 2024 InkSpace. All rights reserved.' }}</p>
           <p v-if="siteSettings.site_icp">
             <a
@@ -190,6 +194,8 @@ const issueMark = computed(() => {
     return 'VOL. 01'
   }
 })
+const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
+const navLabel = (fallback, terminal) => isTerminal.value ? terminal : fallback
 
 watch(() => router.currentRoute.value.fullPath, () => {
   navOpen.value = false

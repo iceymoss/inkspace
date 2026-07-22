@@ -68,7 +68,7 @@
               </template>
               <template v-else-if="theme.id === 'terminal'">
                 <span>$ inkspace --theme</span>
-                <strong>yu.log_</strong>
+                <strong>inkspace.log_</strong>
                 <i>&gt; building stories...</i>
               </template>
               <template v-else-if="theme.id === 'cozy'">
@@ -164,28 +164,42 @@
           LIVE PROOF
         </p>
         <h2 id="preview-heading">
-          此刻的屿刊
+          {{ selectedTheme === 'terminal' ? 'inkspace.log runtime' : '此刻的屿刊' }}
         </h2>
-        <p>纸张会随你的选择改变光线，内容的秩序保持不变。</p>
+        <p>{{ selectedTheme === 'terminal' ? '机器语言负责状态与路径，中文正文保持清晰可读。' : '纸张会随你的选择改变光线，内容的秩序保持不变。' }}</p>
         <dl>
           <div><dt>风格</dt><dd>{{ selectedThemeMeta.name }}</dd></div>
           <div><dt>模式</dt><dd>{{ selectedSchemeLabel }}</dd></div>
-          <div><dt>实际显示</dt><dd>{{ appearance.resolvedColorScheme === 'dark' ? '深色' : '浅色' }}</dd></div>
+          <div><dt>实际显示</dt><dd>{{ candidateResolvedScheme === 'dark' ? '深色' : '浅色' }}</dd></div>
         </dl>
       </div>
       <div
         class="mini-issue"
+        :class="{
+          'mini-terminal': selectedTheme === 'terminal',
+          'mini-terminal-light': selectedTheme === 'terminal' && candidateResolvedScheme === 'light'
+        }"
         aria-hidden="true"
       >
-        <div class="mini-top">
-          <span>屿刊</span><small>VOL. 24</small>
-        </div>
-        <div class="mini-line" />
-        <strong>记录那些<br><em>值得停留</em>的事</strong>
-        <p>观察日常，整理知识，也把尚未完成的想法留在这里。</p>
-        <div class="mini-footer">
-          <span>FEATURED STORIES</span><i />
-        </div>
+        <template v-if="selectedTheme === 'terminal'">
+          <div class="mini-terminal-bar"><i /><i /><i /><span>visitor@inkspace.log: ~</span></div>
+          <div class="mini-terminal-body">
+            <p><b>❯</b> whoami</p><span>reader · creator</span>
+            <p><b>❯</b> cat appearance.json</p><span>{ theme: "terminal", mode: "{{ candidateResolvedScheme }}" }</span>
+            <p><b>❯</b> tail -f stories<span class="mini-caret" /></p>
+          </div>
+        </template>
+        <template v-else>
+          <div class="mini-top">
+            <span>屿刊</span><small>VOL. 24</small>
+          </div>
+          <div class="mini-line" />
+          <strong>记录那些<br><em>值得停留</em>的事</strong>
+          <p>观察日常，整理知识，也把尚未完成的想法留在这里。</p>
+          <div class="mini-footer">
+            <span>FEATURED STORIES</span><i />
+          </div>
+        </template>
       </div>
     </section>
 
@@ -251,6 +265,9 @@ const candidate = computed(() => ({
 }))
 const selectedThemeMeta = computed(() => getTheme(selectedTheme.value))
 const selectedSchemeLabel = computed(() => schemeOptions.find((item) => item.value === selectedScheme.value)?.label)
+const candidateResolvedScheme = computed(() => selectedScheme.value === 'system'
+  ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  : selectedScheme.value)
 const hasChanges = computed(() => (
   candidate.value.ui_theme !== appearance.savedPreference.ui_theme ||
   candidate.value.color_scheme !== appearance.savedPreference.color_scheme
@@ -509,6 +526,20 @@ onBeforeRouteLeave(() => {
 .mini-issue > p { max-width: 360px; margin: 18px 0; color: var(--sub); font-size: 12px; line-height: 1.8; }
 .mini-footer { display: flex; align-items: center; gap: 15px; margin-top: 28px; color: var(--sub); font-size: 8px; letter-spacing: .2em; }
 .mini-footer i { flex: 1; height: 1px; background: var(--hairline); }
+.mini-terminal { padding: 0; overflow: hidden; border-radius: 14px; background: var(--panel, #131b2c); font-family: var(--terminal-mono, Consolas, monospace); }
+.mini-terminal-light { --panel: #fff; --line: #dde4ef; --sub: #7c88a1; --bright: #0e1730; --green: #1f9d57; --accent: #1668c7; }
+.mini-terminal-bar { display: flex; align-items: center; gap: 7px; padding: 12px 15px; border-bottom: 1px solid var(--line, #26344e); }
+.mini-terminal-bar i { width: 10px; height: 10px; border-radius: 50%; background: #f26d6d; }
+.mini-terminal-bar i:nth-child(2) { background: #f2c46d; }
+.mini-terminal-bar i:nth-child(3) { background: #6dd087; }
+.mini-terminal-bar span { margin: 0 auto; color: var(--sub); font-size: 10px; }
+.mini-terminal-body { padding: 22px 25px; font-size: 12px; line-height: 2; }
+.mini-terminal-body p, .mini-terminal-body span { margin: 0; }
+.mini-terminal-body p { color: var(--bright, var(--ink)); }
+.mini-terminal-body p b { color: var(--green, #6fcf8e); }
+.mini-terminal-body > span { color: var(--sub); }
+.mini-caret { display: inline-block; width: 7px; height: 13px; margin-left: 4px; background: var(--accent); vertical-align: -2px; animation: mini-blink 1.1s steps(1) infinite; }
+@keyframes mini-blink { 50% { opacity: 0; } }
 
 .action-bar {
   position: sticky;
@@ -558,4 +589,6 @@ onBeforeRouteLeave(() => {
   .actions .text-action { grid-column: 1 / -1; min-height: 28px; }
   .actions button { padding: 0 12px; }
 }
+
+@media (prefers-reduced-motion: reduce) { .mini-caret { animation: none; } }
 </style>

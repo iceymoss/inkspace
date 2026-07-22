@@ -2,9 +2,11 @@
 
 ## 状态
 - 创建日期: 2026-07-22
-- 状态: MVP 实现完成，待 Chromium 全矩阵视觉验收
+- 状态: Phase 1「屿刊」及附加功能已完成，并于 2026-07-22 通过用户验收
 - 首期主题: A · 极简杂志风「屿刊」
+- 当前阶段: Phase 2「yu.log」实现与自动化验证完成，人工视觉矩阵待验收
 - 后续顺序: B · `yu.log` -> C ·「小屿的角落」-> D · `CHEN YU®`
+- Phase 2 规范: [`terminal-ui-theme.md`](./terminal-ui-theme.md)
 
 ## 设计关联
 
@@ -12,8 +14,8 @@
 
 | 主题 ID | 展示名称 | 规范 | 高保真原型 | 实现阶段 |
 |---|---|---|---|---|
-| `magazine` | 屿刊 · 极简杂志风 | [`style-a-magazine.md`](../design/style-a-magazine.md) | [`style-a-magazine.html`](../design/style-a-magazine.html) | MVP，默认主题 |
-| `terminal` | yu.log · 暗色科技感 | [`style-b-terminal.md`](../design/style-b-terminal.md) | [`style-b-terminal.html`](../design/style-b-terminal.html) | 第二阶段 |
+| `magazine` | 屿刊 · 极简杂志风 | [`style-a-magazine.md`](../design/style-a-magazine.md) | [`style-a-magazine.html`](../design/style-a-magazine.html) | Phase 1 已完成，默认主题 |
+| `terminal` | yu.log · 暗色科技感 | [`style-b-terminal.md`](../design/style-b-terminal.md) | [`style-b-terminal.html`](../design/style-b-terminal.html) | Phase 2 已开放，人工视觉矩阵待验收 |
 | `cozy` | 小屿的角落 · 温暖手作感 | [`style-c-cozy.md`](../design/style-c-cozy.md) | [`style-c-cozy.html`](../design/style-c-cozy.html) | 第三阶段 |
 | `swiss` | CHEN YU® · 瑞士网格风 | [`style-d-swiss.md`](../design/style-d-swiss.md) | [`style-d-swiss.html`](../design/style-d-swiss.html) | 第四阶段 |
 
@@ -31,12 +33,12 @@
 
 ## 非目标
 
-- 不修改或重构 `web/admin`；现有设置页和保存契约保持原样。
+- 不重构 `web/admin` 的整体视觉；仅在既有设置页中增加首页静态 Hero 文案配置，沿用原保存契约。
 - 不修改现有文章、作品、评论、关注、收藏、通知、用户资料等 API 的既有字段含义、路径或成功响应结构。
 - 不为摄影新增数据表、上传流程或独立内容模型；摄影继续使用 `Work.Type = photography`。
 - 不为公共知识库新增编辑器、协作、成员权限、全文检索、双向链接或新内容模型。
 - 不允许主题包自行请求业务 API 或复制页面业务状态；主题不是四套独立 SPA。
-- MVP 不实现 B/C/D 的完整页面样式；只注册其元数据和设计关联，外观页标记为“即将推出”。
+- Phase 1 不实现 B/C/D 的完整页面样式；只注册其元数据和设计关联，外观页标记为“即将推出”。
 - 不引入 `vue-i18n`、新的 UI 框架或 CSS 框架；继续使用 Vue 3、Pinia、Vue Router、Element Plus 和现有 Vditor。
 
 ## 用户故事
@@ -62,7 +64,7 @@
 ### B. 用户预览并确认主题
 
 1. 登录用户进入 `/dashboard/appearance`，看到四套主题卡片、当前主题、明暗模式选择和设计预览。
-2. MVP 中 `magazine` 可选择；`terminal`、`cozy`、`swiss` 展示名称、缩略预览、设计说明和“即将推出”，不可提交。
+2. Phase 1 中 `magazine` 可选择；`terminal`、`cozy`、`swiss` 展示名称、缩略预览、设计说明和“即将推出”，不可提交。后续主题仅在其独立阶段完成全矩阵验收后解锁。
 3. 用户点“预览”后，仅在当前会话临时应用候选主题和明暗模式，不调用保存接口。
 4. 用户点“取消预览”或离开页面且未确认，恢复进入页面前的已保存偏好。
 5. 用户点“应用主题”，调用主题偏好接口；成功后更新 Pinia 状态和本地缓存，并保持全站立即生效。
@@ -115,7 +117,7 @@
 | 用户预览后直接离开外观页 | 路由离开前恢复已保存偏好 |
 | 系统明暗媒体查询不可用 | `system` 回退为 `light` |
 | 特殊全站主题配置缺少颜色 | `holiday` 使用现有内置节日默认令牌；`mourning` 仍应用灰度 |
-| B/C/D 尚未完成 | 展示“即将推出”，禁用预览和保存；接口也拒绝未开放主题值 |
+| 尚未完成的主题 | 展示“即将推出”，禁用预览和保存；接口也拒绝未开放主题值 |
 | 公共工作区不存在或已关闭 | 统一返回 404，不泄露此前是否存在 |
 | 文档不存在、未发布或工作区未公开 | 统一返回 404 |
 | 公开目录仅包含草稿 | 目录及其分支不出现在公开树中 |
@@ -157,7 +159,8 @@ web/blog/src/
 ├── themes/
 │   ├── registry.js
 │   ├── base.css
-│   └── magazine.css
+│   ├── magazine.css
+│   └── terminal.css（Phase 2）
 └── views/user/Appearance.vue
 ```
 
@@ -174,7 +177,7 @@ web/blog/src/
 
 ### 页面适配矩阵
 
-“完整用户侧”验收要求 `magazine` 覆盖以下页面，不以首页局部换肤视为完成：
+“完整用户侧”验收要求每个开放主题覆盖以下页面，不以首页局部换肤视为完成。Phase 1 已完成 `magazine` 适配：
 
 | 区域 | 路由/页面 | 屿刊适配要求 |
 |---|---|---|
@@ -221,7 +224,7 @@ web/blog/src/
 - 不使用软删除；记录可直接 upsert。
 - 新增 `UserAppearanceRequest` 和 `UserAppearanceResponse`，服务端验证白名单。
 - 未创建记录等价于 `{ui_theme: "magazine", color_scheme: "system"}`；GET 可返回默认值但不强制落库。
-- MVP 接口只允许 `magazine`。B/C/D 完整验收并开放后，再加入服务端可用白名单。
+- Phase 1 接口只允许 `magazine`。每个后续主题完整验收并开放时，再同步加入服务端可用白名单。
 
 #### Workspace（新增字段）
 
@@ -291,6 +294,9 @@ web/blog/src/
       "description": "可公开阅读的前端知识库",
       "icon": "",
       "doc_count": 12,
+      "author_id": 7,
+      "author_name": "小屿",
+      "author_avatar": "/uploads/avatar/example.jpg",
       "updated_at": "2026-07-22T00:00:00Z"
     }
   ],
@@ -368,15 +374,15 @@ web/blog/src/
 
 1. [x] **主题偏好模型与 API**：新增 `UserAppearance`、AutoMigrate、service、handler、受保护路由及白名单测试。
 2. [x] **主题运行时基础设施**：新增主题注册表、appearance store、启动防闪烁、系统模式监听、特殊覆盖兼容和本地缓存。
-3. [x] **外观与主题页**：新增 `/dashboard/appearance`、用户中心入口、四套设计关联卡片、预览/取消/确认流程；不改 `web/admin`。
+3. [x] **外观与主题页**：新增 `/dashboard/appearance`、用户中心入口、四套设计关联卡片、预览/取消/确认流程；管理后台仅扩展首页静态 Hero 文案配置。
 4. [x] **共享页面骨架**：统一公共/用户中心布局、明暗开关和内容展示令牌；保持现有请求、字段和交互逻辑。
 5. [x] **屿刊公共页面**：完成首页、文章、作品、摄影、知识库、站点页、登录和公开个人主页。
 6. [x] **屿刊用户中心**：完成布局、内容管理、编辑器、通知、收藏、资料设置和移动端适配。
 7. [x] **摄影入口与安全加固**：新增 `/photos` 页面/导航，复用 photography 作品；公共作品接口强制已发布。
 8. [x] **公共知识库模型与 API**：增加 `Workspace.IsPublic`、公开 DTO/查询、草稿回退规则、净化和基础权限测试。
 9. [x] **公共知识库前端**：新增 `/wiki`、工作区树和文档详情；管理界面增加公开开关、风险说明、文档状态及发布/取消发布/重新发布操作。
-10. [ ] **屿刊全矩阵验收**：桌面/平板/手机、浅色/深色、访客/用户、空态/错误态、节日/哀悼、无障碍和构建验证。
-11. [ ] **B · yu.log**：关联 B 设计规范完成全矩阵适配，验收后开放白名单。
+10. [x] **屿刊全矩阵验收**：桌面/平板/手机、浅色/深色、访客/用户、空态/错误态、节日/哀悼、无障碍和构建验证；2026-07-22 用户验收通过。
+11. [ ] **B · yu.log**：实现、自动化验证、注册表与后端白名单已完成并开放；三视口全路由人工视觉矩阵待验收。
 12. [ ] **C · 小屿的角落**：关联 C 设计规范完成全矩阵适配，验收后开放白名单。
 13. [ ] **D · CHEN YU®**：关联 D 设计规范完成全矩阵适配，验收后开放白名单。
 
@@ -387,7 +393,7 @@ web/blog/src/
 - `docs/design/style-b-terminal.md`、`style-b-terminal.html` — 第二阶段终端主题基准。
 - `docs/design/style-c-cozy.md`、`style-c-cozy.html` — 第三阶段手作主题基准。
 - `docs/design/style-d-swiss.md`、`style-d-swiss.html` — 第四阶段瑞士主题基准。
-- `web/blog/src/utils/theme.js` — 现有全站主题加载、节日自定义色和本地缓存行为；实现时拆分而非叠加第三套状态源。
+- `web/blog/src/stores/appearance.js` — 当前主题运行时、缓存、预览、回滚、系统明暗与特殊覆盖的唯一状态源。
 - `web/blog/src/utils/codeTheme.js` — 保留现有代码主题设置契约。
 - `web/blog/src/layouts/MainLayout.vue`、`UserCenterLayout.vue` — 公共和用户中心布局入口。
 - `web/blog/src/views/Home.vue`、`Blog.vue`、`Works.vue` — 复用现有内容请求与分页筛选逻辑。
@@ -425,12 +431,12 @@ web/blog/src/
 - [x] 外观预览不发保存请求，取消恢复；保存失败回滚并提示，账号切换中的响应不会污染新会话缓存。
 - [x] 访客和账号缓存相互隔离；登录后使用账号偏好，登出恢复此前访客偏好。
 - [x] 带有旧 `site_theme` 缓存、`body.theme-*` 和内联变量的浏览器升级后只应用新运行时状态。
-- [ ] `magazine` 覆盖页面适配矩阵，既有 API 请求参数和响应字段读取不变。
-- [ ] `/photos` 固定 photography，空态和详情跳转正确。
-- [ ] `/wiki` 对空工作区、关闭工作区、草稿文档和 404 有明确状态。
-- [ ] `900px` 与 `560px` 两个断点下导航、列表、正文、表单、目录树、弹窗均可操作。
-- [ ] 键盘遍历、`:focus-visible`、图片 alt、颜色对比度和 reduced-motion 达标。
-- [ ] 浅/深两模式下 Element Plus、Vditor、代码块、通知下拉和确认弹窗无旧主题硬编码残留。
+- [x] `magazine` 覆盖页面适配矩阵，既有 API 请求参数和响应字段读取不变。
+- [x] `/photos` 固定 photography，空态和详情跳转正确。
+- [x] `/wiki` 对空工作区、关闭工作区、草稿文档和 404 有明确状态。
+- [x] `900px` 与 `560px` 两个断点下导航、列表、正文、表单、目录树、弹窗均可操作。
+- [x] 键盘遍历、`:focus-visible`、图片 alt、颜色对比度和 reduced-motion 通过 Phase 1 用户验收。
+- [x] 浅/深两模式下 Element Plus、Vditor、代码块、通知下拉和确认弹窗无已知旧主题硬编码残留。
 
 ### 验证命令
 
@@ -439,7 +445,7 @@ web/blog/src/
 - [x] 在 `web/blog` 执行 `pnpm build`
 - [x] 在 `web/blog` 执行 `pnpm test --run`（1 个测试文件、7 个测试）
 - [x] 在 `web/blog` 执行 `pnpm lint`
-- [ ] 使用 Chromium 当前稳定版在 `1440x900`、`900x1024`、`390x844` 三个视口，对页面矩阵的浅/深模式、菜单、表单提交、分页、弹窗和空/错状态逐项人工回归，并与 `style-a-magazine.html` 对照记录截图。
+- [x] Phase 1 完成人工视觉与功能回归并通过用户验收；本阶段未要求保留完整截图矩阵。
 
 后端数据库集成测试使用独立 MySQL 测试库（可由 Docker Compose 启动），每个测试事务回滚或清理自身 fixture，严禁连接开发/生产库；Redis 使用独立 DB 编号并在用例后清理命名空间。纯白名单、树构建、净化和主题解析逻辑保持为无数据库单元测试。
 
@@ -460,25 +466,25 @@ web/blog/src/
 ## 待定事项
 
 - 已知兼容限制：`web/admin` 仍显示原有 `day/night` 全站主题文案，但新用户侧只消费 `holiday/mourning` 特殊覆盖；本期遵循用户确认不修改管理端，后续可独立清理旧设置体验。
-- 待人工验收：按页面矩阵在 Chromium `1440x900`、`900x1024`、`390x844` 下执行浅/深模式、访客/用户、空态/错误态和键盘可用性视觉回归并保存截图。
 - 待部署校验：生产 AutoMigrate 后确认历史 `workspaces.is_public` 均为 false。
+- 后端专项测试缺口仍以“测试计划 / 后端”中的未勾选项为准，不因视觉验收自动视为完成。
 
-## MVP 范围
+## Phase 1 范围（已完成）
 
 **本期纳入：**
 
 1. 账号级 `ui_theme` / `color_scheme` 偏好模型与专用 API。
 2. 可扩展主题注册表、运行时、缓存、系统明暗监听和管理员特殊覆盖兼容。
-3. 用户中心“外观与主题”页，含四套设计关联、屿刊预览/取消/确认；其余主题显示“即将推出”。
+3. 用户中心“外观与主题”页，含四套设计关联、屿刊预览/取消/确认；未完成主题显示“即将推出”。
 4. 「屿刊」完整用户侧页面适配矩阵，而非仅首页换肤。
 5. `/photos` 摄影入口，复用现有作品模型和详情，并修复公共作品状态过滤边界。
 6. 工作区公开状态、公共 `/wiki` 只读 API 和页面；只公开已发布文档。
 7. 已发布知识库文档再次编辑后自动转草稿，防止未发布修改泄露。
 8. 浅色/深色、响应式、无障碍、构建和关键权限测试。
 
-**后续迭代：**
+**后续阶段：**
 
-1. B · `yu.log` 完整适配并开放选择。
+1. B · `yu.log` 按 [`terminal-ui-theme.md`](./terminal-ui-theme.md) 完整适配并开放选择。
 2. C ·「小屿的角落」完整适配并开放选择。
 3. D · `CHEN YU®` 完整适配并开放选择。
 4. 公共知识库全文搜索、双向链接、目录独立公开策略或发布快照，如后续另行立项。

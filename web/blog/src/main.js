@@ -8,6 +8,7 @@ import router from './router'
 import './assets/main.css'
 import './themes/base.css'
 import './themes/magazine.css'
+import './themes/terminal.css'
 import { bootstrapCachedAppearance, useAppearanceStore } from './stores/appearance'
 
 bootstrapCachedAppearance()

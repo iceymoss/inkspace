@@ -86,6 +86,16 @@ func TestThemeSystemMySQLIntegration(t *testing.T) {
 		if count != 1 {
 			t.Fatalf("appearance row count = %d, want 1", count)
 		}
+
+		saved, err := appearanceService.Save(42, &models.UserAppearanceRequest{
+			UITheme: models.TerminalUITheme, ColorScheme: "system",
+		})
+		if err != nil {
+			t.Fatalf("save terminal appearance: %v", err)
+		}
+		if saved.UITheme != models.TerminalUITheme || saved.ColorScheme != "system" {
+			t.Fatalf("unexpected terminal appearance: %+v", saved)
+		}
 	})
 
 	t.Run("public wiki filters drafts and private workspaces", func(t *testing.T) {

@@ -15,11 +15,15 @@ func TestUserAppearanceRequestValidate(t *testing.T) {
 		req         UserAppearanceRequest
 		wantInvalid bool
 	}{
-		{name: "system", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "system"}},
-		{name: "light", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "light"}},
-		{name: "dark", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "dark"}},
+		{name: "magazine system", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "system"}},
+		{name: "magazine light", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "light"}},
+		{name: "magazine dark", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "dark"}},
+		{name: "terminal system", req: UserAppearanceRequest{UITheme: "terminal", ColorScheme: "system"}},
+		{name: "terminal light", req: UserAppearanceRequest{UITheme: "terminal", ColorScheme: "light"}},
+		{name: "terminal dark", req: UserAppearanceRequest{UITheme: "terminal", ColorScheme: "dark"}},
 		{name: "empty theme", req: UserAppearanceRequest{ColorScheme: "system"}, wantInvalid: true},
-		{name: "unavailable theme", req: UserAppearanceRequest{UITheme: "terminal", ColorScheme: "system"}, wantInvalid: true},
+		{name: "cozy unavailable", req: UserAppearanceRequest{UITheme: "cozy", ColorScheme: "system"}, wantInvalid: true},
+		{name: "swiss unavailable", req: UserAppearanceRequest{UITheme: "swiss", ColorScheme: "system"}, wantInvalid: true},
 		{name: "unknown theme", req: UserAppearanceRequest{UITheme: "unknown", ColorScheme: "system"}, wantInvalid: true},
 		{name: "empty color scheme", req: UserAppearanceRequest{UITheme: "magazine"}, wantInvalid: true},
 		{name: "unknown color scheme", req: UserAppearanceRequest{UITheme: "magazine", ColorScheme: "sepia"}, wantInvalid: true},

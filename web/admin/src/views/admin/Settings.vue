@@ -36,6 +36,36 @@
           </el-form-item>
           <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅在下方没有轮播项时显示；留空字段会使用屿刊默认文案。</div>
 
+          <el-divider content-position="left">inkspace.log 终端主题首页</el-divider>
+          <el-form-item label="运行状态">
+            <el-input v-model="terminalHeroSettings.status" placeholder="例如：system online" />
+          </el-form-item>
+          <el-form-item label="身份输出">
+            <el-input v-model="terminalHeroSettings.eyebrow" placeholder="例如：持续构建 · 持续记录" />
+          </el-form-item>
+          <el-form-item label="主标题">
+            <el-input v-model="terminalHeroSettings.title" placeholder="例如：在代码与生活之间，持续记录。" />
+          </el-form-item>
+          <el-form-item label="标题强调词">
+            <el-input v-model="terminalHeroSettings.accent" placeholder="例如：持续记录" />
+          </el-form-item>
+          <el-form-item label="简介">
+            <el-input v-model="terminalHeroSettings.description" type="textarea" :rows="3" maxlength="300" show-word-limit />
+          </el-form-item>
+          <el-form-item label="主命令按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="terminalHeroSettings.primary_text" placeholder="命令，例如：tail -f blog" />
+              <el-input v-model="terminalHeroSettings.primary_link" placeholder="链接，例如：/blog" />
+            </div>
+          </el-form-item>
+          <el-form-item label="次命令按钮">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+              <el-input v-model="terminalHeroSettings.secondary_text" placeholder="命令，例如：ls projects/" />
+              <el-input v-model="terminalHeroSettings.secondary_link" placeholder="链接，例如：/works" />
+            </div>
+          </el-form-item>
+          <div style="margin: 0 0 26px 150px; color: #909399; font-size: 12px; line-height: 1.7;">仅用于 inkspace.log 主题，不影响屿刊 Hero 和轮播图。</div>
+
           <el-divider content-position="left">轮播图</el-divider>
           <el-form-item>
             <el-button type="primary" @click="addCarouselItem">添加轮播项</el-button>
@@ -561,6 +591,18 @@ const carouselSettings = reactive({
   ]
 })
 
+const terminalHeroSettings = reactive({
+  status: 'system online',
+  eyebrow: '持续构建 · 持续记录',
+  title: '在代码与生活之间，持续记录。',
+  accent: '持续记录',
+  description: '这里保存技术实践、正在构建的作品，以及偶尔偏离主线的生活片段。',
+  primary_text: 'tail -f blog',
+  primary_link: '/blog',
+  secondary_text: 'ls projects/',
+  secondary_link: '/works'
+})
+
 const aboutSettings = reactive({
   title: '关于我',
   avatar: '',
@@ -626,7 +668,7 @@ const loadAllSettings = async () => {
         }
       } else if (setting.group === 'markdown') {
         markdownSettings[setting.key] = setting.value
-      } else if (setting.group === 'carousel' || setting.key === 'home_carousel') {
+      } else if (setting.group === 'carousel' || setting.key === 'home_carousel' || setting.key === 'home_hero' || setting.key === 'home_hero_terminal') {
         if (setting.key === 'home_carousel' && setting.value) {
           try {
             carouselSettings.items = JSON.parse(setting.value)
@@ -638,6 +680,12 @@ const loadAllSettings = async () => {
             Object.assign(carouselSettings.hero, JSON.parse(setting.value))
           } catch (e) {
             console.error('Failed to parse home hero data:', e)
+          }
+        } else if (setting.key === 'home_hero_terminal' && setting.value) {
+          try {
+            Object.assign(terminalHeroSettings, JSON.parse(setting.value))
+          } catch (e) {
+            console.error('Failed to parse terminal home hero data:', e)
           }
         }
       } else if (setting.group === 'about' || setting.key === 'about_page') {
@@ -844,7 +892,8 @@ const saveCarouselSettings = async () => {
   try {
     const settings = {
       home_carousel: JSON.stringify(carouselSettings.items),
-      home_hero: JSON.stringify(carouselSettings.hero)
+      home_hero: JSON.stringify(carouselSettings.hero),
+      home_hero_terminal: JSON.stringify(terminalHeroSettings)
     }
     await adminApi.put('/admin/settings/batch', settings)
     ElMessage.success('保存成功')

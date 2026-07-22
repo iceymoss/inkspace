@@ -124,7 +124,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 				} else if key == models.SettingSiteTheme {
 					group = "theme"
 					isPublic = true // 主题设置需要公开，前端才能使用
-				} else if key == models.SettingHomeCarousel || key == models.SettingHomeHero {
+				} else if key == models.SettingHomeCarousel || key == models.SettingHomeHero ||
+					key == models.SettingHomeHeroTerminal {
 					group = "carousel"
 					isPublic = true
 				} else if key == "holiday_type" || key == "holiday_bg_primary" ||
@@ -146,7 +147,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					key == "holiday_primary" {
 					group = "theme"
 					isPublic = true
-				} else if key == models.SettingHomeCarousel || key == models.SettingHomeHero {
+				} else if key == models.SettingHomeCarousel || key == models.SettingHomeHero ||
+					key == models.SettingHomeHeroTerminal {
 					group = "carousel"
 					isPublic = true
 				} else if key == "about_page" {
@@ -176,7 +178,8 @@ func (s *SettingService) BatchSet(settings map[string]string) error {
 					"value": value,
 				}
 				if key == models.SettingCodeTheme || key == models.SettingMarkdownTheme || key == models.SettingSiteTheme ||
-					key == models.SettingHomeCarousel || key == models.SettingHomeHero {
+					key == models.SettingHomeCarousel || key == models.SettingHomeHero ||
+					key == models.SettingHomeHeroTerminal {
 					updateData["group"] = group
 					updateData["is_public"] = isPublic
 				}

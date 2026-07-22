@@ -56,16 +56,30 @@ describe('appearance store', () => {
     expect(document.documentElement.dataset.theme).toBe('light')
   })
 
+  it('bootstraps a cached terminal preference', () => {
+    window.localStorage.setItem('inkspace_guest_appearance_v1', JSON.stringify({
+      ui_theme: 'terminal',
+      color_scheme: 'dark'
+    }))
+
+    bootstrapCachedAppearance()
+
+    expect(document.documentElement.dataset.uiTheme).toBe('terminal')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+
   it('previews a preference without saving and restores it on cancel', () => {
     const store = useAppearanceStore()
 
-    store.preview({ ui_theme: 'magazine', color_scheme: 'dark' })
+    store.preview({ ui_theme: 'terminal', color_scheme: 'dark' })
     expect(store.isPreviewing).toBe(true)
+    expect(document.documentElement.dataset.uiTheme).toBe('terminal')
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(api.put).not.toHaveBeenCalled()
 
     store.cancelPreview()
     expect(store.isPreviewing).toBe(false)
+    expect(document.documentElement.dataset.uiTheme).toBe('magazine')
     expect(document.documentElement.dataset.theme).toBe('light')
   })
 
@@ -76,11 +90,39 @@ describe('appearance store', () => {
     const store = useAppearanceStore()
     api.put.mockRejectedValue(new Error('network unavailable'))
 
-    await expect(store.save({ ui_theme: 'magazine', color_scheme: 'dark' })).rejects.toThrow()
+    await expect(store.save({ ui_theme: 'terminal', color_scheme: 'dark' })).rejects.toThrow()
 
+    expect(store.savedPreference.ui_theme).toBe('magazine')
     expect(store.savedPreference.color_scheme).toBe('system')
     expect(store.isPreviewing).toBe(false)
     expect(document.documentElement.dataset.theme).toBe('light')
+  })
+
+  it('saves terminal to the current account cache', async () => {
+    const userStore = useUserStore()
+    userStore.token = 'token-without-readable-payload'
+    userStore.user = { id: 7 }
+    const store = useAppearanceStore()
+    api.put.mockResolvedValue({ data: { ui_theme: 'terminal', color_scheme: 'dark' } })
+
+    await store.save({ ui_theme: 'terminal', color_scheme: 'dark' })
+
+    expect(store.savedPreference).toEqual({ ui_theme: 'terminal', color_scheme: 'dark' })
+    expect(JSON.parse(window.localStorage.getItem('inkspace_user_appearance_v1:7'))).toEqual({
+      ui_theme: 'terminal', color_scheme: 'dark'
+    })
+  })
+
+  it('keeps a site override independent from terminal preference', async () => {
+    api.get.mockResolvedValue({ data: { site_theme: 'holiday' } })
+    const store = useAppearanceStore()
+    store.saveGuestPreference({ ui_theme: 'terminal', color_scheme: 'dark' })
+
+    await store.refreshSiteOverride(true)
+
+    expect(document.documentElement.dataset.uiTheme).toBe('terminal')
+    expect(document.documentElement.dataset.siteTheme).toBe('holiday')
+    expect(store.savedPreference.ui_theme).toBe('terminal')
   })
 
   it('does not apply an account save after the session changes', async () => {
@@ -139,11 +181,13 @@ describe('appearance store', () => {
     const store = useAppearanceStore()
     store.initialize()
 
+    store.saveGuestPreference({ ui_theme: 'terminal', color_scheme: 'system' })
+
     systemDark = true
     emitSystemSchemeChange()
     expect(document.documentElement.dataset.theme).toBe('dark')
 
-    store.saveGuestPreference({ ui_theme: 'magazine', color_scheme: 'light' })
+    store.saveGuestPreference({ ui_theme: 'terminal', color_scheme: 'light' })
     systemDark = false
     emitSystemSchemeChange()
     expect(document.documentElement.dataset.theme).toBe('light')

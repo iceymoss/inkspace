@@ -18,9 +18,10 @@
       >
         <div class="logo">
           <router-link to="/">
-            Ink<span>Space</span>
+            <template v-if="isTerminal"><span>$</span>inkspace.log</template>
+            <template v-else>Ink<span>Space</span></template>
           </router-link>
-          <small class="serif">MEMBER · 01</small>
+          <small :class="{ serif: !isTerminal }">{{ isTerminal ? '~/dashboard' : 'MEMBER · 01' }}</small>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -85,7 +86,7 @@
                 <Menu />
               </button>
               <div class="page-marker">
-                <span class="page-label">PERSONAL EDITION</span>
+                <span class="page-label">{{ isTerminal ? 'USER / CONTROL PANEL' : 'PERSONAL EDITION' }}</span>
                 <el-breadcrumb separator="/">
                   <el-breadcrumb-item :to="{ path: '/' }">
                     首页
@@ -140,6 +141,7 @@
 import { ref, computed, onMounted, onUnmounted, provide, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useAppearanceStore } from '@/stores/appearance'
 import api from '@/utils/api'
 import {
   Odometer,
@@ -158,6 +160,8 @@ import {
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const appearance = useAppearanceStore()
+const isTerminal = computed(() => appearance.activePreference.ui_theme === 'terminal')
 const unreadCount = ref(0)
 const adminBackendUrl = ref('')
 const sidebarOpen = ref(false)

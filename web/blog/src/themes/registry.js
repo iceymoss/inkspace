@@ -11,13 +11,13 @@ export const themeRegistry = Object.freeze([
   },
   {
     id: 'terminal',
-    name: 'yu.log',
+    name: 'inkspace.log',
     subtitle: '暗色科技感',
     description: '以终端、日志流和冰蓝状态光构成的开发者工作台。',
-    status: 'coming_soon',
+    status: 'available',
     defaultColorScheme: 'dark',
     design: 'style-b-terminal',
-    stylesheet: null
+    stylesheet: 'terminal.css'
   },
   {
     id: 'cozy',
