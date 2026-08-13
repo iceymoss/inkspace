@@ -48,3 +48,15 @@ func TestKnowledgeRoutesRequireAuthentication(t *testing.T) {
 		t.Fatalf("GET /api/workspaces status = %d, want %d", recorder.Code, http.StatusUnauthorized)
 	}
 }
+
+func TestDocDetailRouteUsesOptionalAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	api := router.Group("/api", middleware.OptionalAuthMiddleware())
+	registerDocDetailRoute(api, handler.NewDocHandler())
+
+	routes := router.Routes()
+	if len(routes) != 1 || routes[0].Method != http.MethodGet || routes[0].Path != "/api/docs/:id" {
+		t.Fatalf("routes = %+v, want optional GET /api/docs/:id", routes)
+	}
+}

@@ -106,6 +106,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 		publicWithOptionalAuth := api.Group("")
 		publicWithOptionalAuth.Use(middleware.OptionalAuthMiddleware())
 		{
+			registerDocDetailRoute(publicWithOptionalAuth, docHandler)
 			// 关注统计（支持可选认证，以便显示当前用户的关注状态）
 			publicWithOptionalAuth.GET("/users/:id/follow-stats", followHandler.GetFollowStats)
 
@@ -233,6 +234,10 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	}
 
 	return r
+}
+
+func registerDocDetailRoute(routes gin.IRoutes, docHandler *handler.DocHandler) {
+	routes.GET("/docs/:id", docHandler.Detail)
 }
 
 func registerWorkspaceMemberRoutes(group *gin.RouterGroup, memberHandler *handler.WorkspaceMemberHandler) {

@@ -336,7 +336,7 @@ import ImageCropUpload from '@/components/ImageCropUpload.vue'
 const route = useRoute()
 const router = useRouter()
 const docId = Number(route.params.id)
-const form = reactive({ title: '', content: '', workspace_id: null, catalog_id: null, article_id: null, status: 0 })
+const form = reactive({ title: '', content: '', workspace_id: null, catalog_id: null, article_id: null, status: 0, revision: 1 })
 const workspaceName = ref('知识库文档')
 const initialLoading = ref(true)
 const editorReady = ref(false)
@@ -404,7 +404,8 @@ async function fetchDoc() {
     workspace_id: doc.workspace_id,
     catalog_id: doc.catalog_id ?? null,
     article_id: doc.article_id ?? null,
-    status: doc.status === 1 ? 1 : 0
+    status: doc.status === 1 ? 1 : 0,
+    revision: doc.revision || 1
   })
   workspaceName.value = doc.workspace?.name || doc.workspace_name || '知识库文档'
   lastSavedAt.value = doc.updated_at || new Date()
@@ -416,7 +417,8 @@ async function autosave() {
   if (!contentDirty.value || saving.value || publishing.value || wikiPublishing.value || !docId) return
   const savedContent = form.content
   try {
-    await api.put(`/docs/${docId}/autosave`, { content: savedContent })
+    const response = await api.put(`/docs/${docId}/autosave`, { content: savedContent, revision: form.revision })
+    form.revision = response.data?.revision || form.revision
     form.status = 0
     if (form.content === savedContent) contentDirty.value = false
     dirty.value = titleDirty.value
@@ -424,8 +426,13 @@ async function autosave() {
     autosaveFailed.value = false
     contentAutosaved.value = true
     lastSavedAt.value = new Date()
-  } catch {
+  } catch (error) {
     autosaveFailed.value = true
+    if (error.response?.status === 409) {
+      if (autosaveTimer) window.clearInterval(autosaveTimer)
+      autosaveTimer = null
+      ElMessage.error('文档已被其他操作更新，已暂停自动保存。请复制本地内容后刷新页面。')
+    }
   }
 }
 
@@ -438,7 +445,8 @@ async function manualSave(showMessage = true) {
   const savedContent = form.content
   saving.value = true
   try {
-    await api.put(`/docs/${docId}`, { title, content: savedContent })
+    const response = await api.put(`/docs/${docId}`, { title, content: savedContent, revision: form.revision })
+    form.revision = response.data?.revision || form.revision
     form.status = 0
     if (form.title.trim() === title) {
       form.title = title

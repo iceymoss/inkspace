@@ -20,6 +20,10 @@ type DocService struct{}
 func NewDocService() *DocService { return &DocService{} }
 
 func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models.Doc, error) {
+	kind := normalizedDocKind(req.Kind)
+	if !isCreatableDocKind(kind) {
+		return nil, ErrKnowledgeInvalid
+	}
 	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		workspace, err := authorizeWorkspaceForUpdate(tx, req.WorkspaceID, ownerID, WorkspacePermissionEdit)
@@ -39,7 +43,8 @@ func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models
 		}
 		doc = models.Doc{
 			WorkspaceID: req.WorkspaceID, CatalogID: req.CatalogID, OwnerID: workspace.OwnerID,
-			Title: req.Title, Content: req.Content, WordCount: countWords(req.Content), Sort: req.Sort,
+			Title: req.Title, Content: req.Content, Kind: kind, Language: req.Language, Revision: 1,
+			WordCount: countWords(req.Content), Sort: req.Sort,
 		}
 		createResult := tx.Create(&doc)
 		if createResult.Error != nil {
@@ -91,7 +96,62 @@ func (s *DocService) List(workspaceID, ownerID uint, catalogID *uint) ([]*models
 
 func (s *DocService) GetEdit(id, ownerID uint) (*models.Doc, error) {
 	doc, _, err := s.get(id, ownerID, database.DB, WorkspacePermissionEdit)
+	if err == nil && !isEditableDocKind(normalizedDocKind(doc.Kind)) {
+		return nil, ErrDocNotEditable
+	}
 	return doc, err
+}
+
+func (s *DocService) Detail(id, userID uint) (*models.DocDetailResponse, error) {
+	var doc models.Doc
+	if err := database.DB.Where("id = ?", id).First(&doc).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrKnowledgeNotFound
+		}
+		return nil, err
+	}
+	var workspace models.Workspace
+	if err := database.DB.Where("id = ?", doc.WorkspaceID).First(&workspace).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrKnowledgeNotFound
+		}
+		return nil, err
+	}
+	if doc.OwnerID != workspace.OwnerID {
+		return nil, ErrKnowledgeNotFound
+	}
+
+	role, member, err := workspaceRole(database.DB, &workspace, userID)
+	if err != nil {
+		return nil, err
+	}
+	public := workspace.IsPublic && doc.Status == models.DocStatusPublished
+	if !member && !public {
+		return nil, ErrKnowledgeNotFound
+	}
+
+	kind := normalizedDocKind(doc.Kind)
+	response := &models.DocDetailResponse{
+		ID: doc.ID, WorkspaceID: doc.WorkspaceID, CatalogID: doc.CatalogID, ArticleID: doc.ArticleID,
+		Title: doc.Title, Kind: kind, Language: doc.Language, Revision: normalizedRevision(doc.Revision),
+		Status: doc.Status, WordCount: doc.WordCount, ViewCount: doc.ViewCount, PublishedAt: doc.PublishedAt,
+		CreatedAt: doc.CreatedAt, UpdatedAt: doc.UpdatedAt,
+		Capabilities: docCapabilities(role, member, kind),
+	}
+	if kind == models.DocKindMarkdown {
+		if member {
+			html, err := renderMarkdown(doc.Content)
+			if err != nil {
+				return nil, err
+			}
+			response.ContentHTML = sanitizePublicWikiHTML(html)
+		} else {
+			response.ContentHTML = sanitizePublicWikiHTML(doc.ContentHTML)
+		}
+	} else if kind == models.DocKindText || kind == models.DocKindCode {
+		response.Content = doc.Content
+	}
+	return response, nil
 }
 
 func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models.Doc, error) {
@@ -101,17 +161,36 @@ func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models
 		if err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
+		}
+		if !isEditableDocKind(normalizedDocKind(doc.Kind)) {
+			return ErrDocNotEditable
+		}
+		if normalizedRevision(doc.Revision) != req.Revision {
+			return &DocRevisionConflictError{Revision: normalizedRevision(doc.Revision)}
+		}
+		if doc.Title == req.Title && doc.Content == req.Content {
+			doc.Revision = normalizedRevision(doc.Revision)
+			return createDocVersion(tx, &doc, "手动保存")
 		}
 		doc.Title = req.Title
 		doc.Content = req.Content
 		doc.WordCount = countWords(req.Content)
 		doc.Status = statusAfterContentMutation(doc.Status)
-		if err := tx.Model(&doc).Updates(map[string]interface{}{
-			"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount, "status": doc.Status,
-		}).Error; err != nil {
-			return err
+		doc.Revision = req.Revision + 1
+		result := tx.Model(&models.Doc{}).
+			Where("id = ? AND owner_id = ? AND (revision = ? OR (revision = 0 AND ? = 1))", id, workspace.OwnerID, req.Revision, req.Revision).
+			Updates(map[string]interface{}{
+				"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount,
+				"status": doc.Status, "revision": doc.Revision,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return docRevisionConflict(tx, id)
 		}
 		return createDocVersion(tx, &doc, "手动保存")
 	})
@@ -129,26 +208,36 @@ func (s *DocService) Autosave(id, ownerID uint, req *models.DocAutosaveRequest) 
 		if err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
-		newStatus := statusAfterContentMutation(doc.Status)
+		if !isEditableDocKind(normalizedDocKind(doc.Kind)) {
+			return ErrDocNotEditable
+		}
+		if normalizedRevision(doc.Revision) != req.Revision {
+			return &DocRevisionConflictError{Revision: normalizedRevision(doc.Revision)}
+		}
 		if doc.Content == req.Content {
-			if newStatus != doc.Status {
-				doc.Status = newStatus
-				return tx.Model(&doc).Update("status", doc.Status).Error
-			}
+			doc.Revision = normalizedRevision(doc.Revision)
 			return nil
 		}
 		doc.Content = req.Content
 		doc.WordCount = countWords(req.Content)
-		doc.Status = newStatus
-		if err := tx.Model(&doc).Updates(map[string]interface{}{
-			"content": doc.Content, "word_count": doc.WordCount, "status": doc.Status,
-		}).Error; err != nil {
-			return err
+		doc.Status = statusAfterContentMutation(doc.Status)
+		doc.Revision = req.Revision + 1
+		result := tx.Model(&models.Doc{}).
+			Where("id = ? AND owner_id = ? AND (revision = ? OR (revision = 0 AND ? = 1))", id, workspace.OwnerID, req.Revision, req.Revision).
+			Updates(map[string]interface{}{
+				"content": doc.Content, "word_count": doc.WordCount, "status": doc.Status, "revision": doc.Revision,
+			})
+		if result.Error != nil {
+			return result.Error
 		}
-		return createDocVersion(tx, &doc, "自动保存")
+		if result.RowsAffected != 1 {
+			return docRevisionConflict(tx, id)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -172,11 +261,15 @@ func (s *DocService) Publish(id, ownerID uint, status int) (*models.Doc, error) 
 		}
 		updates := map[string]interface{}{"status": status}
 		if status == models.DocStatusPublished {
-			html, err := renderMarkdown(doc.Content)
-			if err != nil {
-				return err
+			if normalizedDocKind(doc.Kind) == models.DocKindMarkdown {
+				html, err := renderMarkdown(doc.Content)
+				if err != nil {
+					return err
+				}
+				updates["content_html"] = sanitizePublicWikiHTML(html)
 			}
-			updates["content_html"] = html
+			updates["published_attachment_id"] = doc.AttachmentID
+			updates["published_revision"] = normalizedRevision(doc.Revision)
 		}
 		if status == models.DocStatusPublished && doc.PublishedAt == nil {
 			now := time.Now()
@@ -338,10 +431,15 @@ func (s *DocService) Rollback(id, ownerID uint, version int) (*models.Doc, error
 		}
 		doc.Title = snapshot.Title
 		doc.Content = snapshot.Content
+		doc.Kind = normalizedDocKind(snapshot.Kind)
+		doc.Language = snapshot.Language
+		doc.AttachmentID = snapshot.AttachmentID
 		doc.WordCount = countWords(snapshot.Content)
 		doc.Status = statusAfterContentMutation(doc.Status)
+		doc.Revision = normalizedRevision(doc.Revision) + 1
 		if err := tx.Model(&doc).Updates(map[string]interface{}{
-			"title": doc.Title, "content": doc.Content, "word_count": doc.WordCount, "status": doc.Status,
+			"title": doc.Title, "content": doc.Content, "kind": doc.Kind, "language": doc.Language,
+			"attachment_id": doc.AttachmentID, "word_count": doc.WordCount, "status": doc.Status, "revision": doc.Revision,
 		}).Error; err != nil {
 			return err
 		}
@@ -410,8 +508,70 @@ func createDocVersion(tx *gorm.DB, doc *models.Doc, remark string) error {
 	}
 	return tx.Create(&models.DocVersion{
 		DocID: doc.ID, Version: maxVersion + 1, Title: doc.Title, Content: doc.Content,
-		OwnerID: doc.OwnerID, Remark: remark,
+		Revision: normalizedRevision(doc.Revision), Kind: normalizedDocKind(doc.Kind), Language: doc.Language,
+		AttachmentID: doc.AttachmentID, OwnerID: doc.OwnerID, Remark: remark,
 	}).Error
+}
+
+func workspaceRole(db *gorm.DB, workspace *models.Workspace, userID uint) (string, bool, error) {
+	if userID == 0 {
+		return "", false, nil
+	}
+	if workspace.OwnerID == userID {
+		return models.WorkspaceRoleOwner, true, nil
+	}
+	var member models.WorkspaceMember
+	if err := db.Where("workspace_id = ? AND user_id = ?", workspace.ID, userID).First(&member).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+	if !HasWorkspacePermission(member.Role, WorkspacePermissionView) {
+		return "", false, nil
+	}
+	return member.Role, true, nil
+}
+
+func docCapabilities(role string, member bool, kind string) models.DocCapabilities {
+	canEdit := member && HasWorkspacePermission(role, WorkspacePermissionEdit)
+	canManage := member && HasWorkspacePermission(role, WorkspacePermissionManageMembers)
+	return models.DocCapabilities{
+		CanView: true, CanEdit: canEdit && isEditableDocKind(kind), CanReplace: canEdit && kind == models.DocKindFile,
+		CanDownload: kind == models.DocKindFile, CanPublish: canEdit, CanShare: canEdit,
+		CanDelete: canEdit, CanManageMembers: canManage,
+	}
+}
+
+func normalizedDocKind(kind string) string {
+	if kind == "" {
+		return models.DocKindMarkdown
+	}
+	return kind
+}
+
+func normalizedRevision(revision uint64) uint64 {
+	if revision == 0 {
+		return 1
+	}
+	return revision
+}
+
+func isCreatableDocKind(kind string) bool {
+	return kind == models.DocKindMarkdown || kind == models.DocKindText || kind == models.DocKindCode
+}
+
+func isEditableDocKind(kind string) bool { return isCreatableDocKind(kind) }
+
+func docRevisionConflict(tx *gorm.DB, id uint) error {
+	var current models.Doc
+	if err := tx.Select("revision").Where("id = ?", id).First(&current).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrKnowledgeNotFound
+		}
+		return err
+	}
+	return &DocRevisionConflictError{Revision: normalizedRevision(current.Revision)}
 }
 
 func renderMarkdown(content string) (string, error) {

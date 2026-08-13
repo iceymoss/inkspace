@@ -1,6 +1,9 @@
 package service
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	ErrKnowledgeNotFound     = errors.New("资源不存在")
@@ -11,5 +14,17 @@ var (
 	ErrShareDisabled         = errors.New("分享链接已被作者关闭")
 	ErrShareExpired          = errors.New("分享链接已过期")
 	ErrKnowledgeInvalid      = errors.New("请求参数无效")
+	ErrDocRevisionConflict   = errors.New("文档已被其他请求更新")
+	ErrDocNotEditable        = errors.New("该文档类型不支持在线编辑")
 	ErrPublicWikiTooLarge    = errors.New("公开知识库节点超过2000个，请拆分工作区")
 )
+
+type DocRevisionConflictError struct {
+	Revision uint64
+}
+
+func (e *DocRevisionConflictError) Error() string {
+	return fmt.Sprintf("%s，当前版本为 %d", ErrDocRevisionConflict, e.Revision)
+}
+
+func (e *DocRevisionConflictError) Unwrap() error { return ErrDocRevisionConflict }

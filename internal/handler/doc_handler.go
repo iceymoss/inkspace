@@ -60,6 +60,20 @@ func (h *DocHandler) List(c *gin.Context) {
 	utils.Success(c, responses)
 }
 
+func (h *DocHandler) Detail(c *gin.Context) {
+	id, ok := pathUint(c, "id")
+	if !ok {
+		return
+	}
+	userID, _ := optionalUserID(c)
+	doc, err := h.service.Detail(id, userID)
+	if err != nil {
+		knowledgeError(c, err)
+		return
+	}
+	utils.Success(c, doc)
+}
+
 func (h *DocHandler) GetEdit(c *gin.Context) {
 	id, userID, ok := docAndUser(c)
 	if !ok {
@@ -266,4 +280,13 @@ func pathVersion(c *gin.Context) (int, bool) {
 		return 0, false
 	}
 	return version, true
+}
+
+func optionalUserID(c *gin.Context) (uint, bool) {
+	value, exists := c.Get("user_id")
+	if !exists {
+		return 0, false
+	}
+	userID, ok := value.(uint)
+	return userID, ok && userID != 0
 }
