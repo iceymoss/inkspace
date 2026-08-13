@@ -27,6 +27,7 @@ jwt:
   expireHours: 168 # 7 days
 
 upload:
+  storageType: local # local or cos; COS credentials are provided through environment variables
   maxSize: 31457280 # 30MB
   allowTypes:
     - image/jpeg
@@ -34,6 +35,9 @@ upload:
     - image/png
     - image/gif
   savePath: ./uploads
+  tencentCOS:
+    bucketURL: "" # COS_BUCKET_URL
+    domain: "" # COS_DOMAIN, optional CDN domain
 
 pagination:
   pageSize: 10
