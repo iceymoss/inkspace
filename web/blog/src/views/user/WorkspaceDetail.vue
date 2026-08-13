@@ -44,6 +44,7 @@
             查看 Wiki
           </el-button>
           <el-button
+            v-if="canEditWorkspace"
             type="primary"
             @click="createDoc"
           >
@@ -65,6 +66,7 @@
           </div>
           <div class="panel-actions">
             <el-button
+              v-if="canEditWorkspace"
               text
               circle
               title="新建根目录"
@@ -97,7 +99,7 @@
           :data="knowledgeTree"
           :props="treeProps"
           default-expand-all
-          draggable
+          :draggable="canEditWorkspace"
           :allow-drag="allowTreeDrag"
           :allow-drop="allowTreeDrop"
           :expand-on-click-node="false"
@@ -111,7 +113,7 @@
                 <span>{{ data.name }}</span>
               </span>
               <el-dropdown
-                v-if="data.type === 'catalog'"
+                v-if="data.type === 'catalog' && canEditWorkspace"
                 trigger="click"
                 @command="command => handleCatalogCommand(command, data.catalog)"
                 @click.stop
@@ -203,12 +205,12 @@
             tabindex="0"
             @dragover.prevent
             @drop.stop="dropDoc(index)"
-            @click="editDoc(doc.id)"
-            @keyup.enter="editDoc(doc.id)"
-            @keyup.space.prevent="editDoc(doc.id)"
+            @click="viewDoc(doc.id)"
+            @keyup.enter="viewDoc(doc.id)"
+            @keyup.space.prevent="viewDoc(doc.id)"
           >
             <span
-              v-if="!searching"
+              v-if="!searching && canEditWorkspace"
               class="drag-handle"
               draggable="true"
               title="拖拽排序"
@@ -246,6 +248,7 @@
               @keydown.stop
             >
               <el-dropdown
+                v-if="canEditWorkspace"
                 trigger="click"
                 @command="command => handleDocCommand(command, doc)"
               >
@@ -276,7 +279,7 @@
           :description="searching ? '没有找到匹配的文档' : '这里还没有文档'"
         >
           <el-button
-            v-if="!searching"
+            v-if="!searching && canEditWorkspace"
             type="primary"
             @click="createDoc"
           >
@@ -378,6 +381,7 @@ const moveDialog = reactive({ visible: false, loading: false, docId: null, catal
 const draggedDocIndex = ref(null)
 
 const listTitle = computed(() => searching.value ? `“${searchQuery.value}”的搜索结果` : selectedCatalogName.value)
+const canEditWorkspace = computed(() => store.currentWorkspace?.capabilities?.can_edit === true)
 const catalogOptions = computed(() => [{ id: 0, name: '根目录', children: store.catalogs }])
 const knowledgeTree = computed(() => buildKnowledgeTree(store.catalogs, store.treeDocs))
 const formatTime = value => value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '刚刚'
@@ -411,14 +415,14 @@ function buildKnowledgeTree(catalogs, docs) {
 
 function handleTreeNodeClick(node) {
   if (node.type === 'doc') {
-    editDoc(node.doc.id)
+    viewDoc(node.doc.id)
     return
   }
   selectCatalog(node.catalogId)
 }
 
-const allowTreeDrag = node => node.data.type === 'catalog'
-const allowTreeDrop = (draggingNode, dropNode) => dropNode.data.type === 'catalog'
+const allowTreeDrag = node => canEditWorkspace.value && node.data.type === 'catalog'
+const allowTreeDrop = (draggingNode, dropNode) => canEditWorkspace.value && dropNode.data.type === 'catalog'
 
 async function loadDocs() {
   docsLoading.value = true
@@ -479,6 +483,7 @@ const editDoc = (id, action) => router.push({
   path: `/dashboard/docs/${id}/edit`,
   query: action ? { action } : undefined
 })
+const viewDoc = id => router.push(`/dashboard/docs/${id}`)
 
 function openCatalogCreate(parentId) {
   Object.assign(catalogDialog, { visible: true, mode: 'create', id: null, parentId, name: '' })

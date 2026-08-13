@@ -33,6 +33,25 @@ func HasWorkspacePermission(role string, permission WorkspacePermission) bool {
 	}
 }
 
+func workspaceCapabilities(db *gorm.DB, workspace *models.Workspace, userID uint) (*models.WorkspaceCapabilities, error) {
+	role := models.WorkspaceRoleOwner
+	if workspace.OwnerID != userID {
+		var member models.WorkspaceMember
+		if err := db.Where("workspace_id = ? AND user_id = ?", workspace.ID, userID).First(&member).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, ErrKnowledgeNotFound
+			}
+			return nil, err
+		}
+		role = member.Role
+	}
+	return &models.WorkspaceCapabilities{
+		CanEdit:          HasWorkspacePermission(role, WorkspacePermissionEdit),
+		CanManageMembers: HasWorkspacePermission(role, WorkspacePermissionManageMembers),
+		CanDelete:        HasWorkspacePermission(role, WorkspacePermissionDeleteWorkspace),
+	}, nil
+}
+
 func authorizeWorkspace(db *gorm.DB, workspaceID, userID uint, permission WorkspacePermission) (*models.Workspace, error) {
 	return authorizeWorkspaceQuery(db, workspaceID, userID, permission, false)
 }

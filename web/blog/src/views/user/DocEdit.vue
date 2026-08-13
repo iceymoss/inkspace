@@ -457,7 +457,17 @@ async function manualSave(showMessage = true) {
     autosaveFailed.value = false
     contentAutosaved.value = false
     lastSavedAt.value = new Date()
-    if (showMessage) ElMessage.success('文档已保存')
+    const unchangedSinceRequest = form.title.trim() === title && form.content === savedContent
+    if (!unchangedSinceRequest) {
+      dirty.value = true
+      if (showMessage) ElMessage.warning('请求前的内容已保存，当前仍有新的未保存更改')
+      return false
+    }
+    if (showMessage) {
+      ElMessage.success('文档已保存')
+      allowLeave = true
+      await router.push(`/dashboard/docs/${docId}`)
+    }
     return true
   } finally {
     saving.value = false

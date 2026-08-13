@@ -56,6 +56,10 @@ func (s *WorkspaceService) Get(id, ownerID uint) (*models.Workspace, error) {
 	return &workspace, nil
 }
 
+func (s *WorkspaceService) Capabilities(workspace *models.Workspace, userID uint) (*models.WorkspaceCapabilities, error) {
+	return workspaceCapabilities(database.DB, workspace, userID)
+}
+
 func (s *WorkspaceService) Update(id, ownerID uint, req *models.WorkspaceRequest) (*models.Workspace, error) {
 	if _, err := authorizeWorkspace(database.DB, id, ownerID, WorkspacePermissionEdit); err != nil {
 		return nil, err
