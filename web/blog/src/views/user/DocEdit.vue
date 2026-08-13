@@ -148,7 +148,10 @@
             回滚到此版本
           </el-button>
         </div>
-        <pre>{{ selectedVersion.content || '此版本没有内容' }}</pre>
+        <MarkdownPreview
+          class="version-preview"
+          :content="selectedVersion.content || '*此版本没有内容*'"
+        />
       </section>
     </el-drawer>
 
@@ -332,6 +335,7 @@ import { ArrowLeft, Clock, MoreFilled, Share } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import VditorEditor from '@/components/VditorEditor.vue'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
+import MarkdownPreview from '@/components/docs/MarkdownPreview.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -727,7 +731,7 @@ onBeforeUnmount(() => {
 .version-item > span { display: block; margin-top: 5px; color: var(--theme-text-tertiary); font-size: 12px; }
 .version-detail { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--theme-border); }
 .version-detail-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.version-detail pre { max-height: 40vh; padding: 15px; overflow: auto; white-space: pre-wrap; background: var(--theme-bg-secondary); border-radius: 8px; color: var(--theme-text-secondary); font: 13px/1.7 monospace; }
+.version-preview { max-height: 40vh; margin-top: 16px; padding: 15px; overflow: auto; border: 1px solid var(--theme-border-light); background: var(--theme-bg-secondary); }
 .share-create { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .share-list { min-height: 100px; }
 .share-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--theme-border-light); }

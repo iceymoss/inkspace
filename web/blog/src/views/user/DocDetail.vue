@@ -84,10 +84,9 @@
       </header>
 
       <div class="content-rule" />
-      <div
+      <MarkdownPreview
         v-if="doc.kind === 'markdown' && doc.content_html"
-        class="document-body"
-        v-html="doc.content_html"
+        :html="doc.content_html"
       />
       <pre
         v-else-if="isPlainText && doc.content"
@@ -109,6 +108,7 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ArrowLeft, EditPen } from '@element-plus/icons-vue'
 import api from '@/utils/api'
+import MarkdownPreview from '@/components/docs/MarkdownPreview.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,19 +158,9 @@ onMounted(loadDoc)
 .doc-meta dt { margin-bottom: 5px; color: var(--theme-text-tertiary); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
 .doc-meta dd { margin: 0; color: var(--theme-text-secondary); font-size: 13px; }
 .content-rule { height: 1px; margin: 36px 0 clamp(28px, 5vw, 48px); background: var(--theme-border); }
-.document-body { font-size: 16px; line-height: 1.9; overflow-wrap: anywhere; }
-.document-body :deep(h1), .document-body :deep(h2), .document-body :deep(h3), .document-body :deep(h4) { margin: 1.7em 0 .7em; line-height: 1.35; }
-.document-body :deep(h2) { padding-bottom: .35em; border-bottom: 1px solid var(--theme-border-light); }
-.document-body :deep(p) { margin: 0 0 1.35em; }
-.document-body :deep(a) { color: var(--theme-primary); text-underline-offset: 3px; }
-.document-body :deep(img) { display: block; max-width: 100%; height: auto; margin: 1.8em auto; }
-.document-body :deep(blockquote) { margin: 1.8em 0; padding: 2px 0 2px 18px; border-left: 3px solid var(--theme-primary); color: var(--theme-text-secondary); }
-.document-body :deep(pre), .plain-content { max-width: 100%; padding: 18px 20px; overflow: auto; border: 1px solid var(--theme-border-light); border-radius: 6px; background: var(--theme-bg-secondary); color: var(--theme-text-primary); font: 13px/1.7 'SFMono-Regular', Consolas, monospace; }
-.document-body :deep(code) { font-family: 'SFMono-Regular', Consolas, monospace; }
-.document-body :deep(table) { display: block; width: max-content; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
-.document-body :deep(th), .document-body :deep(td) { padding: 9px 12px; border: 1px solid var(--theme-border); }
+.plain-content { max-width: 100%; padding: 18px 20px; overflow: auto; border: 1px solid var(--theme-border-light); border-radius: 6px; background: var(--theme-bg-secondary); color: var(--theme-text-primary); font: 13px/1.7 'SFMono-Regular', Consolas, monospace; }
 .plain-content { min-height: 240px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .plain-content.code { white-space: pre; }
-.header-topline :deep(.el-button:focus-visible), .document-body :deep(a:focus-visible) { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
-@media (max-width: 600px) { .doc-detail-page { padding-bottom: 20px; } .doc-card { min-height: calc(100vh - 100px); padding: 20px 16px 36px; border-right: 0; border-left: 0; } .title-row { align-items: flex-start; flex-direction: column-reverse; gap: 14px; } .doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .document-body { font-size: 15px; line-height: 1.8; } .plain-content { margin-right: -16px; margin-left: -16px; border-right: 0; border-left: 0; border-radius: 0; } }
+.header-topline :deep(.el-button:focus-visible) { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
+@media (max-width: 600px) { .doc-detail-page { padding-bottom: 20px; } .doc-card { min-height: calc(100vh - 100px); padding: 20px 16px 36px; border-right: 0; border-left: 0; } .title-row { align-items: flex-start; flex-direction: column-reverse; gap: 14px; } .doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .plain-content { margin-right: -16px; margin-left: -16px; border-right: 0; border-left: 0; border-radius: 0; } }
 </style>
