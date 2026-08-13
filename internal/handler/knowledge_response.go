@@ -18,6 +18,10 @@ func knowledgeError(c *gin.Context, err error) {
 		utils.NotFound(c, err.Error())
 	case errors.Is(err, service.ErrShareDisabled), errors.Is(err, service.ErrShareExpired):
 		utils.Forbidden(c, err.Error())
+	case errors.Is(err, service.ErrKnowledgeForbidden), errors.Is(err, service.ErrWorkspaceOwner):
+		utils.Forbidden(c, err.Error())
+	case errors.Is(err, service.ErrWorkspaceMemberExists):
+		c.JSON(http.StatusConflict, utils.Response{Code: http.StatusConflict, Message: err.Error()})
 	case errors.Is(err, service.ErrCatalogCycle), errors.Is(err, service.ErrKnowledgeInvalid):
 		utils.BadRequest(c, err.Error())
 	case errors.Is(err, service.ErrPublicWikiTooLarge):

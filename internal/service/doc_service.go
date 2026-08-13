@@ -20,19 +20,43 @@ type DocService struct{}
 func NewDocService() *DocService { return &DocService{} }
 
 func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models.Doc, error) {
-	if err := validateWorkspaceAndCatalog(database.DB, req.WorkspaceID, ownerID, req.CatalogID); err != nil {
-		return nil, err
-	}
-	doc := &models.Doc{
-		WorkspaceID: req.WorkspaceID, CatalogID: req.CatalogID, OwnerID: ownerID,
-		Title: req.Title, Content: req.Content, WordCount: countWords(req.Content), Sort: req.Sort,
-	}
+	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(doc).Error; err != nil {
+		workspace, err := authorizeWorkspaceForUpdate(tx, req.WorkspaceID, ownerID, WorkspacePermissionEdit)
+		if err != nil {
 			return err
 		}
-		return tx.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", req.WorkspaceID, ownerID).
-			UpdateColumn("doc_count", gorm.Expr("doc_count + 1")).Error
+		if req.CatalogID != nil {
+			var catalog models.Catalog
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND workspace_id = ? AND owner_id = ?", *req.CatalogID, req.WorkspaceID, workspace.OwnerID).
+				First(&catalog).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrKnowledgeNotFound
+				}
+				return err
+			}
+		}
+		doc = models.Doc{
+			WorkspaceID: req.WorkspaceID, CatalogID: req.CatalogID, OwnerID: workspace.OwnerID,
+			Title: req.Title, Content: req.Content, WordCount: countWords(req.Content), Sort: req.Sort,
+		}
+		createResult := tx.Create(&doc)
+		if createResult.Error != nil {
+			return createResult.Error
+		}
+		if createResult.RowsAffected != 1 {
+			return ErrKnowledgeNotFound
+		}
+		result := tx.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", req.WorkspaceID, workspace.OwnerID).
+			UpdateColumn("doc_count", gorm.Expr("doc_count + 1"))
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrKnowledgeNotFound
+		}
+		return nil
 	})
 	if err == nil {
 		deleteWorkspaceCache(req.WorkspaceID)
@@ -40,40 +64,44 @@ func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models
 	if err != nil {
 		return nil, err
 	}
-	return s.get(doc.ID, ownerID, database.DB)
+	result, _, err := s.get(doc.ID, ownerID, database.DB, WorkspacePermissionEdit)
+	return result, err
 }
 
 func (s *DocService) List(workspaceID, ownerID uint, catalogID *uint) ([]*models.Doc, error) {
-	if err := requireWorkspace(database.DB, workspaceID, ownerID); err != nil {
+	workspace, err := requireWorkspace(database.DB, workspaceID, ownerID, WorkspacePermissionView)
+	if err != nil {
 		return nil, err
 	}
-	query := database.DB.Where("workspace_id = ? AND owner_id = ?", workspaceID, ownerID)
+	query := database.DB.Where("workspace_id = ? AND owner_id = ?", workspaceID, workspace.OwnerID)
 	if catalogID != nil {
 		if *catalogID == 0 {
 			query = query.Where("catalog_id IS NULL")
 		} else {
-			if err := validateWorkspaceAndCatalog(database.DB, workspaceID, ownerID, catalogID); err != nil {
+			if _, err := validateWorkspaceAndCatalog(database.DB, workspaceID, ownerID, catalogID, WorkspacePermissionView); err != nil {
 				return nil, err
 			}
 			query = query.Where("catalog_id = ?", *catalogID)
 		}
 	}
 	var docs []*models.Doc
-	err := query.Order("sort ASC, updated_at DESC").Find(&docs).Error
+	err = query.Order("sort ASC, updated_at DESC").Find(&docs).Error
 	return docs, err
 }
 
 func (s *DocService) GetEdit(id, ownerID uint) (*models.Doc, error) {
-	return s.get(id, ownerID, database.DB)
+	doc, _, err := s.get(id, ownerID, database.DB, WorkspacePermissionEdit)
+	return doc, err
 }
 
 func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models.Doc, error) {
 	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, ownerID).First(&doc).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrKnowledgeNotFound
-			}
+		_, workspace, err := s.get(id, ownerID, tx, WorkspacePermissionEdit)
+		if err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
 		doc.Title = req.Title
@@ -90,16 +118,18 @@ func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models
 	if err != nil {
 		return nil, err
 	}
-	return s.get(doc.ID, ownerID, database.DB)
+	result, _, err := s.get(doc.ID, ownerID, database.DB, WorkspacePermissionEdit)
+	return result, err
 }
 
 func (s *DocService) Autosave(id, ownerID uint, req *models.DocAutosaveRequest) (*models.Doc, error) {
 	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, ownerID).First(&doc).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrKnowledgeNotFound
-			}
+		_, workspace, err := s.get(id, ownerID, tx, WorkspacePermissionEdit)
+		if err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
 		newStatus := statusAfterContentMutation(doc.Status)
@@ -123,7 +153,8 @@ func (s *DocService) Autosave(id, ownerID uint, req *models.DocAutosaveRequest) 
 	if err != nil {
 		return nil, err
 	}
-	return s.get(doc.ID, ownerID, database.DB)
+	result, _, err := s.get(doc.ID, ownerID, database.DB, WorkspacePermissionEdit)
+	return result, err
 }
 
 func (s *DocService) Publish(id, ownerID uint, status int) (*models.Doc, error) {
@@ -132,10 +163,11 @@ func (s *DocService) Publish(id, ownerID uint, status int) (*models.Doc, error) 
 	}
 	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, ownerID).First(&doc).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrKnowledgeNotFound
-			}
+		_, workspace, err := s.get(id, ownerID, tx, WorkspacePermissionEdit)
+		if err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
 		updates := map[string]interface{}{"status": status}
@@ -155,71 +187,89 @@ func (s *DocService) Publish(id, ownerID uint, status int) (*models.Doc, error) 
 	if err != nil {
 		return nil, err
 	}
-	return s.get(id, ownerID, database.DB)
+	result, _, err := s.get(id, ownerID, database.DB, WorkspacePermissionEdit)
+	return result, err
 }
 
 func (s *DocService) PublishToBlog(id, ownerID uint, req *models.DocPublishToBlogRequest) (*models.Article, error) {
-	doc, err := s.get(id, ownerID, database.DB)
-	if err != nil {
-		return nil, err
-	}
-	if strings.TrimSpace(doc.Title) == "" || strings.TrimSpace(doc.Content) == "" {
-		return nil, ErrKnowledgeInvalid
-	}
-	var categoryCount int64
-	if err := database.DB.Model(&models.Category{}).Where("id = ?", req.CategoryID).Count(&categoryCount).Error; err != nil {
-		return nil, err
-	}
-	if categoryCount == 0 {
-		return nil, ErrKnowledgeInvalid
-	}
-
-	articleReq := &models.ArticleRequest{
-		Title: doc.Title, Content: doc.Content, Summary: req.Summary, Cover: req.Cover,
-		CategoryID: req.CategoryID, TagIDs: req.TagIDs, Status: 1,
-	}
-	articleService := NewArticleService()
-	if doc.ArticleID != nil {
-		var count int64
-		if err := database.DB.Model(&models.Article{}).
-			Where("id = ? AND author_id = ?", *doc.ArticleID, ownerID).Count(&count).Error; err != nil {
-			return nil, err
+	var article *models.Article
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		doc, workspace, err := s.get(id, ownerID, tx, WorkspacePermissionEdit)
+		if err != nil {
+			return err
 		}
-		if count > 0 {
-			return articleService.Update(*doc.ArticleID, articleReq, ownerID, "user")
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(doc).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrKnowledgeNotFound
+			}
+			return err
 		}
-	}
+		if strings.TrimSpace(doc.Title) == "" || strings.TrimSpace(doc.Content) == "" {
+			return ErrKnowledgeInvalid
+		}
+		var categoryCount int64
+		if err := tx.Model(&models.Category{}).Where("id = ?", req.CategoryID).Count(&categoryCount).Error; err != nil {
+			return err
+		}
+		if categoryCount == 0 {
+			return ErrKnowledgeInvalid
+		}
 
-	article, err := articleService.Create(articleReq, ownerID)
-	if err != nil {
-		return nil, err
-	}
-	if err := database.DB.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", id, ownerID).
-		Update("article_id", article.ID).Error; err != nil {
-		_ = articleService.Delete(article.ID, ownerID, "user")
-		return nil, err
-	}
-	return article, nil
+		articleReq := &models.ArticleRequest{
+			Title: doc.Title, Content: doc.Content, Summary: req.Summary, Cover: req.Cover,
+			CategoryID: req.CategoryID, TagIDs: req.TagIDs, Status: 1,
+		}
+		articleService := NewArticleService()
+		if doc.ArticleID != nil {
+			var count int64
+			if err := tx.Model(&models.Article{}).
+				Where("id = ? AND author_id = ?", *doc.ArticleID, workspace.OwnerID).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				article, err = articleService.Update(*doc.ArticleID, articleReq, workspace.OwnerID, "user")
+				return err
+			}
+		}
+
+		article, err = articleService.Create(articleReq, workspace.OwnerID)
+		if err != nil {
+			return err
+		}
+		result := tx.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).
+			Update("article_id", article.ID)
+		if result.Error != nil {
+			_ = articleService.Delete(article.ID, workspace.OwnerID, "user")
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			_ = articleService.Delete(article.ID, workspace.OwnerID, "user")
+			return ErrKnowledgeNotFound
+		}
+		return nil
+	})
+	return article, err
 }
 
 func (s *DocService) Delete(id, ownerID uint) error {
 	var workspaceID uint
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		doc, err := s.get(id, ownerID, tx)
+		doc, workspace, err := s.get(id, ownerID, tx, WorkspacePermissionEdit)
 		if err != nil {
 			return err
 		}
 		workspaceID = doc.WorkspaceID
-		if err := tx.Where("doc_id = ? AND owner_id = ?", id, ownerID).Delete(&models.ShareLink{}).Error; err != nil {
+		if err := tx.Where("doc_id = ? AND owner_id = ?", id, workspace.OwnerID).Delete(&models.ShareLink{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("doc_id = ? AND owner_id = ?", id, ownerID).Delete(&models.DocVersion{}).Error; err != nil {
+		if err := tx.Where("doc_id = ? AND owner_id = ?", id, workspace.OwnerID).Delete(&models.DocVersion{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("id = ? AND owner_id = ?", id, ownerID).Delete(&models.Doc{}).Error; err != nil {
+		if err := tx.Where("id = ? AND owner_id = ?", id, workspace.OwnerID).Delete(&models.Doc{}).Error; err != nil {
 			return err
 		}
-		return tx.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", doc.WorkspaceID, ownerID).
+		return tx.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", doc.WorkspaceID, workspace.OwnerID).
 			UpdateColumn("doc_count", gorm.Expr("GREATEST(doc_count - 1, 0)")).Error
 	})
 	if err == nil {
@@ -229,35 +279,38 @@ func (s *DocService) Delete(id, ownerID uint) error {
 }
 
 func (s *DocService) Move(id, ownerID uint, req *models.DocMoveRequest) (*models.Doc, error) {
-	doc, err := s.get(id, ownerID, database.DB)
+	doc, workspace, err := s.get(id, ownerID, database.DB, WorkspacePermissionEdit)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateWorkspaceAndCatalog(database.DB, doc.WorkspaceID, ownerID, req.CatalogID); err != nil {
+	if _, err := validateWorkspaceAndCatalog(database.DB, doc.WorkspaceID, ownerID, req.CatalogID, WorkspacePermissionEdit); err != nil {
 		return nil, err
 	}
-	if err := database.DB.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", id, ownerID).
+	if err := database.DB.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).
 		Updates(map[string]interface{}{"catalog_id": req.CatalogID, "sort": req.Sort}).Error; err != nil {
 		return nil, err
 	}
-	return s.get(id, ownerID, database.DB)
+	result, _, err := s.get(id, ownerID, database.DB, WorkspacePermissionEdit)
+	return result, err
 }
 
 func (s *DocService) Versions(id, ownerID uint) ([]*models.DocVersion, error) {
-	if _, err := s.get(id, ownerID, database.DB); err != nil {
+	doc, workspace, err := s.get(id, ownerID, database.DB, WorkspacePermissionView)
+	if err != nil {
 		return nil, err
 	}
 	var versions []*models.DocVersion
-	err := database.DB.Where("doc_id = ? AND owner_id = ?", id, ownerID).Order("version DESC").Find(&versions).Error
+	err = database.DB.Where("doc_id = ? AND owner_id = ?", doc.ID, workspace.OwnerID).Order("version DESC").Find(&versions).Error
 	return versions, err
 }
 
 func (s *DocService) Version(id, ownerID uint, version int) (*models.DocVersion, error) {
-	if _, err := s.get(id, ownerID, database.DB); err != nil {
+	_, workspace, err := s.get(id, ownerID, database.DB, WorkspacePermissionView)
+	if err != nil {
 		return nil, err
 	}
 	var snapshot models.DocVersion
-	if err := database.DB.Where("doc_id = ? AND version = ? AND owner_id = ?", id, version, ownerID).First(&snapshot).Error; err != nil {
+	if err := database.DB.Where("doc_id = ? AND version = ? AND owner_id = ?", id, version, workspace.OwnerID).First(&snapshot).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrKnowledgeNotFound
 		}
@@ -269,14 +322,15 @@ func (s *DocService) Version(id, ownerID uint, version int) (*models.DocVersion,
 func (s *DocService) Rollback(id, ownerID uint, version int) (*models.Doc, error) {
 	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, ownerID).First(&doc).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrKnowledgeNotFound
-			}
+		_, workspace, err := s.get(id, ownerID, tx, WorkspacePermissionEdit)
+		if err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
 		var snapshot models.DocVersion
-		if err := tx.Where("doc_id = ? AND version = ? AND owner_id = ?", id, version, ownerID).First(&snapshot).Error; err != nil {
+		if err := tx.Where("doc_id = ? AND version = ? AND owner_id = ?", id, version, workspace.OwnerID).First(&snapshot).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrKnowledgeNotFound
 			}
@@ -296,11 +350,13 @@ func (s *DocService) Rollback(id, ownerID uint, version int) (*models.Doc, error
 	if err != nil {
 		return nil, err
 	}
-	return s.get(doc.ID, ownerID, database.DB)
+	result, _, err := s.get(doc.ID, ownerID, database.DB, WorkspacePermissionEdit)
+	return result, err
 }
 
 func (s *DocService) Search(workspaceID, ownerID uint, keyword string) ([]*models.DocSearchResponse, error) {
-	if err := requireWorkspace(database.DB, workspaceID, ownerID); err != nil {
+	workspace, err := requireWorkspace(database.DB, workspaceID, ownerID, WorkspacePermissionView)
+	if err != nil {
 		return nil, err
 	}
 	keyword = strings.TrimSpace(keyword)
@@ -309,7 +365,7 @@ func (s *DocService) Search(workspaceID, ownerID uint, keyword string) ([]*model
 	}
 	var docs []models.Doc
 	like := "%" + keyword + "%"
-	if err := database.DB.Where("workspace_id = ? AND owner_id = ? AND (title LIKE ? OR content LIKE ?)", workspaceID, ownerID, like, like).
+	if err := database.DB.Where("workspace_id = ? AND owner_id = ? AND (title LIKE ? OR content LIKE ?)", workspaceID, workspace.OwnerID, like, like).
 		Order("updated_at DESC").Find(&docs).Error; err != nil {
 		return nil, err
 	}
@@ -324,32 +380,26 @@ func (s *DocService) Search(workspaceID, ownerID uint, keyword string) ([]*model
 	return result, nil
 }
 
-func (s *DocService) get(id, ownerID uint, db *gorm.DB) (*models.Doc, error) {
-	var doc models.Doc
-	if err := db.Where("id = ? AND owner_id = ?", id, ownerID).First(&doc).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrKnowledgeNotFound
-		}
-		return nil, err
-	}
-	return &doc, nil
+func (s *DocService) get(id, ownerID uint, db *gorm.DB, permission WorkspacePermission) (*models.Doc, *models.Workspace, error) {
+	return workspaceForDoc(db, id, ownerID, permission)
 }
 
-func validateWorkspaceAndCatalog(db *gorm.DB, workspaceID, ownerID uint, catalogID *uint) error {
-	if err := requireWorkspace(db, workspaceID, ownerID); err != nil {
-		return err
+func validateWorkspaceAndCatalog(db *gorm.DB, workspaceID, ownerID uint, catalogID *uint, permission WorkspacePermission) (*models.Workspace, error) {
+	workspace, err := requireWorkspace(db, workspaceID, ownerID, permission)
+	if err != nil {
+		return nil, err
 	}
 	if catalogID == nil {
-		return nil
+		return workspace, nil
 	}
 	var count int64
-	if err := db.Model(&models.Catalog{}).Where("id = ? AND workspace_id = ? AND owner_id = ?", *catalogID, workspaceID, ownerID).Count(&count).Error; err != nil {
-		return err
+	if err := db.Model(&models.Catalog{}).Where("id = ? AND workspace_id = ? AND owner_id = ?", *catalogID, workspaceID, workspace.OwnerID).Count(&count).Error; err != nil {
+		return nil, err
 	}
 	if count == 0 {
-		return ErrKnowledgeNotFound
+		return nil, ErrKnowledgeNotFound
 	}
-	return nil
+	return workspace, nil
 }
 
 func createDocVersion(tx *gorm.DB, doc *models.Doc, remark string) error {

@@ -16,11 +16,8 @@ type ShareService struct{}
 func NewShareService() *ShareService { return &ShareService{} }
 
 func (s *ShareService) Create(docID, ownerID uint, req *models.ShareLinkCreateRequest) (*models.ShareLink, error) {
-	var doc models.Doc
-	if err := database.DB.Where("id = ? AND owner_id = ?", docID, ownerID).First(&doc).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrKnowledgeNotFound
-		}
+	doc, workspace, err := workspaceForDoc(database.DB, docID, ownerID, WorkspacePermissionEdit)
+	if err != nil {
 		return nil, err
 	}
 	expiresAt, err := shareExpiration(req.Permanent, req.ExpiresAt, time.Now())
@@ -31,7 +28,7 @@ func (s *ShareService) Create(docID, ownerID uint, req *models.ShareLinkCreateRe
 	if err != nil {
 		return nil, err
 	}
-	link := &models.ShareLink{Token: token, DocID: doc.ID, OwnerID: ownerID, ExpiresAt: expiresAt, Enabled: true}
+	link := &models.ShareLink{Token: token, DocID: doc.ID, OwnerID: workspace.OwnerID, ExpiresAt: expiresAt, Enabled: true}
 	if err := database.DB.Create(link).Error; err != nil {
 		return nil, err
 	}
@@ -39,20 +36,17 @@ func (s *ShareService) Create(docID, ownerID uint, req *models.ShareLinkCreateRe
 }
 
 func (s *ShareService) List(docID, ownerID uint) ([]*models.ShareLink, error) {
-	var count int64
-	if err := database.DB.Model(&models.Doc{}).Where("id = ? AND owner_id = ?", docID, ownerID).Count(&count).Error; err != nil {
+	_, workspace, err := workspaceForDoc(database.DB, docID, ownerID, WorkspacePermissionEdit)
+	if err != nil {
 		return nil, err
 	}
-	if count == 0 {
-		return nil, ErrKnowledgeNotFound
-	}
 	var links []*models.ShareLink
-	err := database.DB.Where("doc_id = ? AND owner_id = ?", docID, ownerID).Order("id DESC").Find(&links).Error
+	err = database.DB.Where("doc_id = ? AND owner_id = ?", docID, workspace.OwnerID).Order("id DESC").Find(&links).Error
 	return links, err
 }
 
 func (s *ShareService) Update(id, ownerID uint, req *models.ShareLinkUpdateRequest) (*models.ShareLink, error) {
-	link, err := s.get(id, ownerID)
+	link, workspace, err := s.get(id, ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,15 +62,20 @@ func (s *ShareService) Update(id, ownerID uint, req *models.ShareLinkUpdateReque
 		updates["expires_at"] = expiresAt
 	}
 	if len(updates) > 0 {
-		if err := database.DB.Model(&models.ShareLink{}).Where("id = ? AND owner_id = ?", id, ownerID).Updates(updates).Error; err != nil {
+		if err := database.DB.Model(&models.ShareLink{}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).Updates(updates).Error; err != nil {
 			return nil, err
 		}
 	}
-	return s.get(link.ID, ownerID)
+	updated, _, err := s.get(link.ID, ownerID)
+	return updated, err
 }
 
 func (s *ShareService) Delete(id, ownerID uint) error {
-	result := database.DB.Where("id = ? AND owner_id = ?", id, ownerID).Delete(&models.ShareLink{})
+	link, workspace, err := s.get(id, ownerID)
+	if err != nil {
+		return err
+	}
+	result := database.DB.Where("id = ? AND owner_id = ?", link.ID, workspace.OwnerID).Delete(&models.ShareLink{})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -124,15 +123,19 @@ func (s *ShareService) Public(token string, now time.Time) (*models.Doc, error) 
 	return &doc, nil
 }
 
-func (s *ShareService) get(id, ownerID uint) (*models.ShareLink, error) {
+func (s *ShareService) get(id, ownerID uint) (*models.ShareLink, *models.Workspace, error) {
 	var link models.ShareLink
-	if err := database.DB.Where("id = ? AND owner_id = ?", id, ownerID).First(&link).Error; err != nil {
+	if err := database.DB.Where("id = ?", id).First(&link).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrKnowledgeNotFound
+			return nil, nil, ErrKnowledgeNotFound
 		}
-		return nil, err
+		return nil, nil, err
 	}
-	return &link, nil
+	_, workspace, err := workspaceForDoc(database.DB, link.DocID, ownerID, WorkspacePermissionEdit)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &link, workspace, nil
 }
 
 func validateShareLink(link *models.ShareLink, now time.Time) error {

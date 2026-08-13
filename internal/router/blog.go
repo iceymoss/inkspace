@@ -33,6 +33,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	uploadHandler := handler.NewUploadHandler()
 	adHandler := handler.NewAdHandler()
 	workspaceHandler := handler.NewWorkspaceHandler()
+	workspaceMemberHandler := handler.NewWorkspaceMemberHandler()
 	catalogHandler := handler.NewCatalogHandler()
 	docHandler := handler.NewDocHandler()
 	shareHandler := handler.NewShareHandler()
@@ -194,6 +195,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			protected.GET("/workspaces/:id", workspaceHandler.Get)
 			protected.PUT("/workspaces/:id", workspaceHandler.Update)
 			protected.DELETE("/workspaces/:id", workspaceHandler.Delete)
+			registerWorkspaceMemberRoutes(protected, workspaceMemberHandler)
 			protected.POST("/workspaces/:id/catalogs", catalogHandler.Create)
 			protected.GET("/workspaces/:id/catalogs", catalogHandler.Tree)
 			protected.PUT("/catalogs/:id", catalogHandler.Update)
@@ -231,4 +233,11 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	}
 
 	return r
+}
+
+func registerWorkspaceMemberRoutes(group *gin.RouterGroup, memberHandler *handler.WorkspaceMemberHandler) {
+	group.GET("/workspaces/:id/members", memberHandler.List)
+	group.POST("/workspaces/:id/members", memberHandler.Add)
+	group.PUT("/workspaces/:id/members/:userId", memberHandler.Update)
+	group.DELETE("/workspaces/:id/members/:userId", memberHandler.Delete)
 }
