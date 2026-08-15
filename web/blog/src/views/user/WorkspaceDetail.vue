@@ -45,11 +45,25 @@
           </el-button>
           <el-button
             v-if="canEditWorkspace"
+            :loading="uploadState.active"
+            @click="chooseFile"
+          >
+            <el-icon><Upload /></el-icon>上传文件
+          </el-button>
+          <el-button
+            v-if="canEditWorkspace"
             type="primary"
             @click="createDoc"
           >
-            <el-icon><Plus /></el-icon>新建文档
+            <el-icon><Plus /></el-icon>新建文件
           </el-button>
+          <input
+            ref="fileInputRef"
+            class="file-input"
+            type="file"
+            :accept="acceptedFileTypes"
+            @change="uploadFile"
+          >
         </div>
       </header>
       <button
@@ -194,6 +208,25 @@
         </div>
 
         <div
+          v-if="uploadState.active"
+          class="upload-strip"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="upload-file-mark">
+            {{ uploadState.extension }}
+          </div>
+          <div>
+            <strong>正在上传 {{ uploadState.fileName }}</strong>
+            <span>文件上传完成后会进入只读详情，预览转换将在后台继续。</span>
+          </div>
+          <el-progress
+            :percentage="uploadState.progress"
+            :stroke-width="6"
+          />
+        </div>
+
+        <div
           v-loading="docsLoading"
           class="doc-list"
         >
@@ -229,7 +262,7 @@
                   size="small"
                   effect="plain"
                 >
-                  {{ doc.status === 1 ? '已发布' : '草稿' }}
+                  {{ doc.status === 1 ? '已公开' : '私有' }}
                 </el-tag>
                 <el-tag
                   v-if="doc.article_id"
@@ -259,10 +292,22 @@
                 ><el-icon><MoreFilled /></el-icon></el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="wiki-publish">{{ doc.status === 1 ? '重新发布到 Wiki' : '发布到 Wiki' }}</el-dropdown-item>
-                    <el-dropdown-item command="publish">{{ doc.article_id ? '更新到博客' : '发布到博客' }}</el-dropdown-item>
-                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                    <el-dropdown-item command="share">分享</el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="isMarkdownDocument(doc)"
+                      command="wiki-publish"
+                    >{{ doc.status === 1 ? '重新公开' : '公开' }}</el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="isMarkdownDocument(doc)"
+                      command="publish"
+                    >{{ doc.article_id ? '更新到博客' : '发布到博客' }}</el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="doc.editable"
+                      command="edit"
+                    >编辑</el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="isMarkdownDocument(doc)"
+                      command="share"
+                    >分享</el-dropdown-item>
                     <el-dropdown-item
                       command="delete"
                       divided
@@ -283,7 +328,13 @@
             type="primary"
             @click="createDoc"
           >
-            新建文档
+            新建文件
+          </el-button>
+          <el-button
+            v-if="!searching && canEditWorkspace"
+            @click="chooseFile"
+          >
+            上传文件
           </el-button>
           <el-button
             v-else
@@ -294,6 +345,57 @@
         </el-empty>
       </main>
     </div>
+
+    <el-dialog
+      v-model="createDialog.visible"
+      title="新建文本文件"
+      width="min(520px, 94vw)"
+    >
+      <el-form @submit.prevent="submitCreateDoc">
+        <el-form-item label="文件名">
+          <el-input
+            v-model="createDialog.fileName"
+            maxlength="200"
+            autofocus
+            placeholder="例如 README.md、styles.css、main.rs"
+            @keyup.enter="submitCreateDoc"
+          />
+        </el-form-item>
+        <div class="file-type-result" :class="{ invalid: createDialog.fileName && !createFileType }">
+          <template v-if="createFileType">
+            <strong>{{ createFileType.label }}</strong>
+            <span>kind={{ createFileType.kind }} · language={{ createFileType.language }}</span>
+          </template>
+          <template v-else-if="createDialog.fileName">
+            该扩展名不能直接创建，请使用“上传文件”保留原件。
+          </template>
+          <template v-else>
+            输入文件名后将自动选择编辑器和语法高亮。
+          </template>
+        </div>
+        <div class="file-presets">
+          <button
+            v-for="name in createFilePresets"
+            :key="name"
+            type="button"
+            @click="createDialog.fileName = name"
+          >
+            {{ name }}
+          </button>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialog.visible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="!createFileType"
+          :loading="createDialog.loading"
+          @click="submitCreateDoc"
+        >
+          创建并编辑
+        </el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog
       v-model="catalogDialog.visible"
@@ -359,9 +461,11 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  ArrowLeft, Close, Document, Files, Folder, FolderAdd, Menu, MoreFilled, Plus, Rank, Search
+  ArrowLeft, Close, Document, Files, Folder, FolderAdd, Menu, MoreFilled, Plus, Rank, Search, Upload
 } from '@element-plus/icons-vue'
 import { useWorkspaceStore } from '@/stores/workspace'
+import api from '@/utils/api'
+import { inferCreatableFileType, textFileAccept } from '@/utils/knowledgeFileTypes'
 
 const route = useRoute()
 const router = useRouter()
@@ -375,18 +479,26 @@ const selectedCatalogName = ref('根目录')
 const searchQuery = ref('')
 const searching = ref(false)
 const treeRef = ref(null)
+const fileInputRef = ref(null)
 const treeProps = { label: 'name', children: 'children' }
 const catalogDialog = reactive({ visible: false, loading: false, mode: 'create', id: null, parentId: null, name: '' })
 const moveDialog = reactive({ visible: false, loading: false, docId: null, catalogId: 0 })
 const draggedDocIndex = ref(null)
+const uploadState = reactive({ active: false, progress: 0, fileName: '', extension: 'FILE' })
+const createDialog = reactive({ visible: false, loading: false, fileName: 'README.md' })
+const createFilePresets = ['README.md', 'notes.txt', 'styles.css', 'app.js', 'main.go', 'worker.rs', 'config.json', 'config.yaml', 'data.csv']
+
+const acceptedFileTypes = `${textFileAccept},.pdf,.jpg,.jpeg,.png,.gif,.webp,.svg,.doc,.docx,.odt,.rtf,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.zip,.rar,.7z,.tar,.gz,.tgz`
 
 const listTitle = computed(() => searching.value ? `“${searchQuery.value}”的搜索结果` : selectedCatalogName.value)
 const canEditWorkspace = computed(() => store.currentWorkspace?.capabilities?.can_edit === true)
 const catalogOptions = computed(() => [{ id: 0, name: '根目录', children: store.catalogs }])
 const knowledgeTree = computed(() => buildKnowledgeTree(store.catalogs, store.treeDocs))
+const createFileType = computed(() => inferCreatableFileType(createDialog.fileName))
 const formatTime = value => value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '刚刚'
 const isCoverImage = value => /^(https?:\/\/|\/uploads\/)/.test(value || '')
 const contentExcerpt = content => (content || '').replace(/[#>*`\[\]()_-]/g, '').slice(0, 100)
+const isMarkdownDocument = doc => (doc?.kind || 'markdown') === 'markdown'
 
 function buildKnowledgeTree(catalogs, docs) {
   const docsByCatalog = new Map()
@@ -470,13 +582,69 @@ async function clearSearch() {
 }
 
 async function createDoc() {
-  const response = await store.createDoc({
-    workspace_id: workspaceId,
-    catalog_id: selectedCatalogId.value,
-    title: '无标题文档',
-    content: ''
+	Object.assign(createDialog, { visible: true, loading: false, fileName: 'README.md' })
+}
+
+async function submitCreateDoc() {
+	const fileName = createDialog.fileName.trim()
+	const fileType = inferCreatableFileType(fileName)
+	if (!fileType || createDialog.loading) return
+	createDialog.loading = true
+	try {
+		const response = await store.createDoc({
+			workspace_id: workspaceId,
+			catalog_id: selectedCatalogId.value,
+			title: fileName,
+			file_name: fileName,
+			content: '',
+			kind: fileType.kind,
+			language: fileType.language
+		})
+		createDialog.visible = false
+		await store.fetchTreeDocs(workspaceId)
+		router.push(`/dashboard/docs/${response.id}/edit`)
+	} finally {
+		createDialog.loading = false
+	}
+}
+
+function chooseFile() {
+  if (!uploadState.active) fileInputRef.value?.click()
+}
+
+async function uploadFile(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  if (file.size > 100 * 1024 * 1024) {
+    ElMessage.warning('单个文件不能超过 100 MiB')
+    return
+  }
+
+  const form = new FormData()
+  form.append('file', file)
+  if (selectedCatalogId.value !== null) form.append('catalog_id', String(selectedCatalogId.value))
+  if (globalThis.crypto?.randomUUID) form.append('request_id', globalThis.crypto.randomUUID())
+
+  Object.assign(uploadState, {
+    active: true,
+    progress: 0,
+    fileName: file.name,
+    extension: file.name.includes('.') ? file.name.split('.').pop().toUpperCase() : 'FILE'
   })
-  router.push(`/dashboard/docs/${response.id}/edit`)
+  try {
+    const response = await api.post(`/workspaces/${workspaceId}/files`, form, {
+      onUploadProgress: ({ loaded, total }) => {
+        uploadState.progress = total ? Math.min(100, Math.round(loaded * 100 / total)) : 0
+      }
+    })
+    uploadState.progress = 100
+    await Promise.all([loadDocs(), store.fetchTreeDocs(workspaceId)])
+    ElMessage.success('文件已上传')
+    router.push(`/dashboard/docs/${response.data.id}`)
+  } finally {
+    uploadState.active = false
+  }
 }
 
 const editDoc = (id, action) => router.push({
@@ -627,6 +795,7 @@ onMounted(async () => {
 .workspace-heading { display: flex; align-items: center; gap: 13px; min-width: 0; }
 .workspace-heading h1 { margin: 0; font-size: 25px; }
 .workspace-title-line, .workspace-header-actions { display: flex; align-items: center; gap: 9px; }
+.file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .workspace-heading p { margin: 2px 0 0; color: var(--theme-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .workspace-cover-thumb { display: grid; place-items: center; flex: none; width: 64px; height: 44px; overflow: hidden; border: 1px solid var(--theme-border); border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 80%, #18243a), color-mix(in srgb, var(--theme-primary) 25%, var(--theme-bg-card))); color: #fff; font-size: 20px; font-weight: 700; box-shadow: 0 4px 12px var(--theme-shadow); }
 .workspace-cover-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -652,6 +821,18 @@ onMounted(async () => {
 :deep(.el-tree-node__content:hover) { background: var(--theme-bg-hover); }
 .docs-panel { grid-column: 2; grid-row: 2; min-width: 0; padding: 22px 28px; }
 .docs-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--theme-border-light); }
+.upload-strip { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(120px, 220px); align-items: center; gap: 14px; margin: 16px 0 4px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--theme-primary) 35%, var(--theme-border)); background: color-mix(in srgb, var(--theme-primary) 6%, var(--theme-bg-card)); }
+.upload-strip > div:nth-child(2) { display: flex; min-width: 0; flex-direction: column; }
+.upload-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.upload-strip span { margin-top: 2px; color: var(--theme-text-tertiary); font-size: 11px; }
+.upload-file-mark { display: grid; width: 42px; height: 48px; place-items: center; border: 1px solid var(--theme-primary); color: var(--theme-primary); font: 700 9px/1 'SFMono-Regular', Consolas, monospace; letter-spacing: .05em; }
+.file-type-result { display: flex; min-height: 54px; flex-direction: column; justify-content: center; padding: 10px 12px; border-left: 3px solid var(--theme-primary); background: color-mix(in srgb, var(--theme-primary) 7%, var(--theme-bg-secondary)); color: var(--theme-text-secondary); font-size: 12px; }
+.file-type-result strong { color: var(--theme-text-primary); font-size: 14px; }
+.file-type-result span { margin-top: 2px; color: var(--theme-text-tertiary); font: 10px/1.5 'SFMono-Regular', Consolas, monospace; }
+.file-type-result.invalid { border-left-color: var(--el-color-danger); color: var(--el-color-danger); }
+.file-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.file-presets button { padding: 5px 8px; border: 1px solid var(--theme-border); background: var(--theme-bg-card); color: var(--theme-text-secondary); font: 11px/1.2 'SFMono-Regular', Consolas, monospace; cursor: pointer; }
+.file-presets button:hover, .file-presets button:focus-visible { border-color: var(--theme-primary); color: var(--theme-primary); outline: none; }
 .title-line { display: flex; align-items: center; gap: 8px; }
 .title-line h2 { margin: 0; font-size: 21px; }
 .title-line span { color: var(--theme-text-tertiary); font-size: 12px; }
@@ -671,5 +852,5 @@ onMounted(async () => {
 .doc-main > span { color: var(--theme-text-tertiary); font-size: 12px; }
 .doc-actions { flex: none; }
 @media (max-width: 900px) { .workspace-shell { grid-template-columns: 220px minmax(0, 1fr); } .docs-panel { padding: 18px; } }
-@media (max-width: 700px) { .workspace-header { align-items: flex-start; padding: 14px; } .workspace-heading { gap: 9px; } .workspace-heading p { white-space: normal; } .workspace-cover-thumb { width: 52px; } .workspace-header-actions { align-items: stretch; flex-direction: column; flex: none; } .workspace-header-actions .el-button { margin-left: 0; } .workspace-shell { display: block; position: relative; min-height: calc(100vh - 90px); overflow: hidden; } .catalog-backdrop { display: block; position: absolute; inset: 0; z-index: 19; padding: 0; border: 0; background: rgb(0 0 0 / 38%); } .catalog-panel { display: block; position: absolute; inset: 0 auto 0 0; z-index: 20; width: min(290px, 86vw); box-shadow: 8px 0 24px var(--theme-shadow); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility .2s; } .catalog-panel.open { transform: translateX(0); visibility: visible; } .catalog-close { display: inline-flex; } .mobile-catalog-button { display: inline-flex; } .docs-panel { padding: 14px; } .docs-toolbar { align-items: stretch; flex-direction: column; } .search-input { width: 100%; } .doc-row { gap: 10px; } .drag-handle { display: none; } .doc-main p { display: none; } }
+@media (max-width: 700px) { .workspace-header { align-items: flex-start; padding: 14px; } .workspace-heading { gap: 9px; } .workspace-heading p { white-space: normal; } .workspace-cover-thumb { width: 52px; } .workspace-header-actions { align-items: stretch; flex-direction: column; flex: none; } .workspace-header-actions .el-button { margin-left: 0; } .workspace-shell { display: block; position: relative; min-height: calc(100vh - 90px); overflow: hidden; } .catalog-backdrop { display: block; position: absolute; inset: 0; z-index: 19; padding: 0; border: 0; background: rgb(0 0 0 / 38%); } .catalog-panel { display: block; position: absolute; inset: 0 auto 0 0; z-index: 20; width: min(290px, 86vw); box-shadow: 8px 0 24px var(--theme-shadow); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility .2s; } .catalog-panel.open { transform: translateX(0); visibility: visible; } .catalog-close { display: inline-flex; } .mobile-catalog-button { display: inline-flex; } .docs-panel { padding: 14px; } .docs-toolbar { align-items: stretch; flex-direction: column; } .upload-strip { grid-template-columns: auto minmax(0, 1fr); } .upload-strip .el-progress { grid-column: 1 / -1; } .search-input { width: 100%; } .doc-row { gap: 10px; } .drag-handle { display: none; } .doc-main p { display: none; } }
 </style>

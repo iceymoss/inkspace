@@ -24,6 +24,7 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    if (response.config.responseType === 'blob') return response
     const data = response.data
     // 检查响应体中的 code 字段，只有 code === 0 才是成功
     if (data.code === 0) {

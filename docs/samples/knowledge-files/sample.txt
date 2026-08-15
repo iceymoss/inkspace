@@ -1,0 +1,4 @@
+InkSpace knowledge file sample
+
+This is a UTF-8 plain text document.
+第二行包含中文，可用于验证编码和等宽预览。

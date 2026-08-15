@@ -2,7 +2,7 @@
 
 ## 状态
 - 创建日期: 2026-08-13
-- 状态: 已确认，待开发
+- 状态: 开发中（步骤 1-6 已完成）
 - 关联规格: `docs/specs/workspace-knowledge-base.md`
 
 ## 目标
@@ -57,7 +57,7 @@
 | 主流代码 | `.go`, `.js`, `.jsx`, `.ts`, `.tsx`, `.vue`, `.py`, `.java`, `.kt`, `.kts`, `.c`, `.h`, `.cpp`, `.hpp`, `.cs`, `.rs`, `.php`, `.rb`, `.swift`, `.scala`, `.sh`, `.bash`, `.zsh`, `.fish`, `.sql`, `.html`, `.css`, `.scss`, `.less`, `.dockerfile` | 是 | 是 | 是 | 是 | 纯文本读取与语法高亮，绝不执行 |
 | PDF | `.pdf` | 是 | 是 | 否 | 是 | 原文件通过鉴权流式读取，在同源 PDF viewer 中展示 |
 | 图片 | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg` | 是 | 是 | 否 | 是 | 光栅图片直接预览；SVG 清洗或栅格化后预览，不直接执行原始 SVG |
-| Word | `.doc`, `.docx`, `.odt`, `.rtf` | 是 | 是 | 否 | 是 | 后台转换为 PDF |
+| Word | `.doc`, `.docx`, `.odt`, `.rtf` | 是 | 是 | 否 | 是 | 10 MiB 内 DOCX 可由受控浏览器组件预览；其他格式或超限文件后台转换为 PDF |
 | Excel | `.xls`, `.xlsx`, `.ods` | 是 | 是 | 否 | 是 | 后台转换为 PDF；多工作表均需输出 |
 | PowerPoint | `.ppt`, `.pptx`, `.odp` | 是 | 是 | 否 | 是 | 后台转换为 PDF |
 | 压缩文件 | `.zip`, `.rar`, `.7z`, `.tar`, `.gz`, `.tgz` | 是 | 是 | 否 | 是 | 后台生成目录清单，只展示路径和解压后大小，不解压供下载 |
@@ -327,8 +327,9 @@ type Storage interface {
   - `ArchiveManifest.vue`
   - `FileFallback.vue`
 - Markdown 只读渲染复用 `web/admin/src/views/admin/ArticleView.vue` 的 `Vditor.preview()` 模式，并统一 `WikiDoc.vue`、`ShareDoc.vue` 与版本详情的渲染组件。
-- 编辑页按 `kind` 分派 Vditor 或 CodeMirror 6；不能编辑的类型不初始化编辑器。CodeMirror 6 按需加载语言扩展，控制首屏包体积，并优先保证 Vue 3 和移动端输入体验。
-- 新建菜单同时提供“新建 Markdown 文档”和“上传文件”：前者创建空白 Markdown Doc，后者允许上传 `.md` 原件；上传后解析为 UTF-8 `Doc.Content`，两条路径最终归一为 `kind=markdown`，使用同一预览、编辑和版本流程。
+- 编辑页按 `kind` 分派 Vditor 或 CodeMirror 6；不能编辑的类型不初始化编辑器。CodeMirror 6 按需加载语言扩展，并复用于开发类文件的只读语法高亮。
+- JSON/YAML 提供受限的只读树与源码切换，CSV 提供最多 500 行、100 列的表格与源码切换；DOCX 在 10 MiB 内使用按需加载的 `docx-preview`，禁用 AltChunk HTML 和非安全链接协议。
+- 新建菜单提供“新建文本文件”和“上传文件”：直接新建时按文件名白名单推断 Markdown、纯文本、代码或结构化数据的 `kind/language`，例如 `README.md`、`styles.css`、`worker.rs`、`config.json`；二进制类型必须上传真实原件。上传 `.md` 后解析为 UTF-8 `Doc.Content`，与直接新建归一到同一预览、编辑和版本流程。
 - 详情页固定显示返回、标题、类型、大小、更新时间、发布状态和权限允许的操作。转换状态在正文区域展示，不用全屏阻塞。
 - 移动端详情优先保证正文阅读、下载和编辑入口；目录侧栏折叠为抽屉，PDF/代码预览可横向滚动。
 
@@ -339,14 +340,14 @@ type Storage interface {
 - 成员管理首期只支持按用户名精确查找并添加已注册站内用户，不发送邮件、不生成邀请链接，也不自动注册账号。
 
 ### 实现步骤（每步可独立 commit）
-1. [ ] **权限模型**：新增 `WorkspaceMember`、角色常量、权限 service 与成员 API；将现有 owner 查询逐步改为统一授权函数。
-2. [ ] **详情与并发模型**：为 Doc 增加 `Kind/Language/AttachmentID/Revision`，为 DocVersion 增加文件快照字段，实现 `GET /api/docs/:id` 和 409 乐观锁。
-3. [ ] **只读详情前端**：新增详情路由与 `DocDetail.vue`，把列表/树默认点击改为查看，增加显式编辑按钮并修正面包屑。
-4. [ ] **统一 Markdown 预览**：抽取只读组件，复用到私有详情、公开 Wiki、分享页和版本历史。
-5. [ ] **Storage 接口**：演进 `pkg/uploader` 为可读写删除存储，实现本地/COS provider，修复 COS，补全配置和私有流式下载。
-6. [ ] **附件与上传 service**：接入 `Attachment` 表，增加文件策略、签名/MIME/大小校验和工作空间文件上传 API。
-7. [ ] **文本与代码**：实现文本规范化、语言识别、预览和在线编辑；JSON/YAML 保存校验；与 revision/版本历史接通。
-8. [ ] **直接预览类型**：实现 PDF Range 预览、光栅图片预览和 SVG 安全处理。
+1. [x] **权限模型**：新增 `WorkspaceMember`、角色常量、权限 service 与成员 API；将现有 owner 查询逐步改为统一授权函数。
+2. [x] **详情与并发模型**：为 Doc 增加 `Kind/Language/AttachmentID/Revision`，为 DocVersion 增加文件快照字段，实现 `GET /api/docs/:id` 和 409 乐观锁。
+3. [x] **只读详情前端**：新增详情路由与 `DocDetail.vue`，把列表/树默认点击改为查看，增加显式编辑按钮并修正面包屑。
+4. [x] **统一 Markdown 预览**：抽取只读组件，复用到私有详情、公开 Wiki、分享页和版本历史。
+5. [x] **Storage 接口**：演进 `pkg/uploader` 为可读写删除存储，实现本地/COS provider，修复 COS，补全配置和私有流式下载。
+6. [x] **附件与上传 service**：接入 `Attachment` 表，增加文件策略、签名/MIME/大小校验和工作空间文件上传 API。
+7. [x] **文本与代码**：实现文本规范化、语言识别、预览和在线编辑；JSON/YAML 保存校验；与 revision/版本历史接通。
+8. [ ] **直接预览类型**：实现 PDF Range 预览、光栅图片预览和 SVG 安全处理。（PDF 与光栅图片鉴权预览已完成，Range 与 SVG 安全产物待完成）
 9. [ ] **持久化转换任务**：新增 `DocumentConversionJob`、converter 接口和 scheduler 任务，实现租约、重试与状态查询。
 10. [ ] **Office 预览**：部署 LibreOffice 转 PDF，覆盖 Word/Excel/PowerPoint/OpenDocument，前端轮询并展示 PDF。
 11. [ ] **压缩包清单**：实现 zip/rar/7z/tar/gz 安全目录扫描与限制，前端树/表格展示。
@@ -433,6 +434,7 @@ pnpm build
 - 同时提供新建 Markdown 和上传 `.md` 两个入口，数据统一归一为 Markdown Doc。
 - 成员添加仅面向已有站内用户，使用用户名精确查找。
 - 公开文件的搜索引擎索引行为沿用当前公开 Wiki 策略，不新增独立开关。
+- 浏览器端解析器只用于可安全收敛的格式：DOCX 使用 `docx-preview`；不采用已弃用的 `vue-office`、存在未修复漏洞的 npm `xlsx` 或长期失维护的 PPTX 渲染器。旧 Office、XLSX、PPTX 继续以隔离 LibreOffice 转 PDF 为正式预览路径。
 
 ## MVP 范围
 本期完整纳入：

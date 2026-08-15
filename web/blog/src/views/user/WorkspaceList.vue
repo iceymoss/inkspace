@@ -178,7 +178,7 @@
             />
             <el-alert
               v-if="form.is_public"
-              title="公开后，任何人都可以访问此空间的 Wiki，并查看其中已发布的文档；草稿不会公开。"
+              title="公开后，任何人都可以访问此空间的 Wiki，并查看其中已公开的文档；私有文档不会公开。"
               type="warning"
               :closable="false"
               show-icon

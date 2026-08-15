@@ -120,7 +120,7 @@
             v-else
             class="nav-empty"
           >
-            暂无已发布文档
+            暂无已公开文档
           </p>
         </aside>
 

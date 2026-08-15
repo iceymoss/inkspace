@@ -2,7 +2,9 @@ package service
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 	"unicode"
@@ -11,6 +13,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/yuin/goldmark"
+	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -21,8 +24,22 @@ func NewDocService() *DocService { return &DocService{} }
 
 func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models.Doc, error) {
 	kind := normalizedDocKind(req.Kind)
+	language := req.Language
+	if req.FileName != "" {
+		inferredKind, inferredLanguage, ok := inferCreatableDocType(req.FileName)
+		if !ok {
+			return nil, ErrKnowledgeFileType
+		}
+		kind, language = inferredKind, inferredLanguage
+	}
 	if !isCreatableDocKind(kind) {
 		return nil, ErrKnowledgeInvalid
+	}
+	if len(req.Content) > maxEditableKnowledgeTextSize {
+		return nil, ErrKnowledgeTextTooLarge
+	}
+	if err := validateStructuredDocContent(kind, language, req.Content); err != nil {
+		return nil, err
 	}
 	var doc models.Doc
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
@@ -43,7 +60,7 @@ func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models
 		}
 		doc = models.Doc{
 			WorkspaceID: req.WorkspaceID, CatalogID: req.CatalogID, OwnerID: workspace.OwnerID,
-			Title: req.Title, Content: req.Content, Kind: kind, Language: req.Language, Revision: 1,
+			Title: req.Title, Content: req.Content, Kind: kind, Language: language, Revision: 1,
 			WordCount: countWords(req.Content), Sort: req.Sort,
 		}
 		createResult := tx.Create(&doc)
@@ -96,7 +113,7 @@ func (s *DocService) List(workspaceID, ownerID uint, catalogID *uint) ([]*models
 
 func (s *DocService) GetEdit(id, ownerID uint) (*models.Doc, error) {
 	doc, _, err := s.get(id, ownerID, database.DB, WorkspacePermissionEdit)
-	if err == nil && !isEditableDocKind(normalizedDocKind(doc.Kind)) {
+	if err == nil && !isOnlineEditableDoc(doc) {
 		return nil, ErrDocNotEditable
 	}
 	return doc, err
@@ -136,7 +153,7 @@ func (s *DocService) Detail(id, userID uint) (*models.DocDetailResponse, error) 
 		Title: doc.Title, Kind: kind, Language: doc.Language, Revision: normalizedRevision(doc.Revision),
 		Status: doc.Status, WordCount: doc.WordCount, ViewCount: doc.ViewCount, PublishedAt: doc.PublishedAt,
 		CreatedAt: doc.CreatedAt, UpdatedAt: doc.UpdatedAt,
-		Capabilities: docCapabilities(role, member, kind),
+		Capabilities: docCapabilities(role, member, kind, len(doc.Content)),
 	}
 	if kind == models.DocKindMarkdown {
 		if member {
@@ -149,9 +166,39 @@ func (s *DocService) Detail(id, userID uint) (*models.DocDetailResponse, error) 
 			response.ContentHTML = sanitizePublicWikiHTML(doc.ContentHTML)
 		}
 	} else if kind == models.DocKindText || kind == models.DocKindCode {
-		response.Content = doc.Content
+		response.Content = previewTextContent(doc.Content)
+	}
+	attachmentID := doc.AttachmentID
+	if !member && public {
+		attachmentID = doc.PublishedAttachmentID
+	}
+	if attachmentID != nil {
+		var attachment models.Attachment
+		if err := database.DB.Where("id = ?", *attachmentID).First(&attachment).Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, err
+			}
+		} else {
+			previewStatus := effectiveAttachmentPreviewStatus(&attachment)
+			response.Attachment = &models.DocAttachmentDetail{
+				ID: attachment.ID, FileName: attachment.FileName, FileSize: attachment.FileSize,
+				MimeType: attachment.MimeType, Extension: attachment.Extension, Checksum: attachment.Checksum,
+				PreviewStatus: previewStatus, PreviewMimeType: attachment.PreviewMimeType,
+			}
+			response.Capabilities.CanDownload = true
+		}
 	}
 	return response, nil
+}
+
+func effectiveAttachmentPreviewStatus(attachment *models.Attachment) string {
+	if attachment != nil && canBrowserParsePreview(attachment.MimeType, attachment.FileSize) && attachment.PreviewStatus == "pending" {
+		return "ready"
+	}
+	if attachment == nil {
+		return "none"
+	}
+	return attachment.PreviewStatus
 }
 
 func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models.Doc, error) {
@@ -165,8 +212,14 @@ func (s *DocService) Save(id, ownerID uint, req *models.DocSaveRequest) (*models
 			Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
-		if !isEditableDocKind(normalizedDocKind(doc.Kind)) {
+		if !isOnlineEditableDoc(&doc) {
 			return ErrDocNotEditable
+		}
+		if len(req.Content) > maxEditableKnowledgeTextSize {
+			return ErrKnowledgeTextTooLarge
+		}
+		if err := validateStructuredDocContent(normalizedDocKind(doc.Kind), doc.Language, req.Content); err != nil {
+			return err
 		}
 		if normalizedRevision(doc.Revision) != req.Revision {
 			return &DocRevisionConflictError{Revision: normalizedRevision(doc.Revision)}
@@ -212,8 +265,14 @@ func (s *DocService) Autosave(id, ownerID uint, req *models.DocAutosaveRequest) 
 			Where("id = ? AND owner_id = ?", id, workspace.OwnerID).First(&doc).Error; err != nil {
 			return err
 		}
-		if !isEditableDocKind(normalizedDocKind(doc.Kind)) {
+		if !isOnlineEditableDoc(&doc) {
 			return ErrDocNotEditable
+		}
+		if len(req.Content) > maxEditableKnowledgeTextSize {
+			return ErrKnowledgeTextTooLarge
+		}
+		if err := validateStructuredDocContent(normalizedDocKind(doc.Kind), doc.Language, req.Content); err != nil {
+			return err
 		}
 		if normalizedRevision(doc.Revision) != req.Revision {
 			return &DocRevisionConflictError{Revision: normalizedRevision(doc.Revision)}
@@ -471,6 +530,7 @@ func (s *DocService) Search(workspaceID, ownerID uint, keyword string) ([]*model
 	for i := range docs {
 		result = append(result, &models.DocSearchResponse{
 			ID: docs[i].ID, CatalogID: docs[i].CatalogID, ArticleID: docs[i].ArticleID, Title: docs[i].Title,
+			Kind: normalizedDocKind(docs[i].Kind), Language: docs[i].Language, Editable: isOnlineEditableDoc(&docs[i]),
 			Summary: contentSummary(docs[i].Content, keyword), Status: docs[i].Status,
 			WordCount: docs[i].WordCount, UpdatedAt: docs[i].UpdatedAt,
 		})
@@ -533,12 +593,13 @@ func workspaceRole(db *gorm.DB, workspace *models.Workspace, userID uint) (strin
 	return member.Role, true, nil
 }
 
-func docCapabilities(role string, member bool, kind string) models.DocCapabilities {
+func docCapabilities(role string, member bool, kind string, contentSize int) models.DocCapabilities {
 	canEdit := member && HasWorkspacePermission(role, WorkspacePermissionEdit)
 	canManage := member && HasWorkspacePermission(role, WorkspacePermissionManageMembers)
+	onlineEditable := isEditableDocKind(kind) && contentSize <= maxEditableKnowledgeTextSize
 	return models.DocCapabilities{
-		CanView: true, CanEdit: canEdit && isEditableDocKind(kind), CanReplace: canEdit && kind == models.DocKindFile,
-		CanDownload: kind == models.DocKindFile, CanPublish: canEdit, CanShare: canEdit,
+		CanView: true, CanEdit: canEdit && onlineEditable, CanReplace: canEdit && kind == models.DocKindFile,
+		CanDownload: true, CanPublish: canEdit, CanShare: canEdit,
 		CanDelete: canEdit, CanManageMembers: canManage,
 	}
 }
@@ -562,6 +623,43 @@ func isCreatableDocKind(kind string) bool {
 }
 
 func isEditableDocKind(kind string) bool { return isCreatableDocKind(kind) }
+
+func isOnlineEditableDoc(doc *models.Doc) bool {
+	return doc != nil && isEditableDocKind(normalizedDocKind(doc.Kind)) && len(doc.Content) <= maxEditableKnowledgeTextSize
+}
+
+func IsDocOnlineEditable(doc *models.Doc) bool {
+	return isOnlineEditableDoc(doc)
+}
+
+func previewTextContent(content string) string {
+	if len(content) <= maxEditableKnowledgeTextSize {
+		return content
+	}
+	end := maxEditableKnowledgeTextSize
+	for end > 0 && !utf8.RuneStart(content[end]) {
+		end--
+	}
+	return content[:end]
+}
+
+func validateStructuredDocContent(kind, language, content string) error {
+	if kind != models.DocKindCode || strings.TrimSpace(content) == "" {
+		return nil
+	}
+	switch strings.ToLower(language) {
+	case "json":
+		if !json.Valid([]byte(content)) {
+			return fmt.Errorf("%w: JSON 语法无效", ErrKnowledgeInvalid)
+		}
+	case "yaml":
+		var value interface{}
+		if err := yaml.Unmarshal([]byte(content), &value); err != nil {
+			return fmt.Errorf("%w: YAML 语法无效: %v", ErrKnowledgeInvalid, err)
+		}
+	}
+	return nil
+}
 
 func docRevisionConflict(tx *gorm.DB, id uint) error {
 	var current models.Doc

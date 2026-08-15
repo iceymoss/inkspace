@@ -15,6 +15,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 	// Middleware
 	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.BlockPrivateKnowledgeStorage())
 
 	// Handlers
 	userHandler := handler.NewUserHandler()
@@ -107,6 +108,8 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 		publicWithOptionalAuth.Use(middleware.OptionalAuthMiddleware())
 		{
 			registerDocDetailRoute(publicWithOptionalAuth, docHandler)
+			registerDocDownloadRoute(publicWithOptionalAuth, docHandler)
+			registerDocPreviewRoute(publicWithOptionalAuth, docHandler)
 			// 关注统计（支持可选认证，以便显示当前用户的关注状态）
 			publicWithOptionalAuth.GET("/users/:id/follow-stats", followHandler.GetFollowStats)
 
@@ -203,6 +206,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			protected.DELETE("/catalogs/:id", catalogHandler.Delete)
 			protected.PUT("/catalogs/:id/move", catalogHandler.Move)
 			protected.POST("/docs", docHandler.Create)
+			protected.POST("/workspaces/:id/files", docHandler.UploadFile)
 			protected.GET("/workspaces/:id/docs", docHandler.List)
 			protected.GET("/docs/:id/edit", docHandler.GetEdit)
 			protected.PUT("/docs/:id", docHandler.Save)
@@ -238,6 +242,14 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 func registerDocDetailRoute(routes gin.IRoutes, docHandler *handler.DocHandler) {
 	routes.GET("/docs/:id", docHandler.Detail)
+}
+
+func registerDocDownloadRoute(routes gin.IRoutes, docHandler *handler.DocHandler) {
+	routes.GET("/docs/:id/download", docHandler.DownloadFile)
+}
+
+func registerDocPreviewRoute(routes gin.IRoutes, docHandler *handler.DocHandler) {
+	routes.GET("/docs/:id/preview", docHandler.PreviewFile)
 }
 
 func registerWorkspaceMemberRoutes(group *gin.RouterGroup, memberHandler *handler.WorkspaceMemberHandler) {

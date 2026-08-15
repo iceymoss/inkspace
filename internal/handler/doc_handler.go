@@ -28,7 +28,7 @@ func (h *DocHandler) Create(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) List(c *gin.Context) {
@@ -53,6 +53,7 @@ func (h *DocHandler) List(c *gin.Context) {
 	responses := make([]*models.DocResponse, len(docs))
 	for i := range docs {
 		responses[i] = docs[i].ToResponse()
+		responses[i].Editable = service.IsDocOnlineEditable(docs[i])
 		responses[i].Summary = service.ContentSummary(docs[i].Content)
 		responses[i].Content = ""
 		responses[i].ContentHTML = ""
@@ -84,7 +85,7 @@ func (h *DocHandler) GetEdit(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) Save(c *gin.Context) {
@@ -102,7 +103,7 @@ func (h *DocHandler) Save(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) Autosave(c *gin.Context) {
@@ -120,7 +121,7 @@ func (h *DocHandler) Autosave(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) Publish(c *gin.Context) {
@@ -144,7 +145,7 @@ func (h *DocHandler) Publish(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) PublishToBlog(c *gin.Context) {
@@ -192,7 +193,7 @@ func (h *DocHandler) Move(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) Versions(c *gin.Context) {
@@ -244,7 +245,7 @@ func (h *DocHandler) Rollback(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, doc.ToResponse())
+	utils.Success(c, docResponse(doc))
 }
 
 func (h *DocHandler) Search(c *gin.Context) {
@@ -289,4 +290,10 @@ func optionalUserID(c *gin.Context) (uint, bool) {
 	}
 	userID, ok := value.(uint)
 	return userID, ok && userID != 0
+}
+
+func docResponse(doc *models.Doc) *models.DocResponse {
+	response := doc.ToResponse()
+	response.Editable = service.IsDocOnlineEditable(doc)
+	return response
 }

@@ -1,0 +1,5 @@
+{
+  "name": "InkSpace",
+  "enabled": true,
+  "features": ["preview", "revision", "download"]
+}

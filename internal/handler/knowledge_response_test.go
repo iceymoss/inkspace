@@ -26,6 +26,8 @@ func TestKnowledgeErrorStatus(t *testing.T) {
 		{name: "member exists", err: service.ErrWorkspaceMemberExists, wantStatus: http.StatusConflict, wantCode: http.StatusConflict},
 		{name: "revision conflict", err: &service.DocRevisionConflictError{Revision: 3}, wantStatus: http.StatusConflict, wantCode: http.StatusConflict},
 		{name: "file not editable", err: service.ErrDocNotEditable, wantStatus: http.StatusUnprocessableEntity, wantCode: http.StatusUnprocessableEntity},
+		{name: "file too large", err: service.ErrKnowledgeFileTooLarge, wantStatus: http.StatusRequestEntityTooLarge, wantCode: http.StatusRequestEntityTooLarge},
+		{name: "invalid file type", err: service.ErrKnowledgeFileType, wantStatus: http.StatusOK, wantCode: http.StatusBadRequest},
 		{name: "invalid member role", err: service.ErrKnowledgeInvalid, wantStatus: http.StatusOK, wantCode: http.StatusBadRequest},
 	}
 	for _, test := range tests {

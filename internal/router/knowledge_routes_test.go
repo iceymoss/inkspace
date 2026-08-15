@@ -60,3 +60,37 @@ func TestDocDetailRouteUsesOptionalAuthentication(t *testing.T) {
 		t.Fatalf("routes = %+v, want optional GET /api/docs/:id", routes)
 	}
 }
+
+func TestKnowledgeFileUploadRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/api/workspaces/:id/files", handler.NewDocHandler().UploadFile)
+	routes := router.Routes()
+	if len(routes) != 1 || routes[0].Method != http.MethodPost || routes[0].Path != "/api/workspaces/:id/files" {
+		t.Fatalf("routes = %+v, want POST /api/workspaces/:id/files", routes)
+	}
+}
+
+func TestDocDownloadRouteUsesOptionalAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	api := router.Group("/api", middleware.OptionalAuthMiddleware())
+	registerDocDownloadRoute(api, handler.NewDocHandler())
+
+	routes := router.Routes()
+	if len(routes) != 1 || routes[0].Method != http.MethodGet || routes[0].Path != "/api/docs/:id/download" {
+		t.Fatalf("routes = %+v, want optional GET /api/docs/:id/download", routes)
+	}
+}
+
+func TestDocPreviewRouteUsesOptionalAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	api := router.Group("/api", middleware.OptionalAuthMiddleware())
+	registerDocPreviewRoute(api, handler.NewDocHandler())
+
+	routes := router.Routes()
+	if len(routes) != 1 || routes[0].Method != http.MethodGet || routes[0].Path != "/api/docs/:id/preview" {
+		t.Fatalf("routes = %+v, want optional GET /api/docs/:id/preview", routes)
+	}
+}

@@ -35,6 +35,9 @@ upload:
     - image/png
     - image/gif
   savePath: ./uploads
+  knowledgeMaxSize: 104857600 # defaults to 100 MiB and cannot exceed it
+  knowledgeAllowUnknown: false # allow extensions outside the built-in knowledge-file whitelist
+  knowledgeAllowedExtensions: [] # additional extensions, for example: [".psd"]
   tencentCOS:
     bucketURL: "" # COS_BUCKET_URL
     domain: "" # COS_DOMAIN, optional CDN domain

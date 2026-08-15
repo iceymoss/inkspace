@@ -45,6 +45,7 @@ type DocCreateRequest struct {
 	WorkspaceID uint   `json:"workspace_id" binding:"required"`
 	CatalogID   *uint  `json:"catalog_id"`
 	Title       string `json:"title" binding:"required,max=200"`
+	FileName    string `json:"file_name" binding:"omitempty,max=200"`
 	Content     string `json:"content"`
 	Kind        string `json:"kind" binding:"omitempty,oneof=markdown text code"`
 	Language    string `json:"language" binding:"max=50"`
@@ -82,6 +83,12 @@ type DocListQuery struct {
 	CatalogID *uint `form:"catalog_id"`
 }
 
+type KnowledgeFileUploadRequest struct {
+	CatalogID *uint  `form:"catalog_id"`
+	Title     string `form:"title" binding:"omitempty,max=200"`
+	RequestID string `form:"request_id" binding:"omitempty,max=100"`
+}
+
 type DocResponse struct {
 	ID          uint       `json:"id"`
 	WorkspaceID uint       `json:"workspace_id"`
@@ -93,6 +100,7 @@ type DocResponse struct {
 	ContentHTML string     `json:"content_html"`
 	Kind        string     `json:"kind"`
 	Language    string     `json:"language"`
+	Editable    bool       `json:"editable"`
 	Revision    uint64     `json:"revision"`
 	Status      int        `json:"status"`
 	WordCount   int        `json:"word_count"`
@@ -116,11 +124,14 @@ type DocCapabilities struct {
 
 // DocAttachmentDetail intentionally excludes storage paths and URLs.
 type DocAttachmentDetail struct {
-	ID        uint   `json:"id"`
-	FileName  string `json:"file_name"`
-	FileSize  int64  `json:"file_size"`
-	MimeType  string `json:"mime_type"`
-	Extension string `json:"extension"`
+	ID              uint   `json:"id"`
+	FileName        string `json:"file_name"`
+	FileSize        int64  `json:"file_size"`
+	MimeType        string `json:"mime_type"`
+	Extension       string `json:"extension"`
+	Checksum        string `json:"checksum"`
+	PreviewStatus   string `json:"preview_status"`
+	PreviewMimeType string `json:"preview_mime_type"`
 }
 
 type DocDetailResponse struct {
@@ -150,6 +161,9 @@ type DocSearchResponse struct {
 	CatalogID *uint     `json:"catalog_id"`
 	ArticleID *uint     `json:"article_id"`
 	Title     string    `json:"title"`
+	Kind      string    `json:"kind"`
+	Language  string    `json:"language"`
+	Editable  bool      `json:"editable"`
 	Summary   string    `json:"summary"`
 	Status    int       `json:"status"`
 	WordCount int       `json:"word_count"`

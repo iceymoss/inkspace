@@ -21,7 +21,7 @@
               size="small"
               effect="plain"
             >
-              {{ form.status === 1 ? 'Wiki 已发布' : 'Wiki 草稿' }}
+              {{ form.status === 1 ? '已公开' : '私有' }}
             </el-tag>
           </span>
           <small>{{ saveStateText }}</small>
@@ -32,7 +32,10 @@
           <el-button @click="openVersions">
             <el-icon><Clock /></el-icon>版本
           </el-button>
-          <el-button @click="openShares">
+          <el-button
+            v-if="isMarkdown"
+            @click="openShares"
+          >
             <el-icon><Share /></el-icon>分享
           </el-button>
         </div>
@@ -49,26 +52,31 @@
               <el-dropdown-item command="versions">
                 <el-icon><Clock /></el-icon>版本历史
               </el-dropdown-item>
-              <el-dropdown-item command="shares">
+              <el-dropdown-item
+                v-if="isMarkdown"
+                command="shares"
+              >
                 <el-icon><Share /></el-icon>分享文档
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
         <el-button
+          v-if="isMarkdown"
           :loading="wikiPublishing"
           @click="publishToWiki(1)"
         >
-          {{ form.status === 1 ? '重新发布 Wiki' : '发布 Wiki' }}
+          {{ form.status === 1 ? '重新公开' : '公开' }}
         </el-button>
         <el-button
-          v-if="form.status === 1"
+          v-if="isMarkdown && form.status === 1"
           :loading="wikiPublishing"
           @click="publishToWiki(0)"
         >
-          取消发布
+          设为私有
         </el-button>
         <el-button
+          v-if="isMarkdown"
           :loading="publishing"
           @click="openBlogPublish"
         >
@@ -93,9 +101,15 @@
         @input="markTitleDirty"
       />
       <VditorEditor
-        v-if="editorReady"
+        v-if="editorReady && isMarkdown"
         v-model="form.content"
         height="calc(100vh - 245px)"
+        @update:model-value="markContentDirty"
+      />
+      <CodeTextEditor
+        v-else-if="editorReady"
+        v-model="form.content"
+        :language="form.language"
         @update:model-value="markContentDirty"
       />
     </div>
@@ -149,9 +163,14 @@
           </el-button>
         </div>
         <MarkdownPreview
+          v-if="selectedVersion.kind === 'markdown'"
           class="version-preview"
           :content="selectedVersion.content || '*此版本没有内容*'"
         />
+        <pre
+          v-else
+          class="version-code-preview"
+        ><code>{{ selectedVersion.content || '此版本没有内容' }}</code></pre>
       </section>
     </el-drawer>
 
@@ -327,7 +346,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -337,10 +356,12 @@ import VditorEditor from '@/components/VditorEditor.vue'
 import ImageCropUpload from '@/components/ImageCropUpload.vue'
 import MarkdownPreview from '@/components/docs/MarkdownPreview.vue'
 
+const CodeTextEditor = defineAsyncComponent(() => import('@/components/docs/CodeTextEditor.vue'))
+
 const route = useRoute()
 const router = useRouter()
 const docId = Number(route.params.id)
-const form = reactive({ title: '', content: '', workspace_id: null, catalog_id: null, article_id: null, status: 0, revision: 1 })
+const form = reactive({ title: '', content: '', kind: 'markdown', language: '', workspace_id: null, catalog_id: null, article_id: null, status: 0, revision: 1 })
 const workspaceName = ref('知识库文档')
 const initialLoading = ref(true)
 const editorReady = ref(false)
@@ -381,6 +402,7 @@ const saveStateText = computed(() => {
 })
 
 const contentAutosaved = ref(false)
+const isMarkdown = computed(() => form.kind === 'markdown')
 
 const markTitleDirty = () => {
   if (!initialLoading.value) {
@@ -405,6 +427,8 @@ async function fetchDoc() {
   Object.assign(form, {
     title: doc.title || '',
     content: doc.content || '',
+    kind: doc.kind || 'markdown',
+    language: doc.language || '',
     workspace_id: doc.workspace_id,
     catalog_id: doc.catalog_id ?? null,
     article_id: doc.article_id ?? null,
@@ -482,12 +506,12 @@ async function publishToWiki(status) {
   const publishingToWiki = status === 1
   const republishing = publishingToWiki && form.status === 1
   const message = publishingToWiki
-    ? `${republishing ? '重新发布会更新 Wiki 中的内容。' : '发布后，'}所属工作空间公开时，任何人都可以访问这篇文档。`
-    : '取消发布后，这篇文档将从公开 Wiki 中隐藏；博客文章和分享链接不受影响。'
+    ? `${republishing ? '重新公开会更新 Wiki 中的内容。' : '公开后，'}所属知识库公开时，任何人都可以访问这篇文档。`
+    : '设为私有后，这篇文档将从公开 Wiki 中隐藏；博客文章和分享链接不受影响。'
   try {
-    await ElMessageBox.confirm(message, publishingToWiki ? (republishing ? '重新发布到 Wiki' : '发布到 Wiki') : '取消 Wiki 发布', {
+    await ElMessageBox.confirm(message, publishingToWiki ? (republishing ? '重新公开' : '公开文档') : '设为私有', {
       type: 'warning',
-      confirmButtonText: publishingToWiki ? '确认发布' : '确认取消',
+      confirmButtonText: publishingToWiki ? '确认公开' : '确认设为私有',
       cancelButtonText: '取消'
     })
   } catch {
@@ -502,7 +526,7 @@ async function publishToWiki(status) {
     }
     const response = await api.post(`/docs/${docId}/publish`, { status })
     form.status = response.data?.status === 1 ? 1 : 0
-    ElMessage.success(publishingToWiki ? (republishing ? 'Wiki 内容已更新' : '文档已发布到 Wiki') : '已取消 Wiki 发布')
+    ElMessage.success(publishingToWiki ? (republishing ? '公开内容已更新' : '文档已公开') : '文档已设为私有')
   } finally {
     wikiPublishing.value = false
   }
