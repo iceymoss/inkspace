@@ -279,18 +279,18 @@ onBeforeUnmount(revokePreviewUrl)
 
 <style scoped>
 .doc-detail-page { min-height: calc(100vh - 100px); padding: 4px 0 48px; color: var(--theme-text-primary); }
-.doc-card { width: min(980px, 100%); min-height: 520px; margin: 0 auto; padding: clamp(26px, 5vw, 58px) clamp(20px, 7vw, 76px); border: 1px solid var(--theme-border); border-top: 3px solid var(--theme-primary); background: var(--theme-bg-card); }
+.doc-card { width: min(980px, 100%); min-height: 520px; margin: 0 auto; padding: clamp(24px, 3vw, 36px) clamp(20px, 7vw, 76px) 48px; border: 1px solid var(--theme-border); border-top: 3px solid var(--theme-primary); background: var(--theme-bg-card); }
 .loading-card { padding-top: 54px; }
 .header-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .back-button { margin-left: -12px; }
-.title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-top: clamp(34px, 7vw, 68px); }
-.doc-kicker { margin: 0 0 12px; color: var(--theme-primary); font-size: 11px; font-weight: 700; letter-spacing: .16em; }
-.title-row h1 { margin: 0; font-size: clamp(32px, 5vw, 52px); line-height: 1.15; overflow-wrap: anywhere; }
-.doc-meta { display: flex; flex-wrap: wrap; gap: 18px 44px; margin: 32px 0 0; }
+.title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-top: clamp(20px, 3vw, 30px); }
+.doc-kicker { margin: 0 0 7px; color: var(--theme-primary); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+.title-row h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.18; overflow-wrap: anywhere; }
+.doc-meta { display: flex; flex-wrap: wrap; gap: 12px 36px; margin: 20px 0 0; }
 .doc-meta div { min-width: 120px; }
 .doc-meta dt { margin-bottom: 5px; color: var(--theme-text-tertiary); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
 .doc-meta dd { margin: 0; color: var(--theme-text-secondary); font-size: 13px; }
-.content-rule { height: 1px; margin: 36px 0 clamp(28px, 5vw, 48px); background: var(--theme-border); }
+.content-rule { height: 1px; margin: 22px 0 clamp(24px, 4vw, 36px); background: var(--theme-border); }
 .preview-loading { min-height: 360px; padding: 28px; border: 1px solid var(--theme-border-light); background: var(--theme-bg-secondary); }
 .file-fallback { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; padding: clamp(24px, 5vw, 42px); border: 1px solid var(--theme-border-light); background: var(--theme-bg-secondary); }
 .file-mark { display: grid; width: 82px; height: 104px; place-items: center; border: 1px solid var(--theme-primary); background: var(--theme-bg-card); color: var(--theme-primary); font: 700 13px/1 'SFMono-Regular', Consolas, monospace; letter-spacing: .08em; }
@@ -299,5 +299,5 @@ onBeforeUnmount(revokePreviewUrl)
 .file-copy p { margin: 0 0 12px; color: var(--theme-text-secondary); font-size: 13px; }
 .file-copy .file-label { margin: 0; color: var(--theme-primary); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
 .header-topline :deep(.el-button:focus-visible) { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
-@media (max-width: 600px) { .doc-detail-page { padding-bottom: 20px; } .doc-card { min-height: calc(100vh - 100px); padding: 20px 16px 36px; border-right: 0; border-left: 0; } .header-topline { flex-wrap: wrap; } .title-row { align-items: flex-start; flex-direction: column-reverse; gap: 14px; } .doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .plain-content { margin-right: -16px; margin-left: -16px; border-right: 0; border-left: 0; border-radius: 0; } .file-fallback { grid-template-columns: auto 1fr; margin-right: -16px; margin-left: -16px; padding: 24px 16px; border-right: 0; border-left: 0; } .file-fallback .el-button { grid-column: 1 / -1; width: 100%; } }
+@media (max-width: 600px) { .doc-detail-page { padding-bottom: 20px; } .doc-card { min-height: calc(100vh - 100px); padding: 16px 16px 32px; border-right: 0; border-left: 0; } .header-topline { flex-wrap: wrap; } .title-row { align-items: flex-start; flex-direction: column-reverse; gap: 10px; margin-top: 18px; } .doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; } .content-rule { margin: 18px 0 24px; } .plain-content { margin-right: -16px; margin-left: -16px; border-right: 0; border-left: 0; border-radius: 0; } .file-fallback { grid-template-columns: auto 1fr; margin-right: -16px; margin-left: -16px; padding: 24px 16px; border-right: 0; border-left: 0; } .file-fallback .el-button { grid-column: 1 / -1; width: 100%; } }
 </style>
