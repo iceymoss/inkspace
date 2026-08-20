@@ -18,7 +18,26 @@ func knowledgeError(c *gin.Context, err error) {
 		utils.NotFound(c, err.Error())
 	case errors.Is(err, service.ErrShareDisabled), errors.Is(err, service.ErrShareExpired):
 		utils.Forbidden(c, err.Error())
-	case errors.Is(err, service.ErrCatalogCycle), errors.Is(err, service.ErrKnowledgeInvalid):
+	case errors.Is(err, service.ErrKnowledgeForbidden), errors.Is(err, service.ErrWorkspaceOwner):
+		utils.Forbidden(c, err.Error())
+	case errors.Is(err, service.ErrWorkspaceMemberExists):
+		c.JSON(http.StatusConflict, utils.Response{Code: http.StatusConflict, Message: err.Error()})
+	case errors.Is(err, service.ErrDocRevisionConflict):
+		var conflict *service.DocRevisionConflictError
+		if errors.As(err, &conflict) {
+			c.JSON(http.StatusConflict, utils.Response{
+				Code: http.StatusConflict, Message: conflict.Error(), Data: gin.H{"revision": conflict.Revision},
+			})
+			return
+		}
+		c.JSON(http.StatusConflict, utils.Response{Code: http.StatusConflict, Message: err.Error()})
+	case errors.Is(err, service.ErrDocNotEditable):
+		c.JSON(http.StatusUnprocessableEntity, utils.Response{Code: http.StatusUnprocessableEntity, Message: err.Error()})
+	case errors.Is(err, service.ErrDocPreviewUnavailable):
+		c.JSON(http.StatusUnprocessableEntity, utils.Response{Code: http.StatusUnprocessableEntity, Message: err.Error()})
+	case errors.Is(err, service.ErrKnowledgeFileTooLarge):
+		c.JSON(http.StatusRequestEntityTooLarge, utils.Response{Code: http.StatusRequestEntityTooLarge, Message: err.Error()})
+	case errors.Is(err, service.ErrCatalogCycle), errors.Is(err, service.ErrKnowledgeInvalid), errors.Is(err, service.ErrKnowledgeFileType), errors.Is(err, service.ErrKnowledgeTextTooLarge):
 		utils.BadRequest(c, err.Error())
 	case errors.Is(err, service.ErrPublicWikiTooLarge):
 		c.JSON(http.StatusUnprocessableEntity, utils.Response{Code: http.StatusUnprocessableEntity, Message: err.Error()})

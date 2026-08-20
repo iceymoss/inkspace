@@ -57,11 +57,14 @@ type JWTConfig struct {
 }
 
 type UploadConfig struct {
-	StorageType string           `mapstructure:"storageType"` // local or cos
-	MaxSize     int64            `mapstructure:"maxSize"`
-	AllowTypes  []string         `mapstructure:"allowTypes"`
-	SavePath    string           `mapstructure:"savePath"`
-	TencentCOS  TencentCOSConfig `mapstructure:"tencentCOS"`
+	StorageType                string           `mapstructure:"storageType"` // local or cos
+	MaxSize                    int64            `mapstructure:"maxSize"`
+	AllowTypes                 []string         `mapstructure:"allowTypes"`
+	SavePath                   string           `mapstructure:"savePath"`
+	KnowledgeMaxSize           int64            `mapstructure:"knowledgeMaxSize"`
+	KnowledgeAllowUnknown      bool             `mapstructure:"knowledgeAllowUnknown"`
+	KnowledgeAllowedExtensions []string         `mapstructure:"knowledgeAllowedExtensions"`
+	TencentCOS                 TencentCOSConfig `mapstructure:"tencentCOS"`
 }
 
 type TencentCOSConfig struct {
@@ -214,6 +217,9 @@ func bindEnvVars() {
 	viper.BindEnv("upload.storageType", "UPLOAD_STORAGE_TYPE")
 	viper.BindEnv("upload.maxSize", "UPLOAD_MAX_SIZE")
 	viper.BindEnv("upload.savePath", "UPLOAD_SAVE_PATH")
+	viper.BindEnv("upload.knowledgeMaxSize", "UPLOAD_KNOWLEDGE_MAX_SIZE")
+	viper.BindEnv("upload.knowledgeAllowUnknown", "UPLOAD_KNOWLEDGE_ALLOW_UNKNOWN")
+	viper.BindEnv("upload.knowledgeAllowedExtensions", "UPLOAD_KNOWLEDGE_ALLOWED_EXTENSIONS")
 
 	// COS 配置
 	viper.BindEnv("upload.tencentCOS.bucketURL", "COS_BUCKET_URL")

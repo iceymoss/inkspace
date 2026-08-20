@@ -85,6 +85,7 @@ func autoMigrate() error {
 		&models.Advertisement{},
 		&models.AdPlacement{},
 		&models.Workspace{},
+		&models.WorkspaceMember{},
 		&models.Catalog{},
 		&models.Doc{},
 		&models.DocVersion{},

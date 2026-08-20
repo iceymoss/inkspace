@@ -149,6 +149,11 @@ const routes = [
         component: () => import('@/views/user/WorkspaceDetail.vue')
       },
       {
+        path: 'docs/:id',
+        name: 'DocDetail',
+        component: () => import('@/views/user/DocDetail.vue')
+      },
+      {
         path: 'docs/:id/edit',
         name: 'DocEdit',
         component: () => import('@/views/user/DocEdit.vue')

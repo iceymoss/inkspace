@@ -3,78 +3,128 @@ package uploader
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
-// TencentCOSUploader 腾讯云COS上传实现
-type TencentCOSUploader struct {
+// TencentCOSStorage stores objects in Tencent Cloud COS.
+type TencentCOSStorage struct {
 	client *cos.Client
-	domain string // CDN域名或存储桶域名
 }
 
-// NewTencentCOSUploader 创建腾讯云COS上传器
-func NewTencentCOSUploader() *TencentCOSUploader {
-	cfg := config.AppConfig.Upload.TencentCOS
-	u, _ := url.Parse(cfg.BucketURL)
-	b := &cos.BaseURL{BucketURL: u}
-
-	client := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  cfg.SecretID,
-			SecretKey: cfg.SecretKey,
-		},
-	})
-
-	return &TencentCOSUploader{
-		client: client,
-		domain: cfg.Domain,
+// NewTencentCOSStorage creates a COS storage provider.
+func NewTencentCOSStorage(cfg config.TencentCOSConfig) (*TencentCOSStorage, error) {
+	bucketURL, err := url.Parse(cfg.BucketURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse COS bucket URL: %w", err)
 	}
+	if bucketURL.Scheme == "" || bucketURL.Host == "" {
+		return nil, fmt.Errorf("invalid COS bucket URL %q", cfg.BucketURL)
+	}
+	client := cos.NewClient(&cos.BaseURL{BucketURL: bucketURL}, &http.Client{
+		Transport: &cos.AuthorizationTransport{SecretID: cfg.SecretID, SecretKey: cfg.SecretKey},
+	})
+	return &TencentCOSStorage{client: client}, nil
 }
 
-// Upload 上传文件到腾讯云COS
+func (s *TencentCOSStorage) Put(ctx context.Context, key string, r io.Reader, size int64, contentType string) error {
+	options := &cos.ObjectPutOptions{ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+		ContentLength: size,
+		ContentType:   contentType,
+	}}
+	if _, err := s.client.Object.Put(ctx, key, r, options); err != nil {
+		return fmt.Errorf("put COS object: %w", err)
+	}
+	return nil
+}
+
+func (s *TencentCOSStorage) Open(ctx context.Context, key string) (io.ReadCloser, error) {
+	response, err := s.client.Object.Get(ctx, key, nil)
+	if err != nil {
+		return nil, fmt.Errorf("open COS object: %w", err)
+	}
+	return response.Body, nil
+}
+
+func (s *TencentCOSStorage) Delete(ctx context.Context, key string) error {
+	response, err := s.client.Object.Delete(ctx, key)
+	if response != nil && response.Body != nil {
+		response.Body.Close()
+	}
+	if err != nil {
+		return fmt.Errorf("delete COS object: %w", err)
+	}
+	return nil
+}
+
+func (s *TencentCOSStorage) Stat(ctx context.Context, key string) (*ObjectInfo, error) {
+	response, err := s.client.Object.Head(ctx, key, nil)
+	if err != nil {
+		return nil, fmt.Errorf("stat COS object: %w", err)
+	}
+	defer response.Body.Close()
+	size, err := strconv.ParseInt(response.Header.Get("Content-Length"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("parse COS object size: %w", err)
+	}
+	var modTime time.Time
+	if value := response.Header.Get("Last-Modified"); value != "" {
+		modTime, err = http.ParseTime(value)
+		if err != nil {
+			return nil, fmt.Errorf("parse COS object modification time: %w", err)
+		}
+	}
+	return &ObjectInfo{
+		Key:         key,
+		Size:        size,
+		ContentType: response.Header.Get("Content-Type"),
+		ModTime:     modTime,
+		ETag:        strings.Trim(response.Header.Get("ETag"), `"`),
+	}, nil
+}
+
+// TencentCOSUploader preserves the existing URL-returning upload API.
+type TencentCOSUploader struct {
+	storage *TencentCOSStorage
+	domain  string
+	initErr error
+}
+
+func NewTencentCOSUploader() *TencentCOSUploader {
+	var cfg config.TencentCOSConfig
+	if config.AppConfig != nil {
+		cfg = config.AppConfig.Upload.TencentCOS
+	}
+	storage, err := NewTencentCOSStorage(cfg)
+	return &TencentCOSUploader{storage: storage, domain: strings.TrimRight(cfg.Domain, "/"), initErr: err}
+}
+
 func (u *TencentCOSUploader) Upload(input *UploadInput, dstPath string) (string, error) {
+	return u.UploadContext(context.Background(), input, dstPath)
+}
+
+// UploadContext uploads a COS object using the caller's context.
+func (u *TencentCOSUploader) UploadContext(ctx context.Context, input *UploadInput, dstPath string) (string, error) {
+	if u.initErr != nil {
+		return "", u.initErr
+	}
 	src, err := input.Open()
 	if err != nil {
-		return "", fmt.Errorf("open source file failed: %w", err)
+		return "", fmt.Errorf("open source file: %w", err)
 	}
 	defer src.Close()
-
-	// 设置超时上下文
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second) // 增加超时时间
-	defer cancel()
-
-	// 上传文件
-	// cos SDK Put 方法接受 io.Reader
-	// 需要注意的是，如果 src 是文件流，SDK 会自动获取大小
-	// 如果 input.Size 已知，最好传递给 option (这里暂略，SDK handle file well)
-	_, err = u.client.Object.Put(ctx, dstPath, src, nil)
-	opt := &cos.ObjectPutOptions{
-		// 图片
-		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentType: "image/png", // todo: 设置Content-Type
-		},
+	if err := u.storage.Put(ctx, dstPath, src, input.Size, input.contentType()); err != nil {
+		return "", err
 	}
-	_, err = u.client.Object.Put(context.Background(), dstPath, src, opt)
-	if err != nil {
-		return "", fmt.Errorf("upload to cos failed: %w", err)
-	}
-
-	// 构造返回URL
-	var fileURL string
 	if u.domain != "" {
-		// 简单处理：直接拼接
-		// 需确保 domain 结尾无 /，dstPath 开头无 / (或处理之)
-		// 这里假设配置正确
-		fileURL = fmt.Sprintf("%s/%s", u.domain, dstPath)
-	} else {
-		// 使用默认的Bucket URL
-		fileURL = u.client.Object.GetObjectURL(dstPath).String()
+		return u.domain + "/" + strings.TrimLeft(dstPath, "/"), nil
 	}
-
-	return fileURL, nil
+	return u.storage.client.Object.GetObjectURL(dstPath).String(), nil
 }

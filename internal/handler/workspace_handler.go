@@ -62,7 +62,14 @@ func (h *WorkspaceHandler) Get(c *gin.Context) {
 		knowledgeError(c, err)
 		return
 	}
-	utils.Success(c, workspace.ToResponse())
+	capabilities, err := h.service.Capabilities(workspace, userID)
+	if err != nil {
+		knowledgeError(c, err)
+		return
+	}
+	response := workspace.ToResponse()
+	response.Capabilities = capabilities
+	utils.Success(c, response)
 }
 
 func (h *WorkspaceHandler) Update(c *gin.Context) {

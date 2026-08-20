@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -21,9 +22,13 @@ type UploadHandler struct {
 	uploader uploader.Uploader
 }
 
+type contextUploader interface {
+	UploadContext(ctx context.Context, input *uploader.UploadInput, dstPath string) (string, error)
+}
+
 func NewUploadHandler() *UploadHandler {
 	return &UploadHandler{
-		uploader: uploader.NewLocalUploader(),
+		uploader: (&uploader.UploadProvider{}).NewUploadProvider(),
 	}
 }
 
@@ -166,6 +171,7 @@ func (h *UploadHandler) handleUpload(c *gin.Context, subDir string, maxSize int6
 		}
 		input = uploader.NewUploadInputFromFileHeader(file)
 	}
+	input.ContentType = contentType
 
 	defer func() {
 		if tempPathToDelete != "" {
@@ -185,7 +191,12 @@ func (h *UploadHandler) handleUpload(c *gin.Context, subDir string, maxSize int6
 	}
 
 	// 7. 执行上传
-	url, err := h.uploader.Upload(input, dstPath)
+	var url string
+	if contextual, ok := h.uploader.(contextUploader); ok {
+		url, err = contextual.UploadContext(c.Request.Context(), input, dstPath)
+	} else {
+		url, err = h.uploader.Upload(input, dstPath)
+	}
 	if err != nil {
 		utils.InternalServerError(c, "文件上传失败")
 		fmt.Printf("Upload failed: %v\n", err)

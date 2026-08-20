@@ -255,7 +255,7 @@ const breadcrumbTitle = computed(() => {
     return '知识库空间'
   }
   if (route.path.startsWith('/dashboard/docs/')) {
-    return '编辑知识库文档'
+    return route.name === 'DocEdit' ? '编辑知识库文档' : '知识库文档详情'
   }
   return titles[route.path] || '用户中心'
 })

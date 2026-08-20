@@ -7,6 +7,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type CatalogService struct{}
@@ -14,47 +15,73 @@ type CatalogService struct{}
 func NewCatalogService() *CatalogService { return &CatalogService{} }
 
 func (s *CatalogService) Create(workspaceID, ownerID uint, req *models.CatalogCreateRequest) (*models.Catalog, error) {
-	if err := validateWorkspaceAndParent(database.DB, workspaceID, ownerID, req.ParentID); err != nil {
+	var catalog models.Catalog
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		workspace, err := authorizeWorkspaceForUpdate(tx, workspaceID, ownerID, WorkspacePermissionEdit)
+		if err != nil {
+			return err
+		}
+		if req.ParentID != nil {
+			var parent models.Catalog
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND workspace_id = ? AND owner_id = ?", *req.ParentID, workspaceID, workspace.OwnerID).
+				First(&parent).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrKnowledgeNotFound
+				}
+				return err
+			}
+		}
+		catalog = models.Catalog{
+			WorkspaceID: workspaceID, ParentID: req.ParentID, OwnerID: workspace.OwnerID, Name: req.Name, Sort: req.Sort,
+		}
+		result := tx.Create(&catalog)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrKnowledgeNotFound
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	catalog := &models.Catalog{
-		WorkspaceID: workspaceID, ParentID: req.ParentID, OwnerID: ownerID, Name: req.Name, Sort: req.Sort,
-	}
-	if err := database.DB.Create(catalog).Error; err != nil {
-		return nil, err
-	}
-	return catalog, nil
+	return &catalog, nil
 }
 
 func (s *CatalogService) Tree(workspaceID, ownerID uint) ([]*models.CatalogResponse, error) {
-	if err := requireWorkspace(database.DB, workspaceID, ownerID); err != nil {
+	workspace, err := requireWorkspace(database.DB, workspaceID, ownerID, WorkspacePermissionView)
+	if err != nil {
 		return nil, err
 	}
 	var catalogs []models.Catalog
-	if err := database.DB.Where("workspace_id = ? AND owner_id = ?", workspaceID, ownerID).Find(&catalogs).Error; err != nil {
+	if err := database.DB.Where("workspace_id = ? AND owner_id = ?", workspaceID, workspace.OwnerID).Find(&catalogs).Error; err != nil {
 		return nil, err
 	}
 	return buildCatalogTree(catalogs), nil
 }
 
 func (s *CatalogService) Update(id, ownerID uint, req *models.CatalogUpdateRequest) (*models.Catalog, error) {
-	if _, err := s.get(id, ownerID); err != nil {
+	catalog, workspace, err := s.get(id, ownerID, WorkspacePermissionEdit)
+	if err != nil {
 		return nil, err
 	}
-	result := database.DB.Model(&models.Catalog{}).Where("id = ? AND owner_id = ?", id, ownerID).Update("name", req.Name)
+	result := database.DB.Model(&models.Catalog{}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).Update("name", req.Name)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return s.get(id, ownerID)
+	updated, _, err := s.get(catalog.ID, ownerID, WorkspacePermissionEdit)
+	return updated, err
 }
 
 func (s *CatalogService) Move(id, ownerID uint, req *models.CatalogMoveRequest) (*models.Catalog, error) {
-	catalog, err := s.get(id, ownerID)
+	catalog, workspace, err := s.get(id, ownerID, WorkspacePermissionEdit)
 	if err != nil {
 		return nil, err
 	}
 	var catalogs []models.Catalog
-	if err := database.DB.Where("workspace_id = ? AND owner_id = ?", catalog.WorkspaceID, ownerID).Find(&catalogs).Error; err != nil {
+	if err := database.DB.Where("workspace_id = ? AND owner_id = ?", catalog.WorkspaceID, workspace.OwnerID).Find(&catalogs).Error; err != nil {
 		return nil, err
 	}
 	if wouldCreateCatalogCycle(id, req.ParentID, catalogs) {
@@ -72,49 +99,57 @@ func (s *CatalogService) Move(id, ownerID uint, req *models.CatalogMoveRequest) 
 			return nil, ErrKnowledgeNotFound
 		}
 	}
-	if err := database.DB.Model(&models.Catalog{}).Where("id = ? AND owner_id = ?", id, ownerID).
+	if err := database.DB.Model(&models.Catalog{}).Where("id = ? AND owner_id = ?", id, workspace.OwnerID).
 		Updates(map[string]interface{}{"parent_id": req.ParentID, "sort": req.Sort}).Error; err != nil {
 		return nil, err
 	}
-	return s.get(id, ownerID)
+	updated, _, err := s.get(id, ownerID, WorkspacePermissionEdit)
+	return updated, err
 }
 
 func (s *CatalogService) Delete(id, ownerID uint) error {
 	var workspaceID uint
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		var catalog models.Catalog
-		if err := tx.Where("id = ? AND owner_id = ?", id, ownerID).First(&catalog).Error; err != nil {
+		if err := tx.Where("id = ?", id).First(&catalog).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrKnowledgeNotFound
 			}
 			return err
 		}
+		workspace, err := authorizeWorkspaceForUpdate(tx, catalog.WorkspaceID, ownerID, WorkspacePermissionEdit)
+		if err != nil {
+			return err
+		}
+		if err := requireResourceOwner(catalog.OwnerID, workspace.OwnerID); err != nil {
+			return err
+		}
 		workspaceID = catalog.WorkspaceID
 		var catalogs []models.Catalog
-		if err := tx.Where("workspace_id = ? AND owner_id = ?", catalog.WorkspaceID, ownerID).Find(&catalogs).Error; err != nil {
+		if err := tx.Where("workspace_id = ? AND owner_id = ?", catalog.WorkspaceID, workspace.OwnerID).Find(&catalogs).Error; err != nil {
 			return err
 		}
 		catalogIDs := catalogDescendantIDs(id, catalogs)
 		var docIDs []uint
-		if err := tx.Model(&models.Doc{}).Where("catalog_id IN ? AND owner_id = ?", catalogIDs, ownerID).Pluck("id", &docIDs).Error; err != nil {
+		if err := tx.Model(&models.Doc{}).Where("catalog_id IN ? AND owner_id = ?", catalogIDs, workspace.OwnerID).Pluck("id", &docIDs).Error; err != nil {
 			return err
 		}
 		if len(docIDs) > 0 {
-			if err := tx.Where("doc_id IN ? AND owner_id = ?", docIDs, ownerID).Delete(&models.ShareLink{}).Error; err != nil {
+			if err := tx.Where("doc_id IN ? AND owner_id = ?", docIDs, workspace.OwnerID).Delete(&models.ShareLink{}).Error; err != nil {
 				return err
 			}
-			if err := tx.Where("doc_id IN ? AND owner_id = ?", docIDs, ownerID).Delete(&models.DocVersion{}).Error; err != nil {
+			if err := tx.Where("doc_id IN ? AND owner_id = ?", docIDs, workspace.OwnerID).Delete(&models.DocVersion{}).Error; err != nil {
 				return err
 			}
-			if err := tx.Where("id IN ? AND owner_id = ?", docIDs, ownerID).Delete(&models.Doc{}).Error; err != nil {
+			if err := tx.Where("id IN ? AND owner_id = ?", docIDs, workspace.OwnerID).Delete(&models.Doc{}).Error; err != nil {
 				return err
 			}
-			if err := tx.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", catalog.WorkspaceID, ownerID).
+			if err := tx.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", catalog.WorkspaceID, workspace.OwnerID).
 				UpdateColumn("doc_count", gorm.Expr("GREATEST(doc_count - ?, 0)", len(docIDs))).Error; err != nil {
 				return err
 			}
 		}
-		return tx.Where("id IN ? AND owner_id = ?", catalogIDs, ownerID).Delete(&models.Catalog{}).Error
+		return tx.Where("id IN ? AND owner_id = ?", catalogIDs, workspace.OwnerID).Delete(&models.Catalog{}).Error
 	})
 	if err == nil {
 		deleteWorkspaceCache(workspaceID)
@@ -122,43 +157,30 @@ func (s *CatalogService) Delete(id, ownerID uint) error {
 	return err
 }
 
-func (s *CatalogService) get(id, ownerID uint) (*models.Catalog, error) {
-	var catalog models.Catalog
-	if err := database.DB.Where("id = ? AND owner_id = ?", id, ownerID).First(&catalog).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrKnowledgeNotFound
-		}
+func (s *CatalogService) get(id, ownerID uint, permission WorkspacePermission) (*models.Catalog, *models.Workspace, error) {
+	return workspaceForCatalog(database.DB, id, ownerID, permission)
+}
+
+func requireWorkspace(db *gorm.DB, workspaceID, ownerID uint, permission WorkspacePermission) (*models.Workspace, error) {
+	return authorizeWorkspace(db, workspaceID, ownerID, permission)
+}
+
+func validateWorkspaceAndParent(db *gorm.DB, workspaceID, ownerID uint, parentID *uint, permission WorkspacePermission) (*models.Workspace, error) {
+	workspace, err := requireWorkspace(db, workspaceID, ownerID, permission)
+	if err != nil {
 		return nil, err
 	}
-	return &catalog, nil
-}
-
-func requireWorkspace(db *gorm.DB, workspaceID, ownerID uint) error {
-	var count int64
-	if err := db.Model(&models.Workspace{}).Where("id = ? AND owner_id = ?", workspaceID, ownerID).Count(&count).Error; err != nil {
-		return err
-	}
-	if count == 0 {
-		return ErrKnowledgeNotFound
-	}
-	return nil
-}
-
-func validateWorkspaceAndParent(db *gorm.DB, workspaceID, ownerID uint, parentID *uint) error {
-	if err := requireWorkspace(db, workspaceID, ownerID); err != nil {
-		return err
-	}
 	if parentID == nil {
-		return nil
+		return workspace, nil
 	}
 	var count int64
-	if err := db.Model(&models.Catalog{}).Where("id = ? AND workspace_id = ? AND owner_id = ?", *parentID, workspaceID, ownerID).Count(&count).Error; err != nil {
-		return err
+	if err := db.Model(&models.Catalog{}).Where("id = ? AND workspace_id = ? AND owner_id = ?", *parentID, workspaceID, workspace.OwnerID).Count(&count).Error; err != nil {
+		return nil, err
 	}
 	if count == 0 {
-		return ErrKnowledgeNotFound
+		return nil, ErrKnowledgeNotFound
 	}
-	return nil
+	return workspace, nil
 }
 
 func buildCatalogTree(catalogs []models.Catalog) []*models.CatalogResponse {

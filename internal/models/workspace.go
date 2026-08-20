@@ -29,15 +29,22 @@ type WorkspaceRequest struct {
 }
 
 type WorkspaceResponse struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Icon        string    `json:"icon"`
-	Sort        int       `json:"sort"`
-	DocCount    int       `json:"doc_count"`
-	IsPublic    bool      `json:"is_public"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           uint                   `json:"id"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
+	Icon         string                 `json:"icon"`
+	Sort         int                    `json:"sort"`
+	DocCount     int                    `json:"doc_count"`
+	IsPublic     bool                   `json:"is_public"`
+	CreatedAt    time.Time              `json:"created_at"`
+	UpdatedAt    time.Time              `json:"updated_at"`
+	Capabilities *WorkspaceCapabilities `json:"capabilities,omitempty"`
+}
+
+type WorkspaceCapabilities struct {
+	CanEdit          bool `json:"can_edit"`
+	CanManageMembers bool `json:"can_manage_members"`
+	CanDelete        bool `json:"can_delete"`
 }
 
 func (w *Workspace) ToResponse() *WorkspaceResponse {
