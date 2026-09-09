@@ -97,6 +97,16 @@
       <br/><p align="center"><b>文档分享 - 创建并管理免登录访问链接</b></p>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/introduce/theme-customization.png" alt="主题功能展示" />
+      <br/><p align="center"><b>主题功能 - 个性化页面风格</b></p>
+    </td>
+    <td width="50%">
+      <img src="docs/introduce/theme-preview.png" alt="主题效果预览" />
+      <br/><p align="center"><b>主题预览 - 多端显示效果</b></p>
+    </td>
+  </tr>
 </table>
 
 ### 为什么选择 InkSpace
