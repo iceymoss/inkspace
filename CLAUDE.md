@@ -25,7 +25,7 @@ cd web/admin && pnpm install && pnpm dev     # 管理前端  :3002
 pnpm build                                   # 生产构建（在各自目录下）
 pnpm lint                                    # ESLint --fix
 
-# 测试：当前仓库尚无 Go 单测（无 *_test.go）。新增测试后：
+# 测试：已有 Go 单测（internal/{models,service,handler,router,middleware}、pkg/uploader）
 go test ./... -count=1                        # 跑全部
 go test ./internal/service/ -run TestXxx -v   # 跑单个测试
 ```
