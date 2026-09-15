@@ -52,6 +52,16 @@
             <el-icon><Promotion /></el-icon>
             <span>广告管理</span>
           </el-menu-item>
+          <el-sub-menu index="/knowledge">
+            <template #title><el-icon><Collection /></el-icon><span>知识库</span></template>
+            <el-menu-item index="/knowledge">概览</el-menu-item>
+            <el-menu-item index="/knowledge/workspaces">工作区</el-menu-item>
+            <el-menu-item index="/knowledge/docs">文档</el-menu-item>
+            <el-menu-item index="/knowledge/quota">配额设置</el-menu-item>
+			<el-menu-item index="/knowledge/shares">分享链接</el-menu-item>
+			<el-menu-item index="/knowledge/usage">资源占用</el-menu-item>
+			<el-menu-item index="/knowledge/audit-logs">审计日志</el-menu-item>
+          </el-sub-menu>
         </el-menu>
       </el-aside>
 
@@ -101,7 +111,8 @@ import {
   Link,
   Setting,
   User,
-  Promotion
+  Promotion,
+  Collection
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -121,7 +132,14 @@ const breadcrumbTitle = computed(() => {
     '/links': '友链管理',
     '/settings': '系统配置',
     '/users': '用户管理',
-    '/ads': '广告管理'
+    '/ads': '广告管理',
+    '/knowledge': '知识库概览',
+    '/knowledge/workspaces': '知识库工作区',
+    '/knowledge/docs': '知识库文档',
+    '/knowledge/quota': '知识库配额',
+    '/knowledge/shares': '分享链接',
+    '/knowledge/usage': '资源占用',
+    '/knowledge/audit-logs': '审计日志'
   }
   return titles[route.path] || '管理'
 })

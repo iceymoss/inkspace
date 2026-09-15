@@ -211,7 +211,11 @@ const handleNotificationClick = async (notification) => {
   }
 
   // 跳转到相关内容
-  if (notification.type === 'follow' && notification.from_user_id) {
+  if (notification.doc_id) {
+    router.push(`/dashboard/docs/${notification.doc_id}`)
+  } else if (notification.type === 'workspace_audit') {
+    router.push('/dashboard/workspaces')
+  } else if (notification.type === 'follow' && notification.from_user_id) {
     // 关注通知：跳转到关注者的个人主页
     router.push(`/users/${notification.from_user_id}`)
   } else if (notification.article_id) {
@@ -223,6 +227,8 @@ const handleNotificationClick = async (notification) => {
 
 const getTypeTag = (type) => {
   const tags = {
+    doc_audit: { label: '文档审核', type: 'warning' },
+    workspace_audit: { label: '知识库审核', type: 'warning' },
     comment: { label: '评论', type: 'primary' },
     like: { label: '点赞', type: 'danger' },
     favorite: { label: '收藏', type: 'warning' },

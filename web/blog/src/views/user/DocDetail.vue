@@ -1,5 +1,6 @@
 <template>
   <section class="doc-detail-page">
+	<el-alert v-if="doc?.audit_status || doc?.workspace_audit_status" type="warning" :closable="false" title="已被管理员下架，对外访问已关闭" :description="doc.audit_reason || doc.workspace_audit_reason" show-icon />
     <div
       v-if="loading"
       class="doc-card loading-card"

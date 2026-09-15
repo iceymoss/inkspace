@@ -76,7 +76,18 @@ const routes = [
         path: 'ads',
         name: 'Ads',
         component: () => import('@/views/admin/Ads.vue')
-      }
+      },
+      {
+        path: 'knowledge',
+        name: 'KnowledgeOverview',
+        component: () => import('@/views/admin/KnowledgeOverview.vue')
+      },
+      { path: 'knowledge/workspaces', name: 'KnowledgeWorkspaces', component: () => import('@/views/admin/KnowledgeWorkspaces.vue') },
+      { path: 'knowledge/docs', name: 'KnowledgeDocs', component: () => import('@/views/admin/KnowledgeDocs.vue') },
+      { path: 'knowledge/quota', name: 'KnowledgeQuota', component: () => import('@/views/admin/KnowledgeQuota.vue') },
+      { path: 'knowledge/shares', name: 'KnowledgeShares', component: () => import('@/views/admin/KnowledgeShares.vue') },
+      { path: 'knowledge/usage', name: 'KnowledgeUsage', component: () => import('@/views/admin/KnowledgeUsage.vue') },
+      { path: 'knowledge/audit-logs', name: 'KnowledgeAuditLogs', component: () => import('@/views/admin/KnowledgeAuditLogs.vue') }
     ]
   }
 ]
