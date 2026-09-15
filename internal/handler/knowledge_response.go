@@ -16,7 +16,7 @@ func knowledgeError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrKnowledgeNotFound):
 		utils.NotFound(c, err.Error())
-	case errors.Is(err, service.ErrShareDisabled), errors.Is(err, service.ErrShareExpired):
+	case errors.Is(err, service.ErrShareDisabled), errors.Is(err, service.ErrShareExpired), errors.Is(err, service.ErrContentBlocked):
 		utils.Forbidden(c, err.Error())
 	case errors.Is(err, service.ErrKnowledgeForbidden), errors.Is(err, service.ErrWorkspaceOwner):
 		utils.Forbidden(c, err.Error())

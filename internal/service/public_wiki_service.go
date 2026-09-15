@@ -22,8 +22,8 @@ func NewPublicWikiService() *PublicWikiService { return &PublicWikiService{} }
 func (s *PublicWikiService) Stats() (*models.PublicWikiStatsResponse, error) {
 	var count int64
 	err := database.DB.Model(&models.Doc{}).
-		Joins("JOIN workspaces ON workspaces.id = docs.workspace_id AND workspaces.owner_id = docs.owner_id AND workspaces.is_public = ? AND workspaces.deleted_at IS NULL", true).
-		Where("docs.status = ? AND docs.deleted_at IS NULL", models.DocStatusPublished).
+		Joins("JOIN workspaces ON workspaces.id = docs.workspace_id AND workspaces.owner_id = docs.owner_id AND workspaces.is_public = ? AND workspaces.audit_status = ? AND workspaces.deleted_at IS NULL", true, models.AuditStatusNormal).
+		Where("docs.status = ? AND docs.audit_status = 0 AND docs.deleted_at IS NULL", models.DocStatusPublished).
 		Count(&count).Error
 	if err != nil {
 		return nil, err
@@ -34,16 +34,16 @@ func (s *PublicWikiService) Stats() (*models.PublicWikiStatsResponse, error) {
 func (s *PublicWikiService) Workspaces(page, pageSize int) ([]*models.PublicWorkspaceResponse, int64, error) {
 	var total int64
 	if err := database.DB.Model(&models.Workspace{}).
-		Where("workspaces.is_public = ? AND workspaces.deleted_at IS NULL", true).Count(&total).Error; err != nil {
+		Where("workspaces.is_public = ? AND workspaces.audit_status = 0 AND workspaces.deleted_at IS NULL", true).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	var workspaces []*models.PublicWorkspaceResponse
 	err := database.DB.Model(&models.Workspace{}).
 		Select("workspaces.id, workspaces.name, workspaces.description, workspaces.icon, workspaces.updated_at, workspaces.owner_id AS author_id, COALESCE(NULLIF(users.nickname, ''), users.username, '') AS author_name, COALESCE(users.avatar, '') AS author_avatar, COUNT(docs.id) AS doc_count").
-		Joins("LEFT JOIN docs ON docs.workspace_id = workspaces.id AND docs.owner_id = workspaces.owner_id AND docs.status = ? AND docs.deleted_at IS NULL", models.DocStatusPublished).
+		Joins("LEFT JOIN docs ON docs.workspace_id = workspaces.id AND docs.owner_id = workspaces.owner_id AND docs.status = ? AND docs.audit_status = ? AND docs.deleted_at IS NULL", models.DocStatusPublished, models.AuditStatusNormal).
 		Joins("LEFT JOIN users ON users.id = workspaces.owner_id AND users.deleted_at IS NULL").
-		Where("workspaces.is_public = ? AND workspaces.deleted_at IS NULL", true).
+		Where("workspaces.is_public = ? AND workspaces.audit_status = 0 AND workspaces.deleted_at IS NULL", true).
 		Group("workspaces.id, workspaces.name, workspaces.description, workspaces.icon, workspaces.updated_at, workspaces.owner_id, users.id, users.nickname, users.username, users.avatar").
 		Order("workspaces.updated_at DESC, workspaces.id DESC").
 		Offset((page - 1) * pageSize).Limit(pageSize).Scan(&workspaces).Error
@@ -59,6 +59,7 @@ func (s *PublicWikiService) Tree(workspaceID uint) (*models.PublicWorkspaceTreeR
 	var docs []models.Doc
 	err = database.DB.Model(&models.Doc{}).
 		Select("docs.id, docs.catalog_id, docs.title, docs.sort, docs.published_at, docs.updated_at").
+		Where("docs.audit_status = 0 AND workspaces.audit_status = 0").
 		Joins("JOIN workspaces ON workspaces.id = docs.workspace_id AND workspaces.owner_id = docs.owner_id AND workspaces.is_public = ? AND workspaces.deleted_at IS NULL", true).
 		Joins("LEFT JOIN catalogs ON catalogs.id = docs.catalog_id AND catalogs.workspace_id = docs.workspace_id AND catalogs.owner_id = docs.owner_id AND catalogs.deleted_at IS NULL").
 		Where("docs.workspace_id = ? AND docs.owner_id = ? AND docs.status = ? AND docs.deleted_at IS NULL AND (docs.catalog_id IS NULL OR catalogs.id IS NOT NULL)", workspace.ID, workspace.OwnerID, models.DocStatusPublished).
@@ -132,6 +133,7 @@ func (s *PublicWikiService) Doc(id uint) (*models.PublicDocResponse, error) {
 	var doc models.PublicDocResponse
 	err := database.DB.Model(&models.Doc{}).
 		Select("docs.id, docs.workspace_id, docs.catalog_id, docs.title, docs.content_html, docs.view_count, docs.published_at, docs.updated_at").
+		Where("docs.audit_status = 0 AND workspaces.audit_status = 0").
 		Joins("JOIN workspaces ON workspaces.id = docs.workspace_id AND workspaces.owner_id = docs.owner_id AND workspaces.is_public = ? AND workspaces.deleted_at IS NULL", true).
 		Joins("LEFT JOIN catalogs ON catalogs.id = docs.catalog_id AND catalogs.workspace_id = docs.workspace_id AND catalogs.owner_id = docs.owner_id AND catalogs.deleted_at IS NULL").
 		Where("docs.id = ? AND docs.status = ? AND docs.deleted_at IS NULL AND (docs.catalog_id IS NULL OR catalogs.id IS NOT NULL)", id, models.DocStatusPublished).Take(&doc).Error
@@ -147,7 +149,7 @@ func (s *PublicWikiService) Doc(id uint) (*models.PublicDocResponse, error) {
 
 func publicWorkspace(id uint) (*models.Workspace, error) {
 	var workspace models.Workspace
-	if err := database.DB.Where("id = ? AND is_public = ? AND deleted_at IS NULL", id, true).First(&workspace).Error; err != nil {
+	if err := database.DB.Where("id = ? AND is_public = ? AND audit_status = 0 AND deleted_at IS NULL", id, true).First(&workspace).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrKnowledgeNotFound
 		}

@@ -10,10 +10,12 @@ const (
 	DocStatusDraft     = 0
 	DocStatusPublished = 1
 
-	DocKindMarkdown = "markdown"
-	DocKindText     = "text"
-	DocKindCode     = "code"
-	DocKindFile     = "file"
+	DocKindMarkdown         = "markdown"
+	DocKindText             = "text"
+	DocKindCode             = "code"
+	DocKindFile             = "file"
+	AuditStatusNormal  int8 = 0
+	AuditStatusBlocked int8 = 1
 )
 
 type Doc struct {
@@ -32,6 +34,10 @@ type Doc struct {
 	PublishedRevision     uint64         `gorm:"default:0;not null" json:"published_revision"`
 	Revision              uint64         `gorm:"default:1;not null" json:"revision"`
 	Status                int            `gorm:"index;default:0;not null" json:"status"`
+	AuditStatus           int8           `gorm:"default:0;index" json:"audit_status"`
+	AuditReason           string         `gorm:"size:255" json:"audit_reason,omitempty"`
+	AuditedBy             uint           `gorm:"index" json:"audited_by"`
+	AuditedAt             *time.Time     `json:"audited_at,omitempty"`
 	WordCount             int            `gorm:"default:0" json:"word_count"`
 	ViewCount             int            `gorm:"default:0" json:"view_count"`
 	Sort                  int            `gorm:"default:0" json:"sort"`
@@ -90,6 +96,8 @@ type KnowledgeFileUploadRequest struct {
 }
 
 type DocResponse struct {
+	AuditStatus int8       `json:"audit_status"`
+	AuditReason string     `json:"audit_reason"`
 	ID          uint       `json:"id"`
 	WorkspaceID uint       `json:"workspace_id"`
 	CatalogID   *uint      `json:"catalog_id"`
@@ -135,25 +143,29 @@ type DocAttachmentDetail struct {
 }
 
 type DocDetailResponse struct {
-	ID           uint                 `json:"id"`
-	WorkspaceID  uint                 `json:"workspace_id"`
-	CatalogID    *uint                `json:"catalog_id"`
-	ArticleID    *uint                `json:"article_id"`
-	Title        string               `json:"title"`
-	Content      string               `json:"content,omitempty"`
-	ContentHTML  string               `json:"content_html,omitempty"`
-	Kind         string               `json:"kind"`
-	Language     string               `json:"language"`
-	Revision     uint64               `json:"revision"`
-	Status       int                  `json:"status"`
-	WordCount    int                  `json:"word_count"`
-	ViewCount    int                  `json:"view_count"`
-	PublishedAt  *time.Time           `json:"published_at"`
-	CreatedAt    time.Time            `json:"created_at"`
-	UpdatedAt    time.Time            `json:"updated_at"`
-	Attachment   *DocAttachmentDetail `json:"attachment"`
-	Preview      interface{}          `json:"preview"`
-	Capabilities DocCapabilities      `json:"capabilities"`
+	AuditStatus          int8                 `json:"audit_status"`
+	AuditReason          string               `json:"audit_reason"`
+	WorkspaceAuditStatus int8                 `json:"workspace_audit_status"`
+	WorkspaceAuditReason string               `json:"workspace_audit_reason"`
+	ID                   uint                 `json:"id"`
+	WorkspaceID          uint                 `json:"workspace_id"`
+	CatalogID            *uint                `json:"catalog_id"`
+	ArticleID            *uint                `json:"article_id"`
+	Title                string               `json:"title"`
+	Content              string               `json:"content,omitempty"`
+	ContentHTML          string               `json:"content_html,omitempty"`
+	Kind                 string               `json:"kind"`
+	Language             string               `json:"language"`
+	Revision             uint64               `json:"revision"`
+	Status               int                  `json:"status"`
+	WordCount            int                  `json:"word_count"`
+	ViewCount            int                  `json:"view_count"`
+	PublishedAt          *time.Time           `json:"published_at"`
+	CreatedAt            time.Time            `json:"created_at"`
+	UpdatedAt            time.Time            `json:"updated_at"`
+	Attachment           *DocAttachmentDetail `json:"attachment"`
+	Preview              interface{}          `json:"preview"`
+	Capabilities         DocCapabilities      `json:"capabilities"`
 }
 
 type DocSearchResponse struct {
@@ -180,6 +192,7 @@ func (d *Doc) ToResponse() *DocResponse {
 		revision = 1
 	}
 	return &DocResponse{
+		AuditStatus: d.AuditStatus, AuditReason: d.AuditReason,
 		ID: d.ID, WorkspaceID: d.WorkspaceID, CatalogID: d.CatalogID, ArticleID: d.ArticleID, Title: d.Title,
 		Content: d.Content, ContentHTML: d.ContentHTML, Kind: kind, Language: d.Language, Revision: revision,
 		Status: d.Status, WordCount: d.WordCount,

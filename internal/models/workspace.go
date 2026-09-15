@@ -15,6 +15,10 @@ type Workspace struct {
 	Sort        int            `gorm:"default:0" json:"sort"`
 	DocCount    int            `gorm:"default:0;not null" json:"doc_count"`
 	IsPublic    bool           `gorm:"default:false;index;not null" json:"is_public"`
+	AuditStatus int8           `gorm:"default:0;index" json:"audit_status"`
+	AuditReason string         `gorm:"size:255" json:"audit_reason,omitempty"`
+	AuditedBy   uint           `gorm:"index" json:"audited_by"`
+	AuditedAt   *time.Time     `json:"audited_at,omitempty"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
@@ -29,6 +33,8 @@ type WorkspaceRequest struct {
 }
 
 type WorkspaceResponse struct {
+	AuditStatus  int8                   `json:"audit_status"`
+	AuditReason  string                 `json:"audit_reason"`
 	ID           uint                   `json:"id"`
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description"`
@@ -49,6 +55,7 @@ type WorkspaceCapabilities struct {
 
 func (w *Workspace) ToResponse() *WorkspaceResponse {
 	return &WorkspaceResponse{
+		AuditStatus: w.AuditStatus, AuditReason: w.AuditReason,
 		ID: w.ID, Name: w.Name, Description: w.Description, Icon: w.Icon,
 		Sort: w.Sort, DocCount: w.DocCount, IsPublic: w.IsPublic, CreatedAt: w.CreatedAt, UpdatedAt: w.UpdatedAt,
 	}

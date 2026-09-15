@@ -26,6 +26,7 @@ func SetupAdminRouter(assets ...fs.FS) *gin.Engine {
 	linkHandler := handler.NewLinkHandler()
 	settingHandler := handler.NewSettingHandler()
 	adminAuthHandler := handler.NewAdminAuthHandler()
+	knowledgeHandler := handler.NewKnowledgeAdminHandler()
 	uploadHandler := handler.NewUploadHandler()
 	adHandler := handler.NewAdHandler()
 
@@ -62,6 +63,17 @@ func SetupAdminRouter(assets ...fs.FS) *gin.Engine {
 		{
 			// Users management
 			admin.GET("/users", userHandler.GetUserList)
+			admin.GET("/knowledge/workspaces", knowledgeHandler.ListW)
+			admin.GET("/knowledge/docs", knowledgeHandler.ListD)
+			admin.PUT("/knowledge/:type/:id/audit", knowledgeHandler.Audit)
+			admin.DELETE("/knowledge/:type/:id", knowledgeHandler.Delete)
+			admin.GET("/knowledge/quota", knowledgeHandler.Quota)
+			admin.GET("/knowledge/overview", knowledgeHandler.Overview)
+			admin.GET("/knowledge/shares", knowledgeHandler.Shares)
+			admin.GET("/knowledge/usage", knowledgeHandler.Usage)
+			admin.GET("/knowledge/audit-logs", knowledgeHandler.AuditLogs)
+			admin.GET("/knowledge/:type/:id", knowledgeHandler.Detail)
+			admin.PUT("/knowledge/quota", knowledgeHandler.SaveQuota)
 			admin.PUT("/users/:id/status", userHandler.UpdateUserStatus)
 			admin.PUT("/users/:id/role", userHandler.UpdateUserRole)
 			admin.DELETE("/users/:id", userHandler.DeleteUser)

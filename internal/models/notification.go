@@ -13,14 +13,15 @@ type Notification struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	UserID     uint   `gorm:"not null;index" json:"user_id"`             // 接收通知的用户
-	FromUserID *uint  `gorm:"index" json:"from_user_id,omitempty"`       // 触发通知的用户（NULL表示系统通知）
-	Type       string `gorm:"type:varchar(50);not null" json:"type"`     // comment/like/favorite/follow/reply
-	Content    string `gorm:"type:text" json:"content"`                  // 通知内容
-	ArticleID  *uint  `gorm:"index" json:"article_id,omitempty"`         // 相关文章ID
-	WorkID     *uint  `gorm:"index" json:"work_id,omitempty"`            // 相关作品ID
-	CommentID  *uint  `gorm:"index" json:"comment_id,omitempty"`         // 相关评论ID
-	IsRead     bool   `gorm:"default:false;index" json:"is_read"`        // 是否已读
+	UserID     uint   `gorm:"not null;index" json:"user_id"`         // 接收通知的用户
+	FromUserID *uint  `gorm:"index" json:"from_user_id,omitempty"`   // 触发通知的用户（NULL表示系统通知）
+	Type       string `gorm:"type:varchar(50);not null" json:"type"` // comment/like/favorite/follow/reply
+	Content    string `gorm:"type:text" json:"content"`              // 通知内容
+	ArticleID  *uint  `gorm:"index" json:"article_id,omitempty"`     // 相关文章ID
+	WorkID     *uint  `gorm:"index" json:"work_id,omitempty"`        // 相关作品ID
+	CommentID  *uint  `gorm:"index" json:"comment_id,omitempty"`     // 相关评论ID
+	DocID      *uint  `gorm:"index" json:"doc_id,omitempty"`
+	IsRead     bool   `gorm:"default:false;index" json:"is_read"` // 是否已读
 
 	User     *User    `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	FromUser *User    `gorm:"foreignKey:FromUserID" json:"from_user,omitempty"`
@@ -45,6 +46,7 @@ type NotificationResponse struct {
 	ArticleID  *uint         `json:"article_id,omitempty"`
 	WorkID     *uint         `json:"work_id,omitempty"`
 	CommentID  *uint         `json:"comment_id,omitempty"`
+	DocID      *uint         `json:"doc_id,omitempty"`
 	IsRead     bool          `json:"is_read"`
 	CreatedAt  time.Time     `json:"created_at"`
 }
@@ -60,6 +62,7 @@ func (n *Notification) ToResponse() *NotificationResponse {
 		ArticleID:  n.ArticleID,
 		WorkID:     n.WorkID,
 		CommentID:  n.CommentID,
+		DocID:      n.DocID,
 		IsRead:     n.IsRead,
 		CreatedAt:  n.CreatedAt,
 	}

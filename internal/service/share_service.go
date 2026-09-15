@@ -104,6 +104,13 @@ func (s *ShareService) Public(token string, now time.Time) (*models.Doc, error) 
 			}
 			return err
 		}
+		var workspace models.Workspace
+		if err := tx.Select("audit_status").Where("id = ?", doc.WorkspaceID).First(&workspace).Error; err != nil {
+			return err
+		}
+		if err := validateShareLink(&link, now, doc.AuditStatus, workspace.AuditStatus); err != nil {
+			return err
+		}
 		html, err := renderMarkdown(doc.Content)
 		if err != nil {
 			return err
@@ -138,7 +145,12 @@ func (s *ShareService) get(id, ownerID uint) (*models.ShareLink, *models.Workspa
 	return &link, workspace, nil
 }
 
-func validateShareLink(link *models.ShareLink, now time.Time) error {
+func validateShareLink(link *models.ShareLink, now time.Time, auditStatuses ...int8) error {
+	for _, status := range auditStatuses {
+		if status != models.AuditStatusNormal {
+			return ErrContentBlocked
+		}
+	}
 	if !link.Enabled {
 		return ErrShareDisabled
 	}

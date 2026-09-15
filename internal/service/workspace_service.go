@@ -8,6 +8,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type WorkspaceService struct{}
@@ -21,7 +22,16 @@ func (s *WorkspaceService) Create(req *models.WorkspaceRequest, ownerID uint) (*
 	if req.IsPublic != nil {
 		workspace.IsPublic = *req.IsPublic
 	}
-	if err := database.DB.Create(workspace).Error; err != nil {
+	if err := database.DB.Transaction(func(tx *gorm.DB) error {
+		var owner models.User
+		if err := tx.Select("id").Clauses(clause.Locking{Strength: "UPDATE"}).First(&owner, ownerID).Error; err != nil {
+			return err
+		}
+		if err := checkKnowledgeCountQuota(tx, QuotaMaxWorkspaces, 10, &models.Workspace{}, "owner_id=?", ownerID); err != nil {
+			return err
+		}
+		return tx.Create(workspace).Error
+	}); err != nil {
 		return nil, err
 	}
 	s.setCache(workspace)

@@ -47,3 +47,18 @@ func TestGenerateShareToken(t *testing.T) {
 		t.Fatalf("unexpected tokens %q and %q", first, second)
 	}
 }
+
+func TestShareModeration(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		doc, workspace int8
+		blocked        bool
+	}{{"normal", 0, 0, false}, {"doc blocked", 1, 0, true}, {"workspace blocked", 0, 1, true}, {"both blocked", 1, 1, true}} {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateShareLink(&models.ShareLink{Enabled: true}, time.Now(), test.doc, test.workspace)
+			if errors.Is(err, ErrContentBlocked) != test.blocked {
+				t.Fatalf("error=%v blocked=%v", err, test.blocked)
+			}
+		})
+	}
+}
