@@ -233,12 +233,22 @@ func (s *KnowledgeFileService) Upload(ctx context.Context, workspaceID, userID u
 			}
 		}
 		if attachment != nil {
+			var owner models.User
+			if err := tx.Select("id").Clauses(clause.Locking{Strength: "UPDATE"}).First(&owner, workspace.OwnerID).Error; err != nil {
+				return err
+			}
+			if err := checkKnowledgeStorageQuota(tx, workspace.OwnerID, attachment.FileSize); err != nil {
+				return err
+			}
 			if err := tx.Create(attachment).Error; err != nil {
 				return err
 			}
 			doc.AttachmentID = &attachment.ID
 		}
 		doc.OwnerID = workspace.OwnerID
+		if err := checkKnowledgeCountQuota(tx, QuotaMaxDocs, 500, &models.Doc{}, "workspace_id=?", workspaceID); err != nil {
+			return err
+		}
 		if err := tx.Create(&doc).Error; err != nil {
 			return err
 		}

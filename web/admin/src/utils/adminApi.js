@@ -24,7 +24,7 @@ adminApi.interceptors.request.use(
 adminApi.interceptors.response.use(
   (response) => {
     const data = response.data
-    if (data.code === 0 || response.status === 200) {
+    if (data.code === 0) {
       return data
     } else {
       ElMessage.error(data.message || '请求失败')
@@ -38,7 +38,7 @@ adminApi.interceptors.response.use(
         case 401:
           ElMessage.error('未登录或登录已过期')
           localStorage.removeItem('admin_token')
-          window.location.href = '/admin/login'
+          window.location.href = `${import.meta.env.BASE_URL}login`
           break
         case 403:
           ElMessage.error('没有权限')

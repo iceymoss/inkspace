@@ -4,6 +4,7 @@
     class="workspace-detail"
   >
     <div class="workspace-shell">
+	  <el-alert v-if="store.currentWorkspace?.audit_status" type="warning" :closable="false" title="知识库已被管理员下架" :description="store.currentWorkspace.audit_reason" show-icon />
       <header class="workspace-header">
         <div class="workspace-heading">
           <el-button

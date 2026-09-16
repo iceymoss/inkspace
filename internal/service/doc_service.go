@@ -48,6 +48,7 @@ func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models
 			return err
 		}
 		if req.CatalogID != nil {
+
 			var catalog models.Catalog
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 				Where("id = ? AND workspace_id = ? AND owner_id = ?", *req.CatalogID, req.WorkspaceID, workspace.OwnerID).
@@ -57,6 +58,9 @@ func (s *DocService) Create(req *models.DocCreateRequest, ownerID uint) (*models
 				}
 				return err
 			}
+		}
+		if err := checkKnowledgeCountQuota(tx, QuotaMaxDocs, 500, &models.Doc{}, "workspace_id = ?", req.WorkspaceID); err != nil {
+			return err
 		}
 		doc = models.Doc{
 			WorkspaceID: req.WorkspaceID, CatalogID: req.CatalogID, OwnerID: workspace.OwnerID,
@@ -142,13 +146,14 @@ func (s *DocService) Detail(id, userID uint) (*models.DocDetailResponse, error) 
 	if err != nil {
 		return nil, err
 	}
-	public := workspace.IsPublic && doc.Status == models.DocStatusPublished
+	public := workspace.IsPublic && doc.Status == models.DocStatusPublished && workspace.AuditStatus == 0 && doc.AuditStatus == 0
 	if !member && !public {
 		return nil, ErrKnowledgeNotFound
 	}
 
 	kind := normalizedDocKind(doc.Kind)
 	response := &models.DocDetailResponse{
+		AuditStatus: doc.AuditStatus, AuditReason: doc.AuditReason, WorkspaceAuditStatus: workspace.AuditStatus, WorkspaceAuditReason: workspace.AuditReason,
 		ID: doc.ID, WorkspaceID: doc.WorkspaceID, CatalogID: doc.CatalogID, ArticleID: doc.ArticleID,
 		Title: doc.Title, Kind: kind, Language: doc.Language, Revision: normalizedRevision(doc.Revision),
 		Status: doc.Status, WordCount: doc.WordCount, ViewCount: doc.ViewCount, PublishedAt: doc.PublishedAt,

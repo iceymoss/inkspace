@@ -90,6 +90,7 @@ func autoMigrate() error {
 		&models.Doc{},
 		&models.DocVersion{},
 		&models.ShareLink{},
+		&models.AdminAuditLog{},
 		// 日志表
 		&models.VisitLog{},
 		&models.VisitLogSummary{},

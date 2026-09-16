@@ -332,6 +332,30 @@ func (s *NotificationService) CreateWorkAuditNotification(workID uint, status in
 	return nil
 }
 
+func (s *NotificationService) CreateDocAuditNotification(docID uint, blocked bool, reason string) error {
+	var doc models.Doc
+	if err := database.DB.First(&doc, docID).Error; err != nil {
+		return err
+	}
+	content := fmt.Sprintf("你的文档《%s》已恢复正常访问", doc.Title)
+	if blocked {
+		content = fmt.Sprintf("你的文档《%s》已被管理员下架。原因：%s", doc.Title, reason)
+	}
+	return database.DB.Create(&models.Notification{UserID: doc.OwnerID, Type: "doc_audit", Content: content, DocID: &docID}).Error
+}
+
+func (s *NotificationService) CreateWorkspaceAuditNotification(workspaceID uint, blocked bool, reason string) error {
+	var w models.Workspace
+	if err := database.DB.First(&w, workspaceID).Error; err != nil {
+		return err
+	}
+	content := fmt.Sprintf("你的知识库《%s》已恢复正常访问", w.Name)
+	if blocked {
+		content = fmt.Sprintf("你的知识库《%s》已被管理员下架，其中的文档将不再对外可见。原因：%s", w.Name, reason)
+	}
+	return database.DB.Create(&models.Notification{UserID: w.OwnerID, Type: "workspace_audit", Content: content}).Error
+}
+
 // GetNotificationMessage 获取通知消息内容
 func (s *NotificationService) GetNotificationMessage(notification *models.Notification) string {
 	var fromUserName string

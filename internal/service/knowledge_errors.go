@@ -23,6 +23,8 @@ var (
 	ErrPublicWikiTooLarge    = errors.New("公开知识库节点超过2000个，请拆分工作区")
 )
 
+var ErrContentBlocked = errors.New("内容已被管理员下架")
+
 type DocRevisionConflictError struct {
 	Revision uint64
 }
