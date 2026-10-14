@@ -66,7 +66,7 @@ HTTP 请求 → router（分组 + 中间件）→ handler（Gin，参数绑定 +
 
 ## Agent skills
 
-`.claude/skills/` 中的工程技能来自 [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 提交 `49dd158d1076134a641b33efb035946536778336`：复制了 `skills/engineering/` 的 20 个技能和主流程依赖的 `skills/productivity/{grilling,handoff}/`，均为项目级普通文件。
+`.claude/skills/` 包含两类项目级技能：22 个来自 [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 提交 `49dd158d1076134a641b33efb035946536778336` 的固定版本（`skills/engineering/` 的 20 个及 `skills/productivity/{grilling,handoff}/`），以及 InkSpace 自行维护的 `/catchup`、`/onboard`、`/git-commit` 三个辅助技能。后者不属于上游，也不替代工程主流程；用法见 `docs/agents/WORKFLOW.md`。
 
 ### Issue tracker
 

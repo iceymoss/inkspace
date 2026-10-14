@@ -2,7 +2,7 @@
 
 这份手册回答「现在该用哪个技能、下一步是什么、结果写到哪里」。InkSpace 将 [Matt Pocock Skills](https://www.aihero.dev/skills) 作为**可组合的工程技能**，不是每个任务都必须跑完的流水线。遇到不确定的入口，先用 `/ask-matt` 说明现状和目标；它是路由建议，不会替你自动完成整条流程。具体执行以本仓库 [`.claude/skills/`](../../.claude/skills/) 中的技能正文和 [项目规则](../../CLAUDE.md) 为准。
 
-本仓库安装的是 [上游提交 `49dd158d`](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 的 20 个 engineering 技能及主流程依赖 `/grilling`、`/handoff`，不是自动更新的全局插件。上游 `/ask-matt` 还介绍了其他未安装的独立入口（如 `/grill-me`、`/to-questionnaire`、`/wait-what`、`/teach`）；不要把它们视为本项目可直接调用的命令。
+本仓库安装的是 [上游提交 `49dd158d`](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 的 20 个 engineering 技能及主流程依赖 `/grilling`、`/handoff`，另有三个 InkSpace 本地辅助技能（见下文），不是自动更新的全局插件。上游 `/ask-matt` 还介绍了其他未安装的独立入口（如 `/grill-me`、`/to-questionnaire`、`/wait-what`、`/teach`）；不要把它们视为本项目可直接调用的命令。
 
 ## 一眼选路
 
@@ -18,6 +18,26 @@
 | 模块边界、可测试性或架构维护 | `/improve-codebase-architecture`、`/codebase-design` | 确定候选和测试 seam，再回需求流程 |
 | 需要试出 UI/状态模型、查外部资料 | `/prototype`、`/research` | 将验证过的结论带回需求讨论；跨目录/会话用 `/handoff` |
 | 实现完成或准备 PR | `/code-review`、`/pr`、`/retro` | 指定审查基点；验证后按权限决定是否提交、开 PR、复盘 |
+
+## InkSpace 本地辅助技能
+
+这三个入口由本项目维护，不属于上游的 22 个固定版本技能；它们处理主开发流程之外的工作，不另起一套需求 → 实施流程。
+
+| 场景 | 入口 | 边界 |
+| --- | --- | --- |
+| 新会话或 `/clear` 后想知道仓库进度 | [`/catchup`](../../.claude/skills/catchup/SKILL.md) | 只读恢复可验证状态；要**为下一会话生成**交接文件则用 `/handoff` |
+| 新成员想了解项目、找到开发入口 | [`/onboard`](../../.claude/skills/onboard/SKILL.md) | 按当前 README/规则介绍架构；具体需求仍用 `/ask-matt` 选路 |
+| 只想拟写提交信息，或已完成工作后明确要求提交 | [`/git-commit`](../../.claude/skills/git-commit/SKILL.md) | 不代替 `/implement` 的测试/审查；仅在获准时提交，不自动推送或开 PR |
+
+例如，以下每行都是**独立输入**，不是一条要整段执行的命令：
+
+```text
+/catchup 我刚切回 feat-workflow-mb，请根据当前分支和未提交变更告诉我已确认的进度；不要修改文件。
+/onboard 我想从 web/blog 的文章列表开始贡献，请指给我架构、相关规则和测试入口。
+/git-commit 只根据当前已完成的变更草拟提交信息，先不要暂存或提交。
+```
+
+本地启停和实际运行验证用已有的 `/run`，具体端口与命令见 [README 快速开始](../../README.md#-快速开始)；Go 测试按任务范围直接运行 `go test`。不用恢复旧的 `/run-services` 或 `/gotest`。需要选工程流程时用 `/ask-matt`，而不是把这些辅助技能当成自动编排器。
 
 ## 主流程：从想法到交付
 
