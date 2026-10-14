@@ -43,6 +43,7 @@
             </span>
             <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
             <span><el-icon><Clock /></el-icon> {{ formatDate(article.created_at) }}</span>
+            <span>约 {{ article.reading_time }} 分钟阅读</span>
           </div>
           <div class="article-tags">
             <el-tag 
