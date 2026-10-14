@@ -31,6 +31,7 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 	article := &models.Article{
 		Title:       req.Title,
 		Content:     req.Content,
+		ReadingTime: EstimateArticleReadingTime(req.Content),
 		Summary:     req.Summary,
 		Cover:       req.Cover,
 		CategoryID:  req.CategoryID,
@@ -148,6 +149,7 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 		updateData := map[string]interface{}{
 			"title":        req.Title,
 			"content":      req.Content,
+			"reading_time": EstimateArticleReadingTime(req.Content),
 			"summary":      req.Summary,
 			"cover":        req.Cover,
 			"category_id":  req.CategoryID,
