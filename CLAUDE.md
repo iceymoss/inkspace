@@ -63,3 +63,19 @@ HTTP 请求 → router（分组 + 中间件）→ handler（Gin，参数绑定 +
 - **只支持 MySQL**（`utf8mb4`）。不要写 SQLite/PostgreSQL 兼容分支。
 - 破坏性变更（删列、改类型、加唯一约束）`AutoMigrate` 不会自动处理，需人工确认并提供迁移 SQL（`scripts/`）；变更前先与用户对齐。
 - 主键用 `gorm:"primarykey"` 交给 GORM；软删除用内嵌 `gorm.DeletedAt`。
+
+## Agent skills
+
+`.claude/skills/` 中的工程技能来自 [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 提交 `49dd158d1076134a641b33efb035946536778336`：复制了 `skills/engineering/` 的 20 个技能和主流程依赖的 `skills/productivity/{grilling,handoff}/`，均为项目级普通文件。
+
+### Issue tracker
+
+使用仓库内的本地 Markdown 文件记录规格和任务，存放于 `.scratch/<feature-slug>/`。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+本地任务状态使用 `needs-triage`、`needs-info`、`ready-for-agent`、`ready-for-human`、`wontfix`。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+使用单一领域上下文；术语表位于根目录 `GLOSSARY.md`，架构决策记录位于 `docs/adr/`，按需创建。详见 `docs/agents/domain.md`。

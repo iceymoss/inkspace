@@ -273,6 +273,7 @@ go run cmd/admin/main.go
 
 ## 📚 文档
 
+- 🧭 [开发工作流指南](docs/agents/WORKFLOW.md) - 按场景使用 Matt Pocock Skills 与 InkSpace 本地适配
 - 🚀 [部署文档](docs/DEPLOYMENT.md) - 生产环境部署指南（Docker Compose）
 - 🗄️ [数据库设计](docs/database-design.md) - 数据库表结构设计说明
 
