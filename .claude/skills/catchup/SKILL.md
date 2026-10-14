@@ -1,28 +1,14 @@
 ---
 name: catchup
-description: 恢复上下文。在 /clear 后或新 session 开始时使用。当用户说恢复上下文、继续之前的工作、catchup 时触发。
+description: 恢复 InkSpace 工作上下文。用户在新会话、/clear 后要求继续之前的工作或了解当前进度时使用；只读梳理仓库证据，不代替 /handoff。
 ---
 
-恢复上下文。在 /clear 后或新 session 开始时使用。
+# Catchup
 
-## 步骤
+只读地整理当前可验证的工作状态，不根据未跟踪文件或提交标题猜测用户下一步的意图。
 
-1. 检查 PROGRESS.md 是否存在，如存在则读取
-2. 运行 `git log --oneline -20` 查看最近提交
-3. 运行 `git diff --stat HEAD~5` 查看最近变更的文件
-4. 运行 `git status` 查看当前工作状态
-5. 运行 `git branch -a` 查看分支状态
+1. 如果用户给了 handoff、spec、ticket 或分支引用，先读取它们；否则只检查实际存在、与任务相关的记录（如 `.scratch/` 下的文件或 `PROGRESS.md`）。不要假设这些文件一定存在。
+2. 用 `git status --short --branch`、`git log -8 --oneline`、`git diff --stat` 和 `git diff --cached --stat` 了解分支、提交及未提交变更。需要解释某项工作时，再查看对应的具体 diff、提交或文档。短历史仓库也应正常工作，不用固定的 `HEAD~N` 基点。
+3. 简洁汇报三部分：**已确认的事实**（附文件或提交依据）、**仍不确定的事**（如未提交文件的目的）和**建议的 1–3 个下一步**。不要将建议写成既定计划；缺少跨会话上下文时说明限制，并向用户确认实际目标。
 
-## 输出格式
-
-```
-## 当前状态
-- 分支: xxx
-- 最近工作: （从 git log 和 PROGRESS.md 总结）
-- 未完成的事: （从 PROGRESS.md 或未提交变更推断）
-
-## 建议下一步
-- （基于上下文给出 1-3 个建议）
-```
-
-简洁输出，不要重复 git log 的原始内容。
+本技能不修改文件、不执行测试、不创建提交。若要主动为下一会话生成可移植的上下文文件，使用 `/handoff`；若已给出具体任务，按 `docs/agents/WORKFLOW.md` 的入口继续。

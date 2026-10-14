@@ -148,7 +148,15 @@ func (h *ArticleHandler) GetDetail(c *gin.Context) {
 	// Increment view count
 	go h.service.IncrementViewCount(uint(id))
 
-	utils.Success(c, article.ToResponse())
+	utils.Success(c, articleDetailResponse(article))
+}
+
+func articleDetailResponse(article *models.Article) *models.ArticleResponse {
+	response := article.ToResponse()
+	if response.ReadingTime <= 0 {
+		response.ReadingTime = service.EstimateArticleReadingTime(response.Content)
+	}
+	return response
 }
 
 // GetEdit 获取文章详情用于编辑（需要认证，且只允许作者或管理员访问）
