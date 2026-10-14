@@ -5,7 +5,7 @@ description: 为 InkSpace 草拟提交信息，或在用户明确要求提交时
 
 # Git Commit
 
-此技能只处理**提交阶段**。仅要求拟写 commit message 时，不暂存、不提交；若请求包含推送或 PR，那是额外的对外操作，需分别核对权限 注意：commit不需要你的署名，这个非常重要。
+此技能只处理**提交阶段**。！！！注意！！！：commit不需要你的署名，这个非常重要，仅要求拟写 commit message 时，不暂存、不提交；若请求包含推送或 PR，那是额外的对外操作，需分别核对权限。
 
 1. 检查 `git status --short --branch`、`git diff`、`git diff --cached`、`git log -8 --oneline`。区分本任务修改与原有变更、生成文件及敏感数据；看不清提交边界时先询问，不使用 `git add .`、`git add -A` 或 `git commit -a`。
 2. 根据变更选择简洁的英文 Conventional Commit 标题：`<type>[(scope)]: <imperative description>`；常用 `feat`、`fix`、`docs`、`chore`、`refactor`、`test`、`ci`，scope 仅在能澄清范围时使用。一个提交对应一个逻辑变更；需要时在正文说明动机，不编造 issue 或测试结果。
