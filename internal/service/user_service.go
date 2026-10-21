@@ -9,6 +9,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserService struct{}
@@ -316,43 +317,62 @@ func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword strin
 	return nil
 }
 
+// changeUserAccount serializes changes to administrator eligibility using a lock on the
+// administrators' role/status index range. The count and mutation share the same transaction.
+func changeUserAccount(userID uint, change func(*gorm.DB, *models.User, int) error) error {
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		var admins []models.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("role = ? AND status = ?", "admin", 1).
+			Order("id").Find(&admins).Error; err != nil {
+			return err
+		}
+
+		var user models.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, userID).Error; err != nil {
+			return err
+		}
+		return change(tx, &user, len(admins))
+	})
+}
+
+func ensureAdminRemains(user *models.User, activeAdminCount int) error {
+	if user.Role == "admin" && user.Status == 1 && activeAdminCount <= 1 {
+		return errors.New("不能移除最后一位可登录管理员")
+	}
+	return nil
+}
+
 // UpdateUserStatus 更新用户状态
 func (s *UserService) UpdateUserStatus(userID uint, status int) error {
-	if err := database.DB.Model(&models.User{}).
-		Where("id = ?", userID).
-		Update("status", status).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return changeUserAccount(userID, func(tx *gorm.DB, user *models.User, activeAdminCount int) error {
+		if status != 1 {
+			if err := ensureAdminRemains(user, activeAdminCount); err != nil {
+				return err
+			}
+		}
+		return tx.Model(user).Update("status", status).Error
+	})
 }
 
 // UpdateUserRole 更新用户角色
 func (s *UserService) UpdateUserRole(userID uint, role string) error {
-	if err := database.DB.Model(&models.User{}).
-		Where("id = ?", userID).
-		Update("role", role).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return changeUserAccount(userID, func(tx *gorm.DB, user *models.User, activeAdminCount int) error {
+		if role != "admin" {
+			if err := ensureAdminRemains(user, activeAdminCount); err != nil {
+				return err
+			}
+		}
+		return tx.Model(user).Update("role", role).Error
+	})
 }
 
 // DeleteUser 删除用户
 func (s *UserService) DeleteUser(userID uint) error {
-	user, err := s.GetUserByID(userID)
-	if err != nil {
-		return err
-	}
-
-	// 不允许删除管理员
-	if user.Role == "admin" {
-		return errors.New("不能删除管理员账号")
-	}
-
-	if err := database.DB.Delete(user).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return changeUserAccount(userID, func(tx *gorm.DB, user *models.User, activeAdminCount int) error {
+		if err := ensureAdminRemains(user, activeAdminCount); err != nil {
+			return err
+		}
+		return tx.Delete(user).Error
+	})
 }

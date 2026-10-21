@@ -3,6 +3,8 @@ package middleware
 import (
 	"strings"
 
+	"github.com/iceymoss/inkspace/internal/database"
+	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -42,10 +44,23 @@ func AdminAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// JWT 中的角色可能已过期，每次访问后台都核对当前账号。
+		var user models.User
+		if err := database.DB.Select("id", "username", "role", "status").First(&user, claims.UserID).Error; err != nil {
+			utils.Unauthorized(c, "管理员账号已失效")
+			c.Abort()
+			return
+		}
+		if user.Role != "admin" || user.Status != 1 {
+			utils.Forbidden(c, "需要有效的管理员权限")
+			c.Abort()
+			return
+		}
+
 		// 将用户信息存入context
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
-		c.Set("role", claims.Role)
+		c.Set("user_id", user.ID)
+		c.Set("username", user.Username)
+		c.Set("role", user.Role)
 
 		c.Next()
 	}
