@@ -140,14 +140,6 @@ func loadEnvFile() {
 		return
 	}
 
-	// 读取 .env 文件并设置到环境变量
-	file, err := os.Open(envFile)
-	if err != nil {
-		log.Printf("警告: 无法打开 .env 文件: %v\n", err)
-		return
-	}
-	defer file.Close()
-
 	// 读取文件内容
 	content, err := os.ReadFile(envFile)
 	if err != nil {
@@ -173,7 +165,9 @@ func loadEnvFile() {
 			value = strings.Trim(value, `"'`)
 			// 进程环境变量优先于 .env。
 			if _, exists := os.LookupEnv(key); !exists {
-				os.Setenv(key, value)
+				if err := os.Setenv(key, value); err != nil {
+					log.Printf("警告: 无法设置 .env 变量 %q: %v\n", key, err)
+				}
 			}
 		}
 	}

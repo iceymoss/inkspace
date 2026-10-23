@@ -109,13 +109,16 @@ func TestBootstrapHTTPSubmissionAndReplay(t *testing.T) {
 		t.Fatalf("unexpected pending status: %+v", status)
 	}
 	body := `{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`
-	for _, invalid := range []string{
-		`{"secret":"wrong","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
-		`{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"different"}`,
-	} {
-		if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", invalid); got.Code == 0 {
-			t.Fatalf("accepted invalid initialization")
-		}
+	invalidRequests := map[string]string{
+		"wrong secret":          `{"secret":"wrong","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
+		"password confirmation": `{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"different"}`,
+	}
+	for name, invalid := range invalidRequests {
+		t.Run(name, func(t *testing.T) {
+			if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", invalid); got.Code == 0 {
+				t.Fatal("accepted invalid initialization")
+			}
+		})
 	}
 	if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body); got.Code != 0 {
 		t.Fatalf("initialization failed: %+v", got)
@@ -186,14 +189,17 @@ func TestBootstrapHTTPRejectsOccupiedUsernamesAndEmails(t *testing.T) {
 		t.Fatal(err)
 	}
 	engine := SetupAdminRouter()
-	for _, body := range []string{
-		`{"secret":"isolated-bootstrap-secret","username":"occupied-name","email":"new@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
-		`{"secret":"isolated-bootstrap-secret","username":"new-name","email":"occupied@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
-	} {
-		got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body)
-		if got.Code == 0 || got.Message == "" {
-			t.Fatalf("accepted occupied account field: %+v", got)
-		}
+	occupiedRequests := map[string]string{
+		"username": `{"secret":"isolated-bootstrap-secret","username":"occupied-name","email":"new@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
+		"email":    `{"secret":"isolated-bootstrap-secret","username":"new-name","email":"occupied@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
+	}
+	for name, body := range occupiedRequests {
+		t.Run(name, func(t *testing.T) {
+			got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body)
+			if got.Code == 0 || got.Message == "" {
+				t.Fatalf("accepted occupied account field: %+v", got)
+			}
+		})
 	}
 	var admins int64
 	if err := db.Model(&models.User{}).Where("role = ?", "admin").Count(&admins).Error; err != nil {
