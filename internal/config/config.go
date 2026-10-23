@@ -14,6 +14,7 @@ type Config struct {
 	Database   DatabaseConfig   `mapstructure:"database"`
 	Redis      RedisConfig      `mapstructure:"redis"`
 	JWT        JWTConfig        `mapstructure:"jwt"`
+	Bootstrap  BootstrapConfig  `mapstructure:"bootstrap"`
 	Upload     UploadConfig     `mapstructure:"upload"`
 	Pagination PaginationConfig `mapstructure:"pagination"`
 	Cache      CacheConfig      `mapstructure:"cache"`
@@ -54,6 +55,10 @@ type JWTConfig struct {
 	Secret      string `mapstructure:"secret"`
 	ExpireHours int    `mapstructure:"expireHours"`
 	AdminSecret string `mapstructure:"adminSecret"` // 管理员专用secret
+}
+
+type BootstrapConfig struct {
+	Secret string `mapstructure:"secret"`
 }
 
 type UploadConfig struct {
@@ -111,7 +116,11 @@ func InitWithFile(configName string) error {
 				log.Printf("未找到 admin.yaml，已加载默认配置: %s\n", viper.ConfigFileUsed())
 				bindEnvVars()
 				AppConfig = &Config{}
-				return viper.Unmarshal(AppConfig)
+				if err := viper.Unmarshal(AppConfig); err != nil {
+					return err
+				}
+				applyEnvironmentOnlyConfig(AppConfig)
+				return nil
 			}
 		}
 		// 如果配置文件不存在，尝试使用环境变量
@@ -128,8 +137,13 @@ func InitWithFile(configName string) error {
 	if err := viper.Unmarshal(AppConfig); err != nil {
 		return err
 	}
+	applyEnvironmentOnlyConfig(AppConfig)
 
 	return nil
+}
+
+func applyEnvironmentOnlyConfig(cfg *Config) {
+	cfg.Bootstrap.Secret = os.Getenv("INKSPACE_BOOTSTRAP_SECRET")
 }
 
 // loadEnvFile 加载 .env 文件
@@ -139,14 +153,6 @@ func loadEnvFile() {
 		// .env 文件不存在，跳过
 		return
 	}
-
-	// 读取 .env 文件并设置到环境变量
-	file, err := os.Open(envFile)
-	if err != nil {
-		log.Printf("警告: 无法打开 .env 文件: %v\n", err)
-		return
-	}
-	defer file.Close()
 
 	// 读取文件内容
 	content, err := os.ReadFile(envFile)
@@ -171,8 +177,12 @@ func loadEnvFile() {
 			value := strings.TrimSpace(parts[1])
 			// 移除引号（如果有）
 			value = strings.Trim(value, `"'`)
-			// 设置环境变量
-			os.Setenv(key, value)
+			// 进程环境变量优先于 .env。
+			if _, exists := os.LookupEnv(key); !exists {
+				if err := os.Setenv(key, value); err != nil {
+					log.Printf("警告: 无法设置 .env 变量 %q: %v\n", key, err)
+				}
+			}
 		}
 	}
 

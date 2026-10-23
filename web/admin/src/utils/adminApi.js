@@ -9,6 +9,12 @@ const adminApi = axios.create({
 // Request interceptor
 adminApi.interceptors.request.use(
   (config) => {
+    if (config.skipAuth) {
+      delete config.skipAuth
+      config.headers = config.headers || {}
+      delete config.headers.Authorization
+      return config
+    }
     const adminToken = localStorage.getItem('admin_token')
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`
@@ -27,11 +33,14 @@ adminApi.interceptors.response.use(
     if (data.code === 0) {
       return data
     } else {
-      ElMessage.error(data.message || '请求失败')
+      if (!response.config.suppressGlobalError) ElMessage.error(data.message || '请求失败')
       return Promise.reject(new Error(data.message || '请求失败'))
     }
   },
   (error) => {
+    if (error.config?.suppressGlobalError) {
+      return Promise.reject(new Error(error.response?.data?.message || '请求失败'))
+    }
     if (error.response) {
       const status = error.response.status
       switch (status) {

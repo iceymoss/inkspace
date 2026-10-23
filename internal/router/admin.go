@@ -38,6 +38,9 @@ func SetupAdminRouter(assets ...fs.FS) *gin.Engine {
 		// Admin authentication routes (public)
 		adminAuth := api.Group("/admin/auth")
 		{
+			bootstrapHandler := handler.NewBootstrapHandler()
+			adminAuth.GET("/bootstrap/status", bootstrapHandler.Status)
+			adminAuth.POST("/bootstrap", bootstrapHandler.Create)
 			adminAuth.POST("/login", adminAuthHandler.AdminLogin)
 		}
 

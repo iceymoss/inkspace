@@ -47,14 +47,14 @@ git clone <repository-url>
 cd inkspace
 ```
 
-### 3. 配置环境变量（可选）
+### 3. 配置环境变量（推荐）
 
 ```bash
 # 复制配置模板
 cp env.example .env
 
-# 编辑 .env 文件，修改数据库、Redis等配置
-# 如果不创建 .env 文件，将使用 config/config.yaml 中的默认配置
+# 编辑 .env，设置数据库、Redis 等配置
+# 首次安装还需设置 INKSPACE_BOOTSTRAP_SECRET（见下文）
 ```
 
 **配置优先级**：环境变量 > .env 文件 > YAML 配置文件
@@ -101,17 +101,19 @@ docker-compose logs -f admin-backend
 
 - **博客前端**: http://is.iceymoss.com
 - **管理前端**: http://admin.is.iceymoss.com
-- **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
+- **管理 API**: http://admin.is.iceymoss.com/api；生产初始化前应按下文启用 HTTPS
 
 **注意：**
 - 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
+- Compose 仅将管理服务 `8083` 绑定到宿主机回环地址，供本机诊断使用；不要改为公网监听以绕过 Nginx
 - 确保 DNS 解析已生效
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
 
-### 8. 默认账号
+### 8. 首位管理员
 
-- **管理后台**: admin / admin123
-- **博客系统**: 可注册新账号
+- **新部署**：不会自动创建管理员。按[首次管理员初始化与安全恢复](#首次管理员初始化与安全恢复)配置密钥后，在管理后台自行创建首位管理员。
+- **已有部署**：保留现有管理员账号；若仍使用旧版默认密码，请立即更换。
+- **博客系统**：仍可按现有规则注册普通账号。
 
 ### 9. 停止服务
 
@@ -125,6 +127,44 @@ docker-compose down
 # 停止并删除容器和数据卷（⚠️ 危险操作）
 docker-compose down -v
 ```
+
+## 首次管理员初始化与安全恢复
+
+新安装不再自动创建 `admin / admin123`。首次初始化需要一个仅部署者持有的服务器端密钥；该密钥必须来自至少 32 个随机字节，不是管理员密码，也不会在初始化后继续作为登录或管理凭据使用。首次启动前可以创建空数据库，但不要预建任何业务表；系统发现任何既有业务基础表时会按旧安装处理并永久关闭网页初始化。
+
+1. 在服务器上生成足够随机的密钥：
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+2. 将值写入服务器端 `.env` 的 `INKSPACE_BOOTSTRAP_SECRET`，或以等效的秘密管理方式注入到 `admin-backend` 容器。不要将值写入仓库、镜像、命令历史、工单或日志，不要提交 `.env`。限制 `.env` 文件权限（例如 `chmod 600 .env`），只允许受信任的部署人员读取。Compose 默认将变量设为空，特意不使用 `${VAR:?}` 强制中止启动，以免旧版本升级时因没有新增变量而无法启动；未设置时新安装的初始化提交会被拒绝，不能因此把管理后台暴露为无保护入口。
+
+3. 确认管理后台只通过 HTTPS 对部署者开放，再启动/更新服务。示例（内置或外置数据库 Compose 均会把该变量仅传给 `admin-backend`）：
+
+   ```bash
+   docker compose up -d --build admin-backend
+   # 外部数据库部署：
+   docker compose -f docker-compose.external-db.yml up -d --build admin-backend
+   ```
+
+   TLS 尚未就绪时，不要通过公网 HTTP 输入初始化密钥；先用防火墙、VPN 或 SSH 隧道限制访问，或者先按本文 HTTPS 章节完成证书配置。也不要将 `8083` 端口直接公开到不可信网络。标准 HTTP Nginx 配置拒绝初始化提交；HTTPS 配置对 `POST /api/admin/auth/bootstrap` 按来源地址限速为每分钟 5 次（允许短时突发 3 次），并关闭该入口的访问日志。使用其他反向代理时应配置等效规则，并确保代理、APM 和链路追踪均不记录请求体。
+
+4. 打开管理后台初始化页面，输入密钥，并自行设置用户名、邮箱和强密码。成功后使用新建凭据登录。密钥不会返回浏览器；即使密钥仍在环境中，完成初始化后入口也不会重新开放。
+
+5. 初始化成功后从 `.env`、容器编排变量及秘密管理系统中删除密钥，并重建/重启管理后台使旧环境值不再保留：
+
+   ```bash
+   docker compose up -d --force-recreate admin-backend
+   # 外部数据库部署对应使用：
+   docker compose -f docker-compose.external-db.yml up -d --force-recreate admin-backend
+   ```
+
+   不要只删除服务器文件而让旧容器继续持有环境变量。若尚未完成初始化，保留密钥并妥善保护，直到成功后再移除。
+
+**升级已有部署和旧默认密码风险：**升级不会覆盖、重置或删除原有账号。已有用户数据的数据库（包括没有当前可用管理员的旧库）不会开放网页初始化；即使 `INKSPACE_BOOTSTRAP_SECRET` 未设置，也不会影响已有管理员登录。旧版本曾自动创建 `admin / admin123`，升级不会自动修复仍在使用该密码的账号。请立即在受控网络下登录修改其密码，确认至少保留一位启用的管理员，并尽快启用 HTTPS；如果怀疑凭据已泄漏，先通过防火墙/VPN 限制后台访问并按受控恢复流程处理。
+
+**已初始化但没有可登录管理员时的恢复边界：**系统不会因管理员被停用、删除、遗忘密码或初始化密钥仍存在而重新开放公开初始化页面。先备份数据库并限制管理后台网络访问；由具备服务器和数据库权限的维护者核验数据库状态、审计管理员变更，并按组织的变更审批执行受控数据库恢复，例如恢复已确认可信管理员的数据或通过受审计的 SQL 将特定既有账号修复为管理员。完成后再验证该管理员能登录并移除临时访问限制。不要删除或伪造初始化状态记录来开放网页抢注，不要把初始化密钥当作恢复凭据；若无安全可靠的数据库恢复路径，应从可信备份恢复并联系维护人员。此类人工恢复应记录操作者、审批、备份和变更结果。
 
 ---
 
@@ -265,10 +305,11 @@ docker-compose -f docker-compose.external-db.yml logs -f
 
 - **博客前端**: http://is.iceymoss.com
 - **管理前端**: http://admin.is.iceymoss.com
-- **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
+- **管理 API**: http://admin.is.iceymoss.com/api；生产初始化前应按下文启用 HTTPS
 
 **注意：**
 - 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
+- Compose 仅将管理服务 `8083` 绑定到宿主机回环地址，供本机诊断使用；不要改为公网监听以绕过 Nginx
 - 确保 DNS 解析已生效
 - 用户服务有 3 个实例（backend-1/2/3），通过外层 Nginx 进行负载均衡
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）

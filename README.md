@@ -142,6 +142,7 @@ docker compose up -d mysql redis
 # 3. 配置环境变量（可选）
 cp env.example .env
 # 编辑 .env 文件修改数据库配置
+# 首次部署时还需按下方说明设置 INKSPACE_BOOTSTRAP_SECRET
 ```
 
 使用 Bun 时，前端依赖安装命令可替换为：
@@ -182,7 +183,9 @@ go run cmd/scheduler/main.go
 
 **访问地址：**
 - 博客前端: http://localhost:3001
-- 管理后台: http://localhost:3002/login (admin / admin123)
+- 管理后台: http://localhost:3002/login
+
+新安装首次启动不会创建默认管理员。首次初始化前，设置管理后台服务环境变量 `INKSPACE_BOOTSTRAP_SECRET` 为高熵随机值（例如 `openssl rand -hex 32`），在管理后台初始化页提交该密钥并自设管理员账号。仅通过 HTTPS 访问初始化页面；完成后从运行环境中删除该密钥。已有部署升级后沿用数据库中的账号，升级不会重置管理员凭据。**旧版本曾使用 `admin / admin123` 默认凭据；如果尚未更换，请立即登录改密，或先限制管理后台网络访问再升级。** 详见[部署文档](docs/DEPLOYMENT.md#首次管理员初始化与安全恢复)。
 
 ### Docker Compose 一键部署
 
@@ -228,8 +231,20 @@ go run cmd/admin/main.go
 - 博客前端: http://is.iceymoss.com（需配置 DNS）
 - 管理后台: http://admin.is.iceymoss.com（需配置 DNS）
 
-**默认账号：**
-- 管理后台: admin / admin123
+**首次管理员初始化：**
+
+Compose 会将宿主机的 `INKSPACE_BOOTSTRAP_SECRET` 传给管理后台，默认留空以兼容现有升级（空值不会开放初始化）。全新部署前生成随机密钥并安全写入 `.env`，例如：
+
+```bash
+openssl rand -hex 32
+# 将生成结果赋给 .env 中的 INKSPACE_BOOTSTRAP_SECRET
+```
+
+启动管理后台后，在初始化页创建管理员。请勿提交 `.env`、将密钥写进仓库或分享给访客；管理页面只应通过 HTTPS 提供。成功初始化后删除该密钥并重启管理后台。更多安全及异常恢复说明见[部署文档](docs/DEPLOYMENT.md#首次管理员初始化与安全恢复)。
+
+**管理员账号：**
+- 新安装：不创建默认管理员，由部署者自行初始化
+- 旧部署：已有账号保持不变；若仍使用旧默认密码 `admin / admin123`，请立即修改
 
 > 💡 详细部署步骤、DNS 配置、HTTPS 配置等请查看 [部署文档](docs/DEPLOYMENT.md)
 

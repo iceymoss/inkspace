@@ -3,6 +3,11 @@ import { useAdminStore } from '@/stores/admin'
 
 const routes = [
   {
+    path: '/bootstrap',
+    name: 'AdminBootstrap',
+    component: () => import('@/views/admin/Bootstrap.vue')
+  },
+  {
     path: '/login',
     name: 'AdminLogin',
     component: () => import('@/views/admin/Login.vue')
@@ -98,14 +103,24 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const adminStore = useAdminStore()
-  
-  if (to.meta.requiresAuth && !adminStore.isLoggedIn) {
-    next('/login')
-  } else {
-    next()
+
+  try {
+    const { default: adminApi } = await import('@/utils/adminApi')
+    const response = await adminApi.get('/admin/auth/bootstrap/status', { skipAuth: true, suppressGlobalError: true })
+    if (response.data?.state !== 'initialized') {
+      if (to.path !== '/bootstrap') return next('/bootstrap')
+      return next()
+    }
+    if (to.path === '/bootstrap') return next('/login')
+  } catch {
+    if (to.path !== '/bootstrap') return next('/bootstrap')
+    return next()
   }
+
+  if (to.meta.requiresAuth && !adminStore.isLoggedIn) return next('/login')
+  next()
 })
 
 export default router

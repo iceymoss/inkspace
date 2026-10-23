@@ -198,14 +198,14 @@ func (h *UserHandler) UpdateUserStatus(c *gin.Context) {
 	}
 
 	var req struct {
-		Status int `json:"status" binding:"required,oneof=0 1"`
+		Status *int `json:"status" binding:"required,oneof=0 1"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, err.Error())
 		return
 	}
 
-	if err := h.service.UpdateUserStatus(uint(id), req.Status); err != nil {
+	if err := h.service.UpdateUserStatus(uint(id), *req.Status); err != nil {
 		utils.Error(c, 400, err.Error())
 		return
 	}

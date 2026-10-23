@@ -75,10 +75,11 @@ services:
     container_name: inkspace-admin-backend
     restart: always
     ports:
-      - "8083:8083"
+      - "127.0.0.1:8083:8083"
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
+      - INKSPACE_BOOTSTRAP_SECRET=${INKSPACE_BOOTSTRAP_SECRET:-}
     volumes:
       - ./config:/app/config
       - /var/www/inkspace/uploads:/app/uploads # 修改为服务器绝对路径，可根据实际情况调整

@@ -6,51 +6,49 @@ import (
 	"log"
 
 	"github.com/iceymoss/inkspace/internal/models"
-	"github.com/iceymoss/inkspace/internal/utils"
 
 	"gorm.io/gorm"
 )
 
 // MigrateDB 执行数据库迁移
 func MigrateDB() error {
+	return migrateDB(DB)
+}
+
+func migrateDB(db *gorm.DB) error {
 	log.Println("开始数据库迁移...")
 
 	// 自动迁移所有表
-	if err := autoMigrate(); err != nil {
+	if err := autoMigrateWithDB(db); err != nil {
 		return fmt.Errorf("自动迁移失败: %w", err)
 	}
 
 	// 创建索引
-	if err := createIndexes(); err != nil {
+	if err := createIndexes(db); err != nil {
 		return fmt.Errorf("创建索引失败: %w", err)
 	}
 
-	// 创建外键约束（可选）
-	if err := createForeignKeys(); err != nil {
-		log.Printf("警告: 创建外键失败: %v", err)
-		// 不返回错误，因为有些环境可能不支持外键
+	// 创建额外的外键约束
+	if err := createForeignKeys(db); err != nil {
+		return fmt.Errorf("创建外键失败: %w", err)
 	}
 
 	log.Println("数据库迁移完成！")
-
-	// 检查数据库健康状态
-	if err := CreateAdmin(); err != nil {
-		return fmt.Errorf("数据库健康检查失败: %w", err)
-	}
-
 	return nil
 }
 
 // createIndexes 创建额外的索引
-func createIndexes() error {
+func createIndexes(db *gorm.DB) error {
 	log.Println("创建索引...")
 
 	// 检查并创建文章表的组合索引
 	var count int64
-	DB.Raw("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'articles' AND index_name = 'idx_articles_top_status_created'").Scan(&count)
+	if err := db.Session(&gorm.Session{NewDB: true}).Raw("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'articles' AND index_name = 'idx_articles_top_status_created'").Scan(&count).Error; err != nil {
+		return err
+	}
 	if count == 0 {
-		if err := DB.Exec(`CREATE INDEX idx_articles_top_status_created ON articles(is_top DESC, status, created_at DESC)`).Error; err != nil {
-			log.Printf("警告: 创建组合索引失败: %v", err)
+		if err := db.Session(&gorm.Session{NewDB: true}).Exec(`CREATE INDEX idx_articles_top_status_created ON articles(is_top DESC, status, created_at DESC)`).Error; err != nil {
+			return err
 		}
 	}
 
@@ -58,10 +56,12 @@ func createIndexes() error {
 	// idx_status_created 已在模型中定义
 
 	// 检查并创建全文搜索索引（MySQL 5.7+）
-	DB.Raw("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'articles' AND index_name = 'idx_articles_title_content'").Scan(&count)
+	if err := db.Session(&gorm.Session{NewDB: true}).Raw("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'articles' AND index_name = 'idx_articles_title_content'").Scan(&count).Error; err != nil {
+		return err
+	}
 	if count == 0 {
-		if err := DB.Exec(`CREATE FULLTEXT INDEX idx_articles_title_content ON articles(title, content)`).Error; err != nil {
-			log.Printf("警告: 创建全文索引失败: %v (可以忽略)", err)
+		if err := db.Session(&gorm.Session{NewDB: true}).Exec(`CREATE FULLTEXT INDEX idx_articles_title_content ON articles(title, content)`).Error; err != nil {
+			return err
 		}
 	}
 
@@ -70,69 +70,84 @@ func createIndexes() error {
 }
 
 // createForeignKeys 创建外键约束
-func createForeignKeys() error {
+func createForeignKeys(db *gorm.DB) error {
 	log.Println("创建外键约束...")
+	var errs []error
+	exec := func(name, statement string) {
+		var count int64
+		if err := db.Session(&gorm.Session{NewDB: true}).Raw(`SELECT COUNT(*) FROM information_schema.referential_constraints
+			WHERE constraint_schema = DATABASE() AND constraint_name = ?`, name).Scan(&count).Error; err != nil {
+			errs = append(errs, err)
+			return
+		}
+		if count != 0 {
+			return
+		}
+		if err := db.Session(&gorm.Session{NewDB: true}).Exec(statement).Error; err != nil {
+			errs = append(errs, err)
+		}
+	}
 
 	// 文章表外键
-	DB.Exec(`
+	exec("fk_articles_author", `
 		ALTER TABLE articles 
 		ADD CONSTRAINT fk_articles_author 
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	`)
 
-	DB.Exec(`
+	exec("fk_articles_category", `
 		ALTER TABLE articles 
 		ADD CONSTRAINT fk_articles_category 
 		FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 	`)
 
 	// 评论表外键（注意：article_id 和 work_id 可以为 NULL）
-	DB.Exec(`
+	exec("fk_comments_article", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_article 
 		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 	`)
 
-	DB.Exec(`
+	exec("fk_comments_work", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_work 
 		FOREIGN KEY (work_id) REFERENCES works(id) ON DELETE CASCADE
 	`)
 
-	DB.Exec(`
+	exec("fk_comments_user", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_user 
 		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 	`)
 
-	DB.Exec(`
+	exec("fk_comments_parent", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_parent 
 		FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
 	`)
 
 	// 作品表外键
-	DB.Exec(`
+	exec("fk_works_author", `
 		ALTER TABLE works 
 		ADD CONSTRAINT fk_works_author 
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	`)
 
 	// 文章标签关联表外键
-	DB.Exec(`
+	exec("fk_article_tags_article", `
 		ALTER TABLE article_tags 
 		ADD CONSTRAINT fk_article_tags_article 
 		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 	`)
 
-	DB.Exec(`
+	exec("fk_article_tags_tag", `
 		ALTER TABLE article_tags 
 		ADD CONSTRAINT fk_article_tags_tag 
 		FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 	`)
 
 	log.Println("外键约束创建完成")
-	return nil
+	return errors.Join(errs...)
 }
 
 // DropAllTables 删除所有表（危险操作，仅用于开发环境）
@@ -151,6 +166,7 @@ func DropAllTables() error {
 		"tags",
 		"categories",
 		"users",
+		"system_initializations",
 	}
 
 	for _, table := range tables {
@@ -432,36 +448,5 @@ func AfterDeleteComment(db *gorm.DB, comment *models.Comment) error {
 		}
 	}
 
-	return nil
-}
-
-func CreateAdmin() error {
-	log.Println("开始创建管理员...")
-	var user *models.User
-	res := DB.Model(&models.User{}).Where("role = ?", "admin").First(&user)
-	if res.Error != nil && errors.Is(res.Error, gorm.ErrRecordNotFound) {
-		log.Println("管理员不存在，开始创建...")
-		// 密码加密：
-		// Hash password
-		password := "admin123"
-		hashedPassword, err := utils.HashPassword(password)
-		if err != nil {
-			return err
-		}
-
-		user = &models.User{
-			Username: "admin",
-			Password: hashedPassword,
-			Role:     "admin",
-		}
-		res = DB.Model(&models.User{}).Create(&user)
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected == 0 {
-			return fmt.Errorf("创建管理员失败")
-		}
-		log.Println("管理员创建成功")
-	}
 	return nil
 }
