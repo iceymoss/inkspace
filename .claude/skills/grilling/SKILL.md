@@ -5,23 +5,19 @@ description: Grill the user relentlessly about a plan, decision, or idea. Use wh
 
 Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
 
-Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the current frontier with the `question` tool. A round may contain one question or several related questions; choose the count from the decisions that are actually ready, never from a batch-size target. Then wait for the user's answers before the next round.
 
-Format a round like so:
+Build each tool question as follows:
 
-```
-❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+- Use a short topic header such as `功能描述`, `触发入口`, `异常处理`, or `MVP 范围`. Never use `Q1`, `Q2`, or another sequence number as the header.
+- Write a complete, self-contained question that explains the decision being made. Add a concrete example when it helps the user answer, especially for free-form requirements.
+- Prefer concise, meaningful option labels over generic `是` / `否`. Use each option's description to explain its behavior or consequence.
+- For a choice, provide the real, materially different alternatives the user might reasonably select. Never present only the recommended option.
+- When one alternative is recommended, put it first and mark it as recommended in the option label. Keep the other viable alternatives visible and explain their tradeoffs; do not print a separate recommendation paragraph.
+- Enable multiple selection when choices can coexist. Include `待定` only when deferring the decision is genuinely safe; explain what remains undecided.
+- Keep custom answers available so the listed options do not constrain the user.
 
-➡️ <your recommended answer>
-
----
-
-❓ **Q2** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
-
-➡️ <your recommended answer>
-```
-
-Word each question so "yes" accepts your recommended answer.
+Use the interactive tool rather than rendering a questionnaire manually in chat. A good round should read like a compact set of product decisions, not a numbered interview transcript.
 
 Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
 
