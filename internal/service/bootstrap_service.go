@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"time"
+	"unicode/utf8"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/iceymoss/inkspace/internal/database"
@@ -83,7 +84,10 @@ func (s *BootstrapService) Create(req *models.AdminBootstrapRequest) error {
 	if subtle.ConstantTimeCompare(provided[:], expected[:]) != 1 {
 		return ErrBootstrapSecret
 	}
-	if req.Password != req.ConfirmPassword || len(req.Email) > 100 || len(req.Username) < 3 || len(req.Username) > 50 || len(req.Password) < 6 || len(req.Password) > 50 {
+	usernameLength := utf8.RuneCountInString(req.Username)
+	emailLength := utf8.RuneCountInString(req.Email)
+	passwordLength := utf8.RuneCountInString(req.Password)
+	if req.Password != req.ConfirmPassword || emailLength > 100 || usernameLength < 3 || usernameLength > 50 || passwordLength < 6 || passwordLength > 50 {
 		return errors.New("初始化信息无效")
 	}
 	password, err := utils.HashPassword(req.Password)

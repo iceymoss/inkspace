@@ -49,8 +49,16 @@ func Init() error {
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// 在同一跨进程锁内记录迁移前的安装来源并执行迁移。
-	if err := WithInitializationLock(func(conn *gorm.DB) error {
+	if err := initializeDatabase(); err != nil {
+		return fmt.Errorf("数据库迁移失败: %w", err)
+	}
+
+	return nil
+}
+
+// initializeDatabase runs the startup protocol shared by all three binaries.
+func initializeDatabase() error {
+	return WithInitializationLock(func(conn *gorm.DB) error {
 		if err := prepareInitialization(conn); err != nil {
 			return err
 		}
@@ -58,11 +66,7 @@ func Init() error {
 			return err
 		}
 		return checkInitializationConsistency(conn)
-	}); err != nil {
-		return fmt.Errorf("数据库迁移失败: %w", err)
-	}
-
-	return nil
+	})
 }
 
 // HealthCheck 数据库健康检查（别名）

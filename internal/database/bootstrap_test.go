@@ -121,7 +121,7 @@ func TestBootstrapStartupOrderUsesOnePersistentState(t *testing.T) {
 		t.Run(strings.Join(order, "-"), func(t *testing.T) {
 			resetBootstrapSchema(t, db)
 			for _, program := range order {
-				if err := PrepareInitialization(); err != nil {
+				if err := initializeDatabase(); err != nil {
 					t.Fatalf("%s startup: %v", program, err)
 				}
 			}

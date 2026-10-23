@@ -136,6 +136,24 @@ func TestBootstrapHTTPSubmissionAndReplay(t *testing.T) {
 	}
 }
 
+func TestBootstrapHTTPAcceptsValidMultibyteCredentials(t *testing.T) {
+	db := bootstrapHTTPTestDB(t)
+	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	engine := SetupAdminRouter()
+	body := `{"secret":"isolated-bootstrap-secret","username":"首位管理员账号名称二十字","email":"unicode@example.test","password":"安全密码六个字","confirm_password":"安全密码六个字"}`
+	if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body); got.Code != 0 {
+		t.Fatalf("valid multibyte credentials rejected: %+v", got)
+	}
+	login := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/login", `{"username":"首位管理员账号名称二十字","password":"安全密码六个字"}`)
+	if login.Code != 0 || login.Data.Token == "" {
+		t.Fatalf("administrator with multibyte credentials cannot log in: %+v", login)
+	}
+}
+
 func TestBootstrapConcurrentSubmissionsCreateOnlyOneAdmin(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
 	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
