@@ -1,6 +1,6 @@
 # 系统初始化与首位管理员
 
-Status: ready-for-agent
+Status: completed
 
 ## Problem Statement
 
