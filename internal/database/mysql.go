@@ -49,8 +49,16 @@ func Init() error {
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// 执行数据库迁移
-	if err := MigrateDB(); err != nil {
+	// 在同一跨进程锁内记录迁移前的安装来源并执行迁移。
+	if err := WithInitializationLock(func(conn *gorm.DB) error {
+		if err := prepareInitialization(conn); err != nil {
+			return err
+		}
+		if err := migrateDB(conn); err != nil {
+			return err
+		}
+		return checkInitializationConsistency(conn)
+	}); err != nil {
 		return fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
@@ -63,7 +71,12 @@ func HealthCheck() error {
 }
 
 func autoMigrate() error {
-	return DB.AutoMigrate(
+	return autoMigrateWithDB(DB)
+}
+
+func autoMigrateWithDB(db *gorm.DB) error {
+	return db.AutoMigrate(
+		&models.SystemInitialization{},
 		// 核心表
 		&models.User{},
 		&models.UserAppearance{},

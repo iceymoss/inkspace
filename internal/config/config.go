@@ -171,8 +171,10 @@ func loadEnvFile() {
 			value := strings.TrimSpace(parts[1])
 			// 移除引号（如果有）
 			value = strings.Trim(value, `"'`)
-			// 设置环境变量
-			os.Setenv(key, value)
+			// 进程环境变量优先于 .env。
+			if _, exists := os.LookupEnv(key); !exists {
+				os.Setenv(key, value)
+			}
 		}
 	}
 

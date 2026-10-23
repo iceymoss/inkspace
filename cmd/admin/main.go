@@ -55,7 +55,6 @@ func main() {
 	log.Println("===========================================")
 	log.Printf("管理后台API: http://localhost:%d\n", port)
 	log.Println("登录地址: http://localhost:3002/login")
-	log.Println("默认账号: admin / admin123")
 	log.Println("===========================================")
 
 	if err := r.Run(fmt.Sprintf(":%d", port)); err != nil {

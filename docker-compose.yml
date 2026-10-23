@@ -151,6 +151,7 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Shanghai
+      - INKSPACE_BOOTSTRAP_SECRET=${INKSPACE_BOOTSTRAP_SECRET:-}
     volumes:
       - ./config:/app/config
       - ./uploads:/app/uploads
