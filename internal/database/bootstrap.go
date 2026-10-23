@@ -15,9 +15,13 @@ const initializationLock = "inkspace_system_initialization_v1"
 
 // WithInitializationLock serializes pre-migration checks and schema changes across all binaries.
 func WithInitializationLock(action func(*gorm.DB) error) error {
+	return withInitializationLock(DB, action)
+}
+
+func withInitializationLock(db *gorm.DB, action func(*gorm.DB) error) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	return DB.WithContext(ctx).Connection(func(conn *gorm.DB) (err error) {
+	return db.WithContext(ctx).Connection(func(conn *gorm.DB) (err error) {
 		// Connection pins one SQL connection; WithContext would clone it and lose the pin.
 		var acquired int
 		if err := conn.Session(&gorm.Session{NewDB: true}).Raw("SELECT GET_LOCK(?, 300)", initializationLock).Scan(&acquired).Error; err != nil {

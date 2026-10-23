@@ -141,7 +141,7 @@ services:
     container_name: inkspace-admin-backend
     restart: always
     ports:
-      - "8083:8083"
+      - "127.0.0.1:8083:8083"
     depends_on:
       mysql:
         condition: service_healthy

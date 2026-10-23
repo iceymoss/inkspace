@@ -108,6 +108,22 @@ describe('Bootstrap', () => {
     expect(router.push).not.toHaveBeenCalled()
   })
 
+  it('rejects a password over the bcrypt byte limit before submission', async () => {
+    const wrapper = mountBootstrap()
+    await flushPromises()
+    const password = '密'.repeat(25)
+    const inputs = wrapper.findAll('input')
+    for (const [index, value] of ['setup-secret', 'first-admin', 'admin@example.com', password, password].entries()) {
+      await inputs[index].setValue(value)
+    }
+
+    await wrapper.vm.submit()
+    await flushPromises()
+
+    expect(adminApi.post).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('密码不能超过72个字节')
+  })
+
   it('shows safe failure feedback without exposing raw API errors', async () => {
     const wrapper = mountBootstrap()
     await flushPromises()

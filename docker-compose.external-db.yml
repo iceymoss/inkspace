@@ -75,7 +75,7 @@ services:
     container_name: inkspace-admin-backend
     restart: always
     ports:
-      - "8083:8083"
+      - "127.0.0.1:8083:8083"
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai

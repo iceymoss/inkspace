@@ -11,7 +11,7 @@
         <el-form-item label="初始化密钥" prop="secret"><el-input v-model="form.secret" type="password" autocomplete="off" show-password /></el-form-item>
         <el-form-item label="管理员用户名" prop="username"><el-input v-model="form.username" autocomplete="username" /></el-form-item>
         <el-form-item label="邮箱" prop="email"><el-input v-model="form.email" autocomplete="email" /></el-form-item>
-        <el-form-item label="密码" prop="password"><el-input v-model="form.password" type="password" autocomplete="new-password" show-password /></el-form-item>
+        <el-form-item label="密码" prop="password"><el-input v-model="form.password" type="password" autocomplete="new-password" show-password /><span v-if="passwordMessage" class="validation-error">{{ passwordMessage }}</span></el-form-item>
         <el-form-item label="确认密码" prop="confirm_password"><el-input v-model="form.confirm_password" type="password" autocomplete="new-password" show-password /><span v-if="confirmationMessage" class="validation-error">{{ confirmationMessage }}</span></el-form-item>
         <div v-if="submitError" class="form-error" role="alert">{{ submitError }}</div>
         <el-button native-type="submit" type="primary" :loading="submitting">创建管理员</el-button>
@@ -34,7 +34,17 @@ const submitting = ref(false)
 const submitError = ref('')
 const formRef = ref(null)
 const form = reactive({ secret: '', username: '', email: '', password: '', confirm_password: '' })
+const passwordMessage = ref('')
 const confirmationMessage = ref('')
+const validatePasswordBytes = (_rule, value, callback) => {
+  if (new TextEncoder().encode(value).length > 72) {
+    passwordMessage.value = '密码不能超过72个字节'
+    callback(new Error(passwordMessage.value))
+  } else {
+    passwordMessage.value = ''
+    callback()
+  }
+}
 const validateConfirmation = (_rule, value, callback) => {
   if (value !== form.password) {
     confirmationMessage.value = '两次输入的密码不一致'
@@ -48,7 +58,7 @@ const rules = {
   secret: [{ required: true, message: '请输入初始化密钥', trigger: 'blur' }],
   username: [{ required: true, message: '请输入管理员用户名', trigger: 'blur' }, { min: 3, max: 50, message: '用户名长度为3到50位', trigger: 'blur' }],
   email: [{ required: true, type: 'email', message: '请输入有效邮箱', trigger: 'blur' }, { max: 100, message: '邮箱长度不能超过100位', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, max: 50, message: '密码长度为6到50位', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, max: 50, message: '密码长度为6到50位', trigger: 'blur' }, { validator: validatePasswordBytes, trigger: 'blur' }],
   confirm_password: [{ required: true, message: '请确认密码', trigger: 'blur' }, { validator: validateConfirmation, trigger: 'blur' }]
 }
 
@@ -70,6 +80,7 @@ async function submit() {
     await formRef.value.validate()
     submitting.value = true
     submitError.value = ''
+    passwordMessage.value = ''
     confirmationMessage.value = ''
     await adminApi.post('/admin/auth/bootstrap', { ...form }, { skipAuth: true, suppressGlobalError: true })
     await router.push('/login')
@@ -79,7 +90,7 @@ async function submit() {
       return
     }
     if (error?.message && error.message !== 'invalid') {
-      const safeMessages = ['用户名或邮箱已被占用，请更换', '初始化密钥错误或未配置', '系统已初始化，请登录', '系统初始化不可用，请联系维护者', '请检查密钥、用户名、邮箱、密码及确认密码', '请检查初始化信息']
+      const safeMessages = ['用户名或邮箱已被占用，请更换', '初始化密钥错误或未配置', '系统已初始化，请登录', '系统初始化不可用，请联系维护者', '密码不能超过72个字节', '请检查密钥、用户名、邮箱、密码及确认密码', '请检查初始化信息']
       submitError.value = safeMessages.includes(error.message) ? error.message : '提交失败，请稍后重试或联系维护人员。'
     }
   } finally {

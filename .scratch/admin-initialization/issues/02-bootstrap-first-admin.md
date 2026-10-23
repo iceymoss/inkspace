@@ -2,7 +2,7 @@
 
 **What to build:** 新部署启动时识别待初始化状态，不再自动创建默认管理员；管理者首次访问后台时通过受密钥保护的页面设置首位管理员。旧部署与异常状态不开放初始化，成功后只能登录，公开博客保持原有行为。
 
-**Blocked by:** None (can start immediately). 建议在 01 完成后实施以便首位管理员随即获得完整的安全保护，但 01 不是功能上必须完成的前置条件。
+**Blocked by:** 01: 保护最后一位可登录管理员并即时撤销后台权限。02 不得在 01 之前发布；两者可以并行开发，但必须保证首位管理员创建功能上线时最后管理员保护和旧令牌撤销已经生效。
 
 **Status:** completed
 
@@ -15,4 +15,4 @@
 - [x] 管理后台有自动化测试覆盖路由引导、表单校验及提交成功/失败反馈；后端 HTTP 及隔离 MySQL 测试覆盖启动判定、并发与旧库；部署说明涵盖密钥、旧默认密码风险和需要服务器/数据库权限的受控异常恢复。
 - [x] 运行全部 Go 测试、vet、构建，以及管理后台前端测试、lint 和生产构建；无法运行的隔离数据库验证如实标注。
 
-**验证（2026-10-23）：** 使用独立的 `inkspace_bootstrap_startup_test`、`inkspace_bootstrap_test` 和 `inkspace_admin_guard_test` MySQL 数据库运行全部门控集成测试，覆盖三程序启动顺序、旧库及异常状态、普通注册、事务回滚、重复与并发初始化、最后管理员保护和旧令牌撤销，全部通过。`go test ./... -count=1`、`go vet ./...`、`go build ./...`、管理后台 `pnpm lint`、`pnpm test`（15 项）和 `pnpm build` 均通过。
+**验证（2026-10-23）：** 使用独立的 `inkspace_bootstrap_startup_test`、`inkspace_bootstrap_test` 和 `inkspace_admin_guard_test` MySQL 数据库运行当时已有的门控集成测试，覆盖共享启动协议的顺序重入、旧库及异常状态、普通注册、事务回滚、重复与并发初始化、最后管理员保护和旧令牌撤销，全部通过。该验证不代表启动了三个真实二进制或证明了多连接并发启动；这些证据由 03 补充。`go test ./... -count=1`、`go vet ./...`、`go build ./...`、管理后台 `pnpm lint`、`pnpm test`（15 项）和 `pnpm build` 均通过。

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -19,6 +20,14 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+const bootstrapTestSecret = "0123456789abcdef0123456789abcdef"
+
+func setBootstrapSecret(t *testing.T, secret string) {
+	t.Helper()
+	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", secret)
+	config.AppConfig.Bootstrap.Secret = secret
+}
 
 func bootstrapHTTPTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -52,6 +61,7 @@ func bootstrapHTTPTestDB(t *testing.T) *gorm.DB {
 	config.AppConfig.JWT.Secret = "bootstrap-test-user-token"
 	config.AppConfig.JWT.AdminSecret = "bootstrap-test-admin-token"
 	config.AppConfig.JWT.ExpireHours = 1
+	config.AppConfig.Bootstrap.Secret = os.Getenv("INKSPACE_BOOTSTRAP_SECRET")
 	t.Cleanup(func() {
 		if err := db.Unscoped().Where("1 = 1").Delete(&models.User{}).Error; err != nil {
 			t.Errorf("clean bootstrap test users: %v", err)
@@ -98,7 +108,7 @@ func bootstrapHTTPCall(t *testing.T, engine *gin.Engine, method, path, body stri
 
 func TestBootstrapHTTPSubmissionAndReplay(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -108,10 +118,10 @@ func TestBootstrapHTTPSubmissionAndReplay(t *testing.T) {
 	if status.Code != 0 || status.Data.State != "pending" || !status.Data.SecretConfigured || status.Data.Token != "" {
 		t.Fatalf("unexpected pending status: %+v", status)
 	}
-	body := `{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`
+	body := fmt.Sprintf(`{"secret":%q,"username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, bootstrapTestSecret)
 	invalidRequests := map[string]string{
 		"wrong secret":          `{"secret":"wrong","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
-		"password confirmation": `{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"different"}`,
+		"password confirmation": fmt.Sprintf(`{"secret":%q,"username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"different"}`, bootstrapTestSecret),
 	}
 	for name, invalid := range invalidRequests {
 		t.Run(name, func(t *testing.T) {
@@ -138,13 +148,13 @@ func TestBootstrapHTTPSubmissionAndReplay(t *testing.T) {
 
 func TestBootstrapHTTPAcceptsValidMultibyteCredentials(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
 
 	engine := SetupAdminRouter()
-	body := `{"secret":"isolated-bootstrap-secret","username":"首位管理员账号名称二十字","email":"unicode@example.test","password":"安全密码六个字","confirm_password":"安全密码六个字"}`
+	body := fmt.Sprintf(`{"secret":%q,"username":"首位管理员账号名称二十字","email":"unicode@example.test","password":"安全密码六个字","confirm_password":"安全密码六个字"}`, bootstrapTestSecret)
 	if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body); got.Code != 0 {
 		t.Fatalf("valid multibyte credentials rejected: %+v", got)
 	}
@@ -154,9 +164,48 @@ func TestBootstrapHTTPAcceptsValidMultibyteCredentials(t *testing.T) {
 	}
 }
 
+func TestBootstrapHTTPRejectsPasswordOverBcryptByteLimit(t *testing.T) {
+	db := bootstrapHTTPTestDB(t)
+	setBootstrapSecret(t, bootstrapTestSecret)
+	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	password := strings.Repeat("密", 25)
+	body, err := json.Marshal(models.AdminBootstrapRequest{
+		Secret:          bootstrapTestSecret,
+		Username:        "initial-admin",
+		Email:           "initial@example.test",
+		Password:        password,
+		ConfirmPassword: password,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := bootstrapHTTPCall(t, SetupAdminRouter(), http.MethodPost, "/api/admin/auth/bootstrap", string(body))
+	if response.Code == 0 || response.Message != "密码不能超过72个字节" {
+		t.Fatalf("unexpected oversized password response: %+v", response)
+	}
+
+	var administrators int64
+	if err := db.Model(&models.User{}).Where("role = ?", "admin").Count(&administrators).Error; err != nil {
+		t.Fatal(err)
+	}
+	if administrators != 0 {
+		t.Fatalf("administrators=%d, want 0", administrators)
+	}
+	var state models.SystemInitialization
+	if err := db.First(&state, 1).Error; err != nil {
+		t.Fatal(err)
+	}
+	if state.State != models.InitializationPending {
+		t.Fatalf("state=%q, want %q", state.State, models.InitializationPending)
+	}
+}
+
 func TestBootstrapConcurrentSubmissionsCreateOnlyOneAdmin(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +219,7 @@ func TestBootstrapConcurrentSubmissionsCreateOnlyOneAdmin(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			body := fmt.Sprintf(`{"secret":"isolated-bootstrap-secret","username":"admin-%d","email":"admin-%d@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, i, i)
+			body := fmt.Sprintf(`{"secret":"%s","username":"admin-%d","email":"admin-%d@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, bootstrapTestSecret, i, i)
 			outcomes <- bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body).Code
 		}(i)
 	}
@@ -194,7 +243,7 @@ func TestBootstrapConcurrentSubmissionsCreateOnlyOneAdmin(t *testing.T) {
 
 func TestBootstrapHTTPRejectsOccupiedUsernamesAndEmails(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -208,8 +257,8 @@ func TestBootstrapHTTPRejectsOccupiedUsernamesAndEmails(t *testing.T) {
 	}
 	engine := SetupAdminRouter()
 	occupiedRequests := map[string]string{
-		"username": `{"secret":"isolated-bootstrap-secret","username":"occupied-name","email":"new@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
-		"email":    `{"secret":"isolated-bootstrap-secret","username":"new-name","email":"occupied@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`,
+		"username": fmt.Sprintf(`{"secret":%q,"username":"occupied-name","email":"new@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, bootstrapTestSecret),
+		"email":    fmt.Sprintf(`{"secret":%q,"username":"new-name","email":"occupied@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, bootstrapTestSecret),
 	}
 	for name, body := range occupiedRequests {
 		t.Run(name, func(t *testing.T) {
@@ -234,7 +283,7 @@ func TestBootstrapHTTPRejectsOccupiedUsernamesAndEmails(t *testing.T) {
 
 func TestPendingBootstrapKeepsPublicBlogAndUserRegistrationAvailable(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +309,7 @@ func TestPendingBootstrapKeepsPublicBlogAndUserRegistrationAvailable(t *testing.
 	}
 
 	admin := SetupAdminRouter()
-	body := `{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`
+	body := fmt.Sprintf(`{"secret":%q,"username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, bootstrapTestSecret)
 	if got := bootstrapHTTPCall(t, admin, http.MethodPost, "/api/admin/auth/bootstrap", body); got.Code != 0 {
 		t.Fatalf("ordinary registration blocked later bootstrap: %+v", got)
 	}
@@ -268,7 +317,7 @@ func TestPendingBootstrapKeepsPublicBlogAndUserRegistrationAvailable(t *testing.
 
 func TestBootstrapRollsBackAdministratorWhenCompletionFails(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +332,7 @@ func TestBootstrapRollsBackAdministratorWhenCompletionFails(t *testing.T) {
 	})
 
 	engine := SetupAdminRouter()
-	body := `{"secret":"isolated-bootstrap-secret","username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`
+	body := fmt.Sprintf(`{"secret":%q,"username":"initial-admin","email":"initial@example.test","password":"a-strong-password","confirm_password":"a-strong-password"}`, bootstrapTestSecret)
 	if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body); got.Code == 0 {
 		t.Fatal("bootstrap succeeded despite forced completion failure")
 	}
@@ -303,7 +352,7 @@ func TestBootstrapRollsBackAdministratorWhenCompletionFails(t *testing.T) {
 
 func TestBootstrapHTTPRejectsMissingSecretAndClosedState(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "")
+	setBootstrapSecret(t, "")
 	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -316,10 +365,18 @@ func TestBootstrapHTTPRejectsMissingSecretAndClosedState(t *testing.T) {
 	if status.Code != 0 || status.Data.State != "pending" || status.Data.SecretConfigured {
 		t.Fatalf("missing-secret status incorrect: %+v", status)
 	}
+	setBootstrapSecret(t, "short-secret")
+	status = bootstrapHTTPCall(t, engine, http.MethodGet, "/api/admin/auth/bootstrap/status", "")
+	if status.Code != 0 || status.Data.State != "pending" || status.Data.SecretConfigured {
+		t.Fatalf("short-secret status incorrect: %+v", status)
+	}
+	if got := bootstrapHTTPCall(t, engine, http.MethodPost, "/api/admin/auth/bootstrap", body); got.Code == 0 {
+		t.Fatal("created an administrator with a short configured secret")
+	}
 	if err := db.Model(&models.SystemInitialization{}).Where("id = 1").Update("state", models.InitializationCompleted).Error; err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "any-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	status = bootstrapHTTPCall(t, engine, http.MethodGet, "/api/admin/auth/bootstrap/status", "")
 	if status.Code != 0 || status.Data.State != "unavailable" {
 		t.Fatalf("completed state without active admin reopened: %+v", status)
@@ -331,7 +388,7 @@ func TestBootstrapHTTPRejectsMissingSecretAndClosedState(t *testing.T) {
 
 func TestBootstrapStatusFailsClosedForHistoricalAndUnavailableAdministrators(t *testing.T) {
 	db := bootstrapHTTPTestDB(t)
-	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "isolated-bootstrap-secret")
+	setBootstrapSecret(t, bootstrapTestSecret)
 	engine := SetupAdminRouter()
 
 	tests := []struct {
@@ -404,4 +461,31 @@ func TestBootstrapStatusFailsClosedWithoutDatabase(t *testing.T) {
 	if body.Code == 0 || body.Data.State == "pending" {
 		t.Fatalf("database failure opened bootstrap: %s", response.Body.String())
 	}
+}
+
+func TestBootstrapStatusFailsClosedWhenAdministratorQueryFails(t *testing.T) {
+	db := bootstrapHTTPTestDB(t)
+	if err := db.Create(&models.SystemInitialization{ID: 1, State: models.InitializationPending}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("RENAME TABLE users TO users_bootstrap_unavailable").Error; err != nil {
+		t.Fatal(err)
+	}
+	restored := false
+	t.Cleanup(func() {
+		if !restored {
+			if err := db.Exec("RENAME TABLE users_bootstrap_unavailable TO users").Error; err != nil {
+				t.Errorf("restore users table: %v", err)
+			}
+		}
+	})
+
+	response := bootstrapHTTPCall(t, SetupAdminRouter(), http.MethodGet, "/api/admin/auth/bootstrap/status", "")
+	if response.Code == 0 || response.Data.State == "pending" {
+		t.Fatalf("database query failure opened initialization: %+v", response)
+	}
+	if err := db.Exec("RENAME TABLE users_bootstrap_unavailable TO users").Error; err != nil {
+		t.Fatal(err)
+	}
+	restored = true
 }

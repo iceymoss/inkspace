@@ -38,7 +38,7 @@ func (h *BootstrapHandler) Create(c *gin.Context) {
 		switch {
 		case errors.Is(err, service.ErrBootstrapSecret):
 			utils.Forbidden(c, err.Error())
-		case errors.Is(err, service.ErrBootstrapConflict), errors.Is(err, service.ErrBootstrapCompleted):
+		case errors.Is(err, service.ErrBootstrapConflict), errors.Is(err, service.ErrBootstrapCompleted), errors.Is(err, service.ErrBootstrapPassword):
 			utils.BadRequest(c, err.Error())
 		case errors.Is(err, service.ErrBootstrapUnavailable):
 			utils.InternalServerError(c, err.Error())

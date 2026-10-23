@@ -101,10 +101,11 @@ docker-compose logs -f admin-backend
 
 - **博客前端**: http://is.iceymoss.com
 - **管理前端**: http://admin.is.iceymoss.com
-- **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
+- **管理 API**: http://admin.is.iceymoss.com/api；生产初始化前应按下文启用 HTTPS
 
 **注意：**
 - 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
+- Compose 仅将管理服务 `8083` 绑定到宿主机回环地址，供本机诊断使用；不要改为公网监听以绕过 Nginx
 - 确保 DNS 解析已生效
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）
 
@@ -129,7 +130,7 @@ docker-compose down -v
 
 ## 首次管理员初始化与安全恢复
 
-新安装不再自动创建 `admin / admin123`。首次初始化需要一个仅部署者持有的服务器端密钥；该密钥不是管理员密码，也不会在初始化后继续作为登录或管理凭据使用。
+新安装不再自动创建 `admin / admin123`。首次初始化需要一个仅部署者持有的服务器端密钥；该密钥必须来自至少 32 个随机字节，不是管理员密码，也不会在初始化后继续作为登录或管理凭据使用。首次启动前可以创建空数据库，但不要预建任何业务表；系统发现任何既有业务基础表时会按旧安装处理并永久关闭网页初始化。
 
 1. 在服务器上生成足够随机的密钥：
 
@@ -147,7 +148,7 @@ docker-compose down -v
    docker compose -f docker-compose.external-db.yml up -d --build admin-backend
    ```
 
-   TLS 尚未就绪时，不要通过公网 HTTP 输入初始化密钥；先用防火墙、VPN 或 SSH 隧道限制访问，或者先按本文 HTTPS 章节完成证书配置。也不要将 `8083` 端口直接公开到不可信网络。
+   TLS 尚未就绪时，不要通过公网 HTTP 输入初始化密钥；先用防火墙、VPN 或 SSH 隧道限制访问，或者先按本文 HTTPS 章节完成证书配置。也不要将 `8083` 端口直接公开到不可信网络。标准 HTTP Nginx 配置拒绝初始化提交；HTTPS 配置对 `POST /api/admin/auth/bootstrap` 按来源地址限速为每分钟 5 次（允许短时突发 3 次），并关闭该入口的访问日志。使用其他反向代理时应配置等效规则，并确保代理、APM 和链路追踪均不记录请求体。
 
 4. 打开管理后台初始化页面，输入密钥，并自行设置用户名、邮箱和强密码。成功后使用新建凭据登录。密钥不会返回浏览器；即使密钥仍在环境中，完成初始化后入口也不会重新开放。
 
@@ -304,10 +305,11 @@ docker-compose -f docker-compose.external-db.yml logs -f
 
 - **博客前端**: http://is.iceymoss.com
 - **管理前端**: http://admin.is.iceymoss.com
-- **管理 API**: http://admin.is.iceymoss.com/api （或直接访问 http://<server-ip>:8083/api）
+- **管理 API**: http://admin.is.iceymoss.com/api；生产初始化前应按下文启用 HTTPS
 
 **注意：**
 - 博客和管理前端分别嵌入 `server` 与 `admin` 二进制，由 Nginx 按域名代理
+- Compose 仅将管理服务 `8083` 绑定到宿主机回环地址，供本机诊断使用；不要改为公网监听以绕过 Nginx
 - 确保 DNS 解析已生效
 - 用户服务有 3 个实例（backend-1/2/3），通过外层 Nginx 进行负载均衡
 - 如果使用 HTTPS，需要配置 SSL 证书（参考 nginx/nginx.conf 中的 HTTPS 配置）

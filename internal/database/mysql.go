@@ -58,7 +58,11 @@ func Init() error {
 
 // initializeDatabase runs the startup protocol shared by all three binaries.
 func initializeDatabase() error {
-	return WithInitializationLock(func(conn *gorm.DB) error {
+	return initializeDatabaseWithDB(DB)
+}
+
+func initializeDatabaseWithDB(db *gorm.DB) error {
+	return withInitializationLock(db, func(conn *gorm.DB) error {
 		if err := prepareInitialization(conn); err != nil {
 			return err
 		}

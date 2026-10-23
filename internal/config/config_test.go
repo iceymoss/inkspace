@@ -31,3 +31,18 @@ func TestLoadEnvFileDoesNotOverrideProcessEnvironment(t *testing.T) {
 		t.Fatalf("bootstrap secret=%q, want injected process value", got)
 	}
 }
+
+func TestBootstrapSecretOnlyUsesEnvironment(t *testing.T) {
+	cfg := &Config{Bootstrap: BootstrapConfig{Secret: "yaml-secret-must-not-apply"}}
+	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "environment-secret")
+	applyEnvironmentOnlyConfig(cfg)
+	if cfg.Bootstrap.Secret != "environment-secret" {
+		t.Fatalf("bootstrap secret=%q, want environment value", cfg.Bootstrap.Secret)
+	}
+
+	t.Setenv("INKSPACE_BOOTSTRAP_SECRET", "")
+	applyEnvironmentOnlyConfig(cfg)
+	if cfg.Bootstrap.Secret != "" {
+		t.Fatalf("bootstrap secret=%q, want empty without environment value", cfg.Bootstrap.Secret)
+	}
+}

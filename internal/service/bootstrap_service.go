@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
-	"os"
 	"time"
 	"unicode/utf8"
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/utils"
@@ -21,11 +21,20 @@ var (
 	ErrBootstrapCompleted   = errors.New("系统已初始化，请登录")
 	ErrBootstrapSecret      = errors.New("初始化密钥错误或未配置")
 	ErrBootstrapConflict    = errors.New("用户名或邮箱已被占用，请更换")
+	ErrBootstrapPassword    = errors.New("密码不能超过72个字节")
 )
 
 type BootstrapService struct{}
 
 func NewBootstrapService() *BootstrapService { return &BootstrapService{} }
+
+func bootstrapSecret() (string, bool) {
+	if config.AppConfig == nil {
+		return "", false
+	}
+	secret := config.AppConfig.Bootstrap.Secret
+	return secret, len([]byte(secret)) >= 32
+}
 
 func (s *BootstrapService) Status() (*models.AdminBootstrapStatus, error) {
 	if database.DB == nil {
@@ -46,7 +55,7 @@ func (s *BootstrapService) Status() (*models.AdminBootstrapStatus, error) {
 			result.State = "unavailable"
 		} else {
 			result.State = "pending"
-			result.SecretConfigured = os.Getenv("INKSPACE_BOOTSTRAP_SECRET") != ""
+			_, result.SecretConfigured = bootstrapSecret()
 		}
 	case models.InitializationLegacyClosed, models.InitializationCompleted:
 		var loginCapable int64
@@ -75,8 +84,8 @@ func (s *BootstrapService) Create(req *models.AdminBootstrapRequest) error {
 	if current.State != models.InitializationPending {
 		return ErrBootstrapCompleted
 	}
-	secret := os.Getenv("INKSPACE_BOOTSTRAP_SECRET")
-	if secret == "" || req.Secret == "" {
+	secret, configured := bootstrapSecret()
+	if !configured || req.Secret == "" {
 		return ErrBootstrapSecret
 	}
 	provided := sha256.Sum256([]byte(req.Secret))
@@ -89,6 +98,9 @@ func (s *BootstrapService) Create(req *models.AdminBootstrapRequest) error {
 	passwordLength := utf8.RuneCountInString(req.Password)
 	if req.Password != req.ConfirmPassword || emailLength > 100 || usernameLength < 3 || usernameLength > 50 || passwordLength < 6 || passwordLength > 50 {
 		return errors.New("初始化信息无效")
+	}
+	if len([]byte(req.Password)) > 72 {
+		return ErrBootstrapPassword
 	}
 	password, err := utils.HashPassword(req.Password)
 	if err != nil {

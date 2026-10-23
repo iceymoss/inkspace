@@ -28,10 +28,9 @@ func migrateDB(db *gorm.DB) error {
 		return fmt.Errorf("创建索引失败: %w", err)
 	}
 
-	// 创建外键约束（可选）
+	// 创建额外的外键约束
 	if err := createForeignKeys(db); err != nil {
-		log.Printf("警告: 创建外键失败: %v", err)
-		// 不返回错误，因为有些环境可能不支持外键
+		return fmt.Errorf("创建外键失败: %w", err)
 	}
 
 	log.Println("数据库迁移完成！")
@@ -49,7 +48,7 @@ func createIndexes(db *gorm.DB) error {
 	}
 	if count == 0 {
 		if err := db.Session(&gorm.Session{NewDB: true}).Exec(`CREATE INDEX idx_articles_top_status_created ON articles(is_top DESC, status, created_at DESC)`).Error; err != nil {
-			log.Printf("警告: 创建组合索引失败: %v", err)
+			return err
 		}
 	}
 
@@ -62,7 +61,7 @@ func createIndexes(db *gorm.DB) error {
 	}
 	if count == 0 {
 		if err := db.Session(&gorm.Session{NewDB: true}).Exec(`CREATE FULLTEXT INDEX idx_articles_title_content ON articles(title, content)`).Error; err != nil {
-			log.Printf("警告: 创建全文索引失败: %v (可以忽略)", err)
+			return err
 		}
 	}
 
@@ -74,65 +73,74 @@ func createIndexes(db *gorm.DB) error {
 func createForeignKeys(db *gorm.DB) error {
 	log.Println("创建外键约束...")
 	var errs []error
-	exec := func(statement string) {
+	exec := func(name, statement string) {
+		var count int64
+		if err := db.Session(&gorm.Session{NewDB: true}).Raw(`SELECT COUNT(*) FROM information_schema.referential_constraints
+			WHERE constraint_schema = DATABASE() AND constraint_name = ?`, name).Scan(&count).Error; err != nil {
+			errs = append(errs, err)
+			return
+		}
+		if count != 0 {
+			return
+		}
 		if err := db.Session(&gorm.Session{NewDB: true}).Exec(statement).Error; err != nil {
 			errs = append(errs, err)
 		}
 	}
 
 	// 文章表外键
-	exec(`
+	exec("fk_articles_author", `
 		ALTER TABLE articles 
 		ADD CONSTRAINT fk_articles_author 
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	`)
 
-	exec(`
+	exec("fk_articles_category", `
 		ALTER TABLE articles 
 		ADD CONSTRAINT fk_articles_category 
 		FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 	`)
 
 	// 评论表外键（注意：article_id 和 work_id 可以为 NULL）
-	exec(`
+	exec("fk_comments_article", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_article 
 		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 	`)
 
-	exec(`
+	exec("fk_comments_work", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_work 
 		FOREIGN KEY (work_id) REFERENCES works(id) ON DELETE CASCADE
 	`)
 
-	exec(`
+	exec("fk_comments_user", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_user 
 		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 	`)
 
-	exec(`
+	exec("fk_comments_parent", `
 		ALTER TABLE comments 
 		ADD CONSTRAINT fk_comments_parent 
 		FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
 	`)
 
 	// 作品表外键
-	exec(`
+	exec("fk_works_author", `
 		ALTER TABLE works 
 		ADD CONSTRAINT fk_works_author 
 		FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 	`)
 
 	// 文章标签关联表外键
-	exec(`
+	exec("fk_article_tags_article", `
 		ALTER TABLE article_tags 
 		ADD CONSTRAINT fk_article_tags_article 
 		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 	`)
 
-	exec(`
+	exec("fk_article_tags_tag", `
 		ALTER TABLE article_tags 
 		ADD CONSTRAINT fk_article_tags_tag 
 		FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
