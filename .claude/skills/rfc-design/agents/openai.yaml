@@ -1,0 +1,4 @@
+interface:
+  display_name: "工程 RFC 设计"
+  short_description: "从代码事实和约束出发，设计可实施、可评审、可验证的工程 RFC"
+  default_prompt: "使用 $rfc-design，基于我的需求与现有系统资料编写工程 RFC，明确跨组件契约、一致性、失败恢复和验证方案。"
