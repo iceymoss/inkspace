@@ -13,6 +13,12 @@ import (
 
 // SetupUserRouter 设置用户服务路由
 func SetupUserRouter(assets ...fs.FS) *gin.Engine {
+	return setupUserRouter(assets, service.NewArticleService(), service.NewSettingService())
+}
+
+// setupUserRouter preserves production assembly while letting discovery HTTP
+// tests supply fresh public readers without requiring a database or Redis.
+func setupUserRouter(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -236,6 +242,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 	// Serve static files (uploads)
 	r.Static("/uploads", "./uploads")
+	registerFeeds(r, feedArticles, feedSettings)
 	var blogAssets fs.FS
 	if len(assets) > 0 {
 		blogAssets = assets[0]
