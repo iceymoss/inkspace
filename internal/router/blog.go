@@ -3,6 +3,7 @@ package router
 import (
 	"io/fs"
 
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/handler"
 	"github.com/iceymoss/inkspace/internal/middleware"
 	"github.com/iceymoss/inkspace/internal/service"
@@ -240,9 +241,20 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	if len(assets) > 0 {
 		blogAssets = assets[0]
 	}
-	registerPublicArticlePages(r, service.NewArticleService(), articleSPARenderer(blogAssets))
+	base := ""
+	if config.AppConfig != nil {
+		base = config.AppConfig.PublicSiteURL
+	}
+	registerPublicArticlePages(r, service.NewArticleService(), articleMetadataRenderer(blogAssets, service.NewSettingService()), base)
 	if len(assets) > 0 && assets[0] != nil {
-		serveSPA(r, assets[0])
+		serveSPA(r, assets[0], func(c *gin.Context) {
+			site, err := service.NewSettingService().GetPublicSiteIdentity(c.Request.Context())
+			if err != nil {
+				htmlFailure(c, 500)
+				return
+			}
+			serveBlogIndex(c, blogAssets, site, nil)
+		})
 	}
 
 	return r

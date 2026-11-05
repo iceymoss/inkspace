@@ -1,3 +1,6 @@
+# Required canonical BLOG origin in every environment; PUBLIC_SITE_URL overrides it.
+public_site_url: http://localhost:8081
+
 server:
   port: 8081
   mode: debug # debug, release, test
@@ -49,4 +52,3 @@ pagination:
 cache:
   articleExpire: 15 # 15 seconds
   userExpire: 15 # 15 seconds
-

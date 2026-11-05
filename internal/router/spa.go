@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func serveSPA(r *gin.Engine, assets fs.FS) {
+func serveSPA(r *gin.Engine, assets fs.FS, indexRenderer ...func(*gin.Context)) {
 	fileServer := http.FileServer(http.FS(assets))
 
 	r.NoRoute(func(c *gin.Context) {
@@ -22,6 +22,10 @@ func serveSPA(r *gin.Engine, assets fs.FS) {
 		requestPath := strings.TrimPrefix(path.Clean(c.Request.URL.Path), "/")
 		if requestPath == "." {
 			requestPath = ""
+		}
+		if requestPath == "index.html" && len(indexRenderer) > 0 {
+			indexRenderer[0](c)
+			return
 		}
 		if requestPath != "" {
 			if info, err := fs.Stat(assets, requestPath); err == nil && !info.IsDir() {
@@ -37,12 +41,21 @@ func serveSPA(r *gin.Engine, assets fs.FS) {
 			return
 		}
 
+		if len(indexRenderer) > 0 {
+			indexRenderer[0](c)
+			return
+		}
 		index, err := fs.ReadFile(assets, "index.html")
 		if err != nil {
 			c.Status(http.StatusNotFound)
 			return
 		}
 		c.Header("Cache-Control", "no-cache")
+		if c.Request.Method == http.MethodHead {
+			c.Header("Content-Type", "text/html; charset=utf-8")
+			c.Status(http.StatusOK)
+			return
+		}
 		c.Data(http.StatusOK, "text/html; charset=utf-8", index)
 	})
 }

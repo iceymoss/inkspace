@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/service"
 	"github.com/iceymoss/inkspace/internal/utils"
@@ -22,7 +23,8 @@ func NewSettingHandler() *SettingHandler {
 func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 	settings, err := h.service.GetPublic()
 	if err != nil {
-		utils.InternalServerError(c, err.Error())
+		c.Header("Cache-Control", "no-store")
+		utils.HTTPError(c, 500, "站点设置加载失败")
 		return
 	}
 
@@ -31,6 +33,18 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 	for _, setting := range settings {
 		result[setting.Key] = setting.Value
 	}
+	// The canonical origin is runtime configuration, never a caller-controlled setting.
+	base := ""
+	if config.AppConfig != nil {
+		base = config.AppConfig.PublicSiteURL
+	}
+	site, err := service.PublicSiteIdentityFromSettings(base, settings)
+	if err != nil {
+		c.Header("Cache-Control", "no-store")
+		utils.HTTPError(c, 500, "站点设置加载失败")
+		return
+	}
+	result["public_site_url"], result["site_name"], result["site_description"], result["site_logo"] = site.URL, site.Name, site.Description, site.Logo
 
 	utils.Success(c, result)
 }

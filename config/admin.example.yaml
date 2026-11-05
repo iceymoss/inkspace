@@ -1,4 +1,6 @@
 # 管理后台服务配置
+# Canonical BLOG origin, not the admin origin; PUBLIC_SITE_URL overrides it.
+public_site_url: http://localhost:8081
 
 admin:
   port: 8083
@@ -36,4 +38,3 @@ jwt:
 server:
   port: 8083
   mode: debug
-
