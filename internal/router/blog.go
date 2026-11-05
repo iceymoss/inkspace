@@ -16,9 +16,19 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	return setupUserRouter(assets, service.NewArticleService(), service.NewSettingService())
 }
 
+// setupUserRouterWithSitemap keeps discovery HTTP tests on the real blog router;
+// production still uses the shared published-only article service/global DB.
+func setupUserRouterWithSitemap(sitemapReader publicSitemapReader, assets ...fs.FS) *gin.Engine {
+	return setupUserRouterWithDiscovery(assets, service.NewArticleService(), service.NewSettingService(), sitemapReader)
+}
+
 // setupUserRouter preserves production assembly while letting discovery HTTP
 // tests supply fresh public readers without requiring a database or Redis.
 func setupUserRouter(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader) *gin.Engine {
+	return setupUserRouterWithDiscovery(assets, feedArticles, feedSettings, service.NewArticleService())
+}
+
+func setupUserRouterWithDiscovery(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader, sitemapReader publicSitemapReader) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -251,6 +261,7 @@ func setupUserRouter(assets []fs.FS, feedArticles recentPublicArticleReader, fee
 	if config.AppConfig != nil {
 		base = config.AppConfig.PublicSiteURL
 	}
+	registerSitemapRoutes(r, sitemapReader, base)
 	registerPublicArticlePages(r, service.NewArticleService(), articleMetadataRenderer(blogAssets, service.NewSettingService()), base)
 	if len(assets) > 0 && assets[0] != nil {
 		serveSPA(r, assets[0], func(c *gin.Context) {
