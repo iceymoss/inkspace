@@ -12,6 +12,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +23,20 @@ func NewArticleService() *ArticleService {
 }
 
 func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*models.Article, error) {
+	// InnoDB may deadlock two insert-then-slug-update transactions. Retry the
+	// whole transaction (including a fresh ID) rather than a rolled-back statement.
+	for attempt := 0; attempt < 5; attempt++ {
+		article, err := s.create(req, authorID)
+		var mysqlErr *mysqlDriver.MySQLError
+		if errors.As(err, &mysqlErr) && (mysqlErr.Number == 1213 || mysqlErr.Number == 1205) {
+			continue
+		}
+		return article, err
+	}
+	return nil, errors.New("文章创建冲突，请重试")
+}
+
+func (s *ArticleService) create(req *models.ArticleRequest, authorID uint) (*models.Article, error) {
 	// 确保 status 正确设置：0=草稿, 1=已发布, 2=私有
 	status := req.Status
 	if status != 0 && status != 1 && status != 2 {
@@ -44,6 +59,16 @@ func (s *ArticleService) Create(req *models.ArticleRequest, authorID uint) (*mod
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		// Create article
 		if err := tx.Create(article).Error; err != nil {
+			return err
+		}
+		// GORM applies the model's default:1 to zero-value draft status on INSERT.
+		if status == 0 {
+			if err := tx.Model(article).UpdateColumn(models.ArticleColumns.Status, status).Error; err != nil {
+				return err
+			}
+			article.Status = status
+		}
+		if err := models.AllocateArticleSlug(tx, article); err != nil {
 			return err
 		}
 

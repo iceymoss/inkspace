@@ -135,7 +135,7 @@
               :key="article.id"
               class="article-item"
               shadow="hover"
-              @click="$router.push(`/blog/${article.id}`)"
+              @click="$router.push(`/blog/${article.slug}`)"
             >
               <div class="article-content" :class="{ 'has-cover': article.cover }">
                 <div class="terminal-log-meta">

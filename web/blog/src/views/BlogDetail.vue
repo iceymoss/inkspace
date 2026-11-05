@@ -395,7 +395,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, Collection, User, View, Clock, Edit, ChatDotRound, ArrowDown } from '@element-plus/icons-vue'
@@ -515,9 +515,14 @@ const isCommentAuthor = (comment) => {
   return Number(articleAuthorId) === Number(commentAuthorId)
 }
 
+let articleLoadVersion = 0
 const loadArticle = async () => {
+  const version = ++articleLoadVersion
+  const slug = route.params.slug
+  article.value = null
   try {
-    const response = await api.get(`/articles/${route.params.id}`)
+    const response = await api.get(`/articles/slug/${encodeURIComponent(slug)}`)
+    if (version !== articleLoadVersion || slug !== route.params.slug) return false
     article.value = response.data
     
     // 设置已加载标记
@@ -525,20 +530,26 @@ const loadArticle = async () => {
     
     // 渲染 Markdown 内容
     renderMarkdown()
+    return true
   } catch (error) {
+    if (version !== articleLoadVersion) return false
     ElMessage.error('文章加载失败')
+    return false
   }
 }
 
 const loadComments = async (append = false) => {
+  const articleID = article.value?.id
+  if (!articleID) return
   try {
     const response = await api.get('/comments', {
       params: {
-        article_id: route.params.id,
+        article_id: articleID,
         page: commentsPage.value,
         page_size: 10
       }
     })
+    if (article.value?.id !== articleID) return
     const commentsList = response.data.list || []
     console.debug('Loaded comments:', commentsList.map(c => ({ id: c.id, like_count: c.like_count })))
     
@@ -647,7 +658,7 @@ const submitComment = async () => {
   submitting.value = true
   try {
     const response = await api.post('/comments', {
-      article_id: parseInt(route.params.id),
+      article_id: article.value.id,
       content: commentContent.value
     })
     // 如果返回的消息不是默认的 "success"，显示返回的消息
@@ -739,7 +750,7 @@ const submitReply = async (comment) => {
   comment.replying = true
   try {
     const response = await api.post('/comments', {
-      article_id: parseInt(route.params.id),
+      article_id: article.value.id,
       content: content,
       parent_id: comment.replyTo ? comment.replyTo.id : comment.id
     })
@@ -783,7 +794,7 @@ const submitReplyToReply = async (parentComment, reply) => {
   reply.replying = true
   try {
     const response = await api.post('/comments', {
-      article_id: parseInt(route.params.id),
+      article_id: article.value.id,
       content: content,
       parent_id: reply.replyTo ? reply.replyTo.id : reply.id
     })
@@ -984,12 +995,15 @@ const handleDeleteComment = async (comment) => {
 
 
 const checkLiked = async () => {
+  const articleID = article.value?.id
   if (!userStore.isLoggedIn) {
     isLiked.value = false
     return
   }
   try {
-    const response = await api.get(`/articles/${route.params.id}/is-liked`)
+    if (!articleID) return
+    const response = await api.get(`/articles/${articleID}/is-liked`)
+    if (article.value?.id !== articleID) return
     isLiked.value = response.data.is_liked || response.data.liked || false
   } catch (error) {
     console.error('Failed to check like status:', error)
@@ -1009,7 +1023,7 @@ const handleLike = async () => {
   likeLoading.value = true
   try {
     // 后端是 toggle 操作，统一使用 POST
-    await api.post(`/articles/${route.params.id}/like`)
+    await api.post(`/articles/${article.value.id}/like`)
     
     // toggle 状态
     isLiked.value = !isLiked.value
@@ -1033,13 +1047,16 @@ const handleLike = async () => {
 }
 
 const checkFavorited = async () => {
+  const articleID = article.value?.id
   if (!userStore.isLoggedIn) {
     isFavorited.value = false
     return
   }
   
   try {
-    const response = await api.get(`/articles/${route.params.id}/is-favorited`)
+    if (!articleID) return
+    const response = await api.get(`/articles/${articleID}/is-favorited`)
+    if (article.value?.id !== articleID) return
     isFavorited.value = response.data.is_favorited || response.data.favorited || false
   } catch (error) {
     console.error('Failed to check favorite status:', error)
@@ -1053,13 +1070,13 @@ const handleFavorite = async () => {
   favoriteLoading.value = true
   try {
     if (isFavorited.value) {
-      await api.delete(`/articles/${route.params.id}/favorite`)
+      await api.delete(`/articles/${article.value.id}/favorite`)
       ElMessage.success('取消收藏成功')
       isFavorited.value = false
       // 确保数字正确更新
       article.value.favorite_count = Math.max(0, (article.value.favorite_count || 0) - 1)
     } else {
-      await api.post(`/articles/${route.params.id}/favorite`)
+      await api.post(`/articles/${article.value.id}/favorite`)
       ElMessage.success('收藏成功')
       isFavorited.value = true
       // 确保数字正确更新
@@ -1132,12 +1149,27 @@ watch(markdownTheme, () => {
 })
 
 watch(
-  () => terminalStore.refreshSignals[`article:${route.params.id}`],
+  () => terminalStore.refreshSignals[`article:${article.value?.id}`],
   async (signal, previousSignal) => {
     if (!signal || signal === previousSignal) return
-    await Promise.all([loadArticle(), checkLiked(), checkFavorited()])
+    if (await loadArticle()) await Promise.all([checkLiked(), checkFavorited()])
   }
 )
+
+const loadArticlePage = async () => {
+  comments.value = []
+  commentsPage.value = 1
+  isLiked.value = false
+  isFavorited.value = false
+  if (!await loadArticle()) return
+  await Promise.all([
+    ...(articleCommentEnabled.value ? [loadComments()] : []),
+    checkLiked(), checkFavorited()
+  ])
+}
+
+watch(() => route.params.slug, () => { loadArticlePage() })
+onUnmounted(() => { articleLoadVersion++ })
 
 onMounted(async () => {
   // 如果已登录但用户信息未加载，先获取用户信息
@@ -1148,13 +1180,7 @@ onMounted(async () => {
   // 加载评论配置
   await loadCommentSettings()
   
-  loadArticle()
-  // 只有在评论功能开启时才加载评论
-  if (articleCommentEnabled.value) {
-    loadComments()
-  }
-  checkLiked()
-  checkFavorited()
+  await loadArticlePage()
 })
 
 </script>
@@ -1518,4 +1544,3 @@ onMounted(async () => {
   .replies-list { padding-left: 12px; }
 }
 </style>
-

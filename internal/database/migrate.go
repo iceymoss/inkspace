@@ -17,10 +17,22 @@ func MigrateDB() error {
 
 func migrateDB(db *gorm.DB) error {
 	log.Println("开始数据库迁移...")
+	articleTableExists := db.Migrator().HasTable(&models.Article{})
+	if articleTableExists {
+		if err := CheckArticleSlugSchema(db); err != nil {
+			return err
+		}
+	}
 
 	// 自动迁移所有表
 	if err := autoMigrateWithDB(db); err != nil {
 		return fmt.Errorf("自动迁移失败: %w", err)
+	}
+	if !articleTableExists {
+		// Only a brand-new empty table may receive the index at startup.
+		if err := db.Exec("CREATE UNIQUE INDEX ux_articles_slug ON articles(slug)").Error; err != nil {
+			return err
+		}
 	}
 
 	// 创建索引

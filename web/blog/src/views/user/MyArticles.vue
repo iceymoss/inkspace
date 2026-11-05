@@ -333,7 +333,7 @@ const handleMakePublic = async (row) => {
 }
 
 const handleView = (row) => {
-  router.push(`/blog/${row.id}`)
+  router.push(row.status === 1 ? `/blog/${row.slug}` : `/dashboard/articles/${row.id}/edit`)
 }
 
 const handleEdit = (row) => {

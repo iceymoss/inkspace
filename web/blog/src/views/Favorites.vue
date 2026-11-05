@@ -21,7 +21,7 @@
           <el-card class="favorite-card" shadow="hover">
             <!-- 文章收藏 -->
             <template v-if="favorite.type === 'article' && favorite.article">
-              <div class="card-content" @click="goToArticle(favorite.article.id)">
+              <div class="card-content" @click="goToArticle(favorite.article.slug)">
                 <img 
                   v-if="favorite.article.cover" 
                   :src="favorite.article.cover" 
@@ -204,8 +204,8 @@ const handleRemoveWorkFavorite = async (favorite) => {
   }
 }
 
-const goToArticle = (articleId) => {
-  router.push(`/blog/${articleId}`)
+const goToArticle = (slug) => {
+  router.push(`/blog/${slug}`)
 }
 
 const goToWork = (workId) => {

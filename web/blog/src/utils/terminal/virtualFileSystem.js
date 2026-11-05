@@ -67,8 +67,9 @@ export function slugifyResourceName(value) {
   return slug || 'untitled'
 }
 
-export function createResourceName(type, id, label) {
+export function createResourceName(type, id, label, slug) {
   if (!Object.hasOwn(RESOURCE_EXTENSIONS, type) || !isPositiveId(id)) return null
+  if (type === 'blog' && slug) return `${slug}.md`
   return `${id}-${slugifyResourceName(label)}${RESOURCE_EXTENSIONS[type]}`
 }
 
@@ -104,6 +105,8 @@ export function routeToVirtualPath(route) {
     const extension = RESOURCE_EXTENSIONS[detail[1]]
     return `${VIRTUAL_ROOT}/${detail[1]}/${detail[2]}${extension}`
   }
+  const article = path.match(/^\/blog\/([a-z0-9]+(?:-[a-z0-9]+)*)$/)
+  if (article) return `${VIRTUAL_ROOT}/blog/${article[1]}.md`
 
   const workspace = path.match(/^\/wiki\/([1-9]\d*)$/)
   if (workspace) return `${VIRTUAL_ROOT}/wiki/${workspace[1]}`
@@ -128,6 +131,10 @@ export function virtualPathToRoute(path) {
   if (['blog', 'works', 'photos', 'wiki', 'about', 'links'].includes(relative)) return `/${relative}`
 
   const [type, ...resourceParts] = relative.split('/')
+  if (type === 'blog' && resourceParts.length === 1) {
+    const slug = resourceParts[0].replace(/\.md$/, '')
+    if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return `/blog/${slug}`
+  }
   const id = extractResourceId(resourceParts.at(-1))
   if (!id) return null
 

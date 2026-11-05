@@ -97,8 +97,8 @@ const handleNotificationClick = async (notification) => {
   if (notification.type === 'follow' && notification.from_user_id) {
     // 关注通知：跳转到关注者的个人主页
     router.push(`/users/${notification.from_user_id}`)
-  } else if (notification.article_id) {
-    router.push(`/blog/${notification.article_id}`)
+  } else if (notification.article_slug) {
+    router.push(`/blog/${notification.article_slug}`)
   } else if (notification.work_id) {
     router.push(`/works/${notification.work_id}`)
   }
