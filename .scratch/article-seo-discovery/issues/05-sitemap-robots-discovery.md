@@ -6,6 +6,13 @@
 
 **Status:** ready-for-agent
 
+**Implementation / pending acceptance:** Sitemap and robots implementation and
+XML/HTTP fixtures are prepared on `feat/seo-ticket-05`, based on ticket03 integration
+`44ab3186`. Not resolved yet: ticket04's shared `writeDiscovery` / `discoveryError`
+must be merged before router tests, full Go tests/build/vet can run successfully.
+Pure `go test ./internal/seo -count=1` passes; HTTP/database acceptance is not claimed.
+After dependency integration, run the tests and replace this note with final evidence.
+
 - [ ] `/sitemap.xml` 返回合法 sitemap，包含 `/`、`/blog` 和全部 published 且未软删除文章的 slug URL。
 - [ ] 文章 `lastmod` 优先使用内容/公开状态更新时间，再回退到首次发布时间或历史创建时间；首页和博客列表没有可靠更新时间时不伪造 lastmod。
 - [ ] sitemap 不包含草稿、私密、软删除或其他不可公开文章，互动计数变化不会导致伪造的 lastmod。

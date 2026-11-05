@@ -13,6 +13,12 @@ import (
 
 // SetupUserRouter 设置用户服务路由
 func SetupUserRouter(assets ...fs.FS) *gin.Engine {
+	return setupUserRouterWithSitemap(service.NewArticleService(), assets...)
+}
+
+// setupUserRouterWithSitemap keeps discovery HTTP tests on the real blog router;
+// production still uses the shared published-only article service/global DB.
+func setupUserRouterWithSitemap(sitemapReader publicSitemapReader, assets ...fs.FS) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -244,6 +250,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 	if config.AppConfig != nil {
 		base = config.AppConfig.PublicSiteURL
 	}
+	registerSitemapRoutes(r, sitemapReader, base)
 	registerPublicArticlePages(r, service.NewArticleService(), articleMetadataRenderer(blogAssets, service.NewSettingService()), base)
 	if len(assets) > 0 && assets[0] != nil {
 		serveSPA(r, assets[0], func(c *gin.Context) {
