@@ -51,6 +51,15 @@ func discoveryETagMatches(value, etag string) bool {
 	matched := false
 	for value != "" {
 		value = strings.TrimLeft(value, " \t")
+		// HTTP list recipients must tolerate a reasonable number of empty
+		// members (RFC 9110 list extension), including trailing commas.
+		if value == "" {
+			return matched
+		}
+		if value[0] == ',' {
+			value = value[1:]
+			continue
+		}
 		value = strings.TrimPrefix(value, "W/")
 		if len(value) < 2 || value[0] != '"' {
 			return false
@@ -75,5 +84,5 @@ func discoveryETagMatches(value, etag string) bool {
 		}
 		value = value[1:]
 	}
-	return false
+	return matched
 }

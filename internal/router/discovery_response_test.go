@@ -33,6 +33,7 @@ func TestDiscoveryResponseHTTP(t *testing.T) {
 			{"multiple fields", []string{`"other"`, "W/" + etag}, 304},
 			{"wildcard", []string{" * "}, 304},
 			{"quoted comma", []string{`"other,tag", ` + etag}, 304},
+			{"empty list members", []string{`, , "other", , W/` + etag + `, ,`}, 304},
 			{"different", []string{`"other"`}, 200},
 			{"unquoted", []string{etag[1 : len(etag)-1]}, 200},
 			{"invalid prefix", []string{"junk" + etag}, 200},

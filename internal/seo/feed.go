@@ -73,6 +73,7 @@ type atomDocument struct {
 	Title    string      `xml:"title"`
 	Subtitle string      `xml:"subtitle"`
 	Updated  string      `xml:"updated"`
+	Author   atomAuthor  `xml:"author"`
 	Links    []feedLink  `xml:"link"`
 	Entries  []atomEntry `xml:"entry"`
 }
@@ -117,9 +118,10 @@ func RenderRSS(feed Feed) ([]byte, error) {
 // Empty feeds use a deterministic epoch update time instead of the request time,
 // so unchanged empty representations remain conditionally cacheable.
 func RenderAtom(feed Feed) ([]byte, error) {
-	updated := time.Unix(0, 0).UTC()
+	var updated time.Time
 	document := atomDocument{
 		ID: feed.HomeURL, Title: feed.Title, Subtitle: feed.Description,
+		Author: atomAuthor{Name: feed.Title},
 		Links: []feedLink{
 			{Rel: "self", Type: "application/atom+xml", Href: feed.AtomURL},
 			{Rel: "alternate", Type: "text/html", Href: feed.HomeURL},
@@ -135,6 +137,9 @@ func RenderAtom(feed Feed) ([]byte, error) {
 			Summary: atomText{Type: "text", Value: entry.Summary}, Author: atomAuthor{Name: entry.Author},
 			Published: entry.Published.UTC().Format(time.RFC3339), Updated: entry.Updated.UTC().Format(time.RFC3339),
 		})
+	}
+	if len(feed.Entries) == 0 {
+		updated = time.Unix(0, 0).UTC()
 	}
 	document.Updated = updated.UTC().Format(time.RFC3339)
 	return marshalFeedXML(document)

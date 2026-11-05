@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/seo"
 
@@ -28,7 +29,7 @@ func (f feedIdentityReaderFunc) GetPublicSiteIdentity(ctx context.Context) (seo.
 	return f(ctx)
 }
 
-// decodedFeedEntries reads both protocols through namespace-aware XML tokens,
+// decodedFeedEntries reads both protocols through namespace-aware XML decoding,
 // independently of their production serialization structs.
 func decodedFeedEntries(t *testing.T, body []byte) []struct{ Title, Summary, URL, Author, Published, Updated string } {
 	t.Helper()
@@ -69,6 +70,9 @@ func decodedFeedEntries(t *testing.T, body []byte) []struct{ Title, Summary, URL
 
 func TestFeedsHTTPPublicProjectionAndCaching(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	oldConfig := config.AppConfig
+	config.AppConfig = &config.Config{PublicSiteURL: "https://canonical.example"}
+	t.Cleanup(func() { config.AppConfig = oldConfig })
 	published := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
 	rows := []*models.Article{
 		{ID: 9, Slug: "new-post", Title: `中文 <标题> & "quote"`, Content: "# 安全正文\n\n<script>secret script</script>\n\n<style>secret style</style>\n\n**纯文本** & 中文", PublishAt: &published, UpdatedAt: published.Add(time.Hour), Author: &models.User{Username: "fallback", Nickname: `作者 <张> & "李"`, Email: "secret@example.org", Password: "secret-password"}},
@@ -80,8 +84,7 @@ func TestFeedsHTTPPublicProjectionAndCaching(t *testing.T) {
 	identityReader := feedIdentityReaderFunc(func(ctx context.Context) (seo.SiteIdentity, error) {
 		return seo.SiteIdentity{URL: "https://canonical.example", Name: "公开站点", Description: "站点描述"}, siteErr
 	})
-	r := gin.New()
-	registerFeeds(r, articleReader, identityReader)
+	r := setupUserRouter(nil, articleReader, identityReader)
 	for _, path := range []string{"/feed.xml", "/atom.xml"} {
 		get := httptest.NewRecorder()
 		r.ServeHTTP(get, httptest.NewRequest(http.MethodGet, path+"?status=0&author_id=999&show_all=true&page_size=10000&sort_order=asc", nil))
@@ -143,16 +146,71 @@ func TestFeedsHTTPPublicProjectionAndCaching(t *testing.T) {
 			articleErr, siteErr = nil, nil
 		}
 	}
-	// A fresh public snapshot is read even with an old validator; content changes
-	// and withdrawals cannot accidentally receive a stale 304.
+	// Even editing a non-leading entry changes the content-derived validator;
+	// collection max dates alone are not a sufficient representation validator.
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/atom.xml", nil))
+	rows[1].Summary = "编辑后的摘要"
+	edited := httptest.NewRecorder()
+	editRequest := httptest.NewRequest(http.MethodGet, "/atom.xml", nil)
+	editRequest.Header.Set("If-None-Match", w.Header().Get("ETag"))
+	r.ServeHTTP(edited, editRequest)
+	if edited.Code != 200 || decodedFeedEntries(t, edited.Body.Bytes())[1].Summary != "编辑后的摘要" || edited.Header().Get("ETag") == w.Header().Get("ETag") {
+		t.Fatal("non-leading article edit did not invalidate feed")
+	}
+	// A fresh public snapshot is read even with an old validator; withdrawals
+	// cannot accidentally receive a stale 304.
 	rows = rows[1:]
 	next := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/atom.xml", nil)
-	req.Header.Set("If-None-Match", w.Header().Get("ETag"))
+	req.Header.Set("If-None-Match", edited.Header().Get("ETag"))
 	r.ServeHTTP(next, req)
-	if next.Code != 200 || len(decodedFeedEntries(t, next.Body.Bytes())) != 2 || next.Header().Get("ETag") == w.Header().Get("ETag") {
+	if next.Code != 200 || len(decodedFeedEntries(t, next.Body.Bytes())) != 2 || next.Header().Get("ETag") == edited.Header().Get("ETag") {
 		t.Fatal("public snapshot did not refresh")
+	}
+}
+
+func TestFeedsEmptyAndBoundedSummaryHTTP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	var rows []*models.Article
+	r := gin.New()
+	registerFeeds(r, feedArticleReaderFunc(func(context.Context) ([]*models.Article, error) { return rows, nil }), fixedSite{})
+	for _, path := range []string{"/feed.xml", "/atom.xml"} {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != 200 || len(decodedFeedEntries(t, w.Body.Bytes())) != 0 {
+			t.Fatalf("empty feed: %d %s", w.Code, w.Body.String())
+		}
+		conditional := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("If-None-Match", "*")
+		r.ServeHTTP(conditional, req)
+		if conditional.Code != 304 || conditional.Header().Get("ETag") != w.Header().Get("ETag") {
+			t.Fatal("empty feed is not stable")
+		}
+	}
+	rows = []*models.Article{{Slug: "bounded", Content: "<script>secret</script>\n\n" + strings.Repeat("中文", 200)}}
+	for _, path := range []string{"/feed.xml", "/atom.xml"} {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != 200 {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		entries := decodedFeedEntries(t, w.Body.Bytes())
+		if len(entries) != 1 || entries[0].Summary != strings.Repeat("中文", 80) {
+			t.Fatal("summary is not safely bounded", entries)
+		}
+	}
+	rows = []*models.Article{{Slug: "../invalid"}}
+	for _, path := range []string{"/feed.xml", "/atom.xml"} {
+		for _, method := range []string{http.MethodGet, http.MethodHead} {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(method, path, nil)
+			req.Header.Set("If-None-Match", "*")
+			r.ServeHTTP(w, req)
+			if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" || w.Body.Len() != 0 {
+				t.Fatal("invalid representation was cached", w.Code, w.Header())
+			}
+		}
 	}
 }

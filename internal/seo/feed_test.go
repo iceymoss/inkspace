@@ -127,3 +127,34 @@ func TestFeedsRoundTripSharedSemantics(t *testing.T) {
 		}
 	}
 }
+
+func TestAtomEmptyAndHistoricalFeedMetadata(t *testing.T) {
+	feed := Feed{Title: "Empty site", HomeURL: "https://blog.example/", AtomURL: "https://blog.example/atom.xml"}
+	for _, historical := range []bool{false, true} {
+		if historical {
+			feed.Entries = []FeedEntry{{Title: "Historical", Author: "Author", URL: "https://blog.example/blog/history", Published: time.Date(1960, 1, 1, 0, 0, 0, 0, time.UTC), Updated: time.Date(1961, 1, 1, 0, 0, 0, 0, time.UTC)}}
+		}
+		body, err := RenderAtom(feed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var document struct {
+			XMLName xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
+			Author  struct {
+				Name string `xml:"name"`
+			} `xml:"author"`
+			Updated string     `xml:"updated"`
+			Entries []struct{} `xml:"entry"`
+		}
+		if err := xml.Unmarshal(body, &document); err != nil {
+			t.Fatal(err)
+		}
+		wantUpdated := "1970-01-01T00:00:00Z"
+		if historical {
+			wantUpdated = "1961-01-01T00:00:00Z"
+		}
+		if document.Author.Name != "Empty site" || document.Updated != wantUpdated || len(document.Entries) != len(feed.Entries) {
+			t.Fatalf("Atom metadata: %s", body)
+		}
+	}
+}
