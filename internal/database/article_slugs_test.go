@@ -11,7 +11,7 @@ import (
 func TestArticleSlugMigrationMySQL(t *testing.T) {
 	db := testutil.SEOTestMySQL(t)
 	if err := db.Exec(`CREATE TABLE articles (id bigint unsigned PRIMARY KEY AUTO_INCREMENT,
-		title varchar(200), deleted_at datetime(3), status int, updated_at datetime(3))`).Error; err != nil {
+		title varchar(200), deleted_at datetime(3), status int, updated_at datetime(3), created_at datetime(3) DEFAULT '2019-01-01')`).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Exec(`INSERT INTO articles (id,title,status,deleted_at,updated_at) VALUES
@@ -76,7 +76,8 @@ func TestArticleSlugMigrationMySQL(t *testing.T) {
 
 func TestArticleSlugMigrationConflictsMySQL(t *testing.T) {
 	db := testutil.SEOTestMySQL(t)
-	if err := db.Exec(`CREATE TABLE articles (id bigint unsigned PRIMARY KEY AUTO_INCREMENT, title varchar(200),slug varchar(120))`).Error; err != nil {
+	if err := db.Exec(`CREATE TABLE articles (id bigint unsigned PRIMARY KEY AUTO_INCREMENT, title varchar(200),slug varchar(120),
+		created_at datetime(3) DEFAULT '2019-01-01', updated_at datetime(3) DEFAULT '2020-01-01', status int, deleted_at datetime(3))`).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Exec("INSERT INTO articles(title,slug) VALUES ('first','occupied'),('second','occupied'),('pending',NULL)").Error; err != nil {

@@ -22,6 +22,9 @@ func migrateDB(db *gorm.DB) error {
 		if err := CheckArticleSlugSchema(db); err != nil {
 			return err
 		}
+		if err := CheckArticlePublicationSchema(db); err != nil {
+			return err
+		}
 	}
 
 	// 自动迁移所有表
@@ -31,6 +34,9 @@ func migrateDB(db *gorm.DB) error {
 	if !articleTableExists {
 		// Only a brand-new empty table may receive the index at startup.
 		if err := db.Exec("CREATE UNIQUE INDEX ux_articles_slug ON articles(slug)").Error; err != nil {
+			return err
+		}
+		if err := markArticlePublicationReady(db); err != nil {
 			return err
 		}
 	}

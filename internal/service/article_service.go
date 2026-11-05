@@ -14,6 +14,7 @@ import (
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ArticleService struct{}
@@ -54,6 +55,10 @@ func (s *ArticleService) create(req *models.ArticleRequest, authorID uint) (*mod
 		Status:      status,
 		IsTop:       req.IsTop,
 		IsRecommend: req.IsRecommend,
+	}
+	if status == 1 {
+		now := time.Now().Truncate(time.Millisecond)
+		article.PublishAt = &now
 	}
 
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
@@ -125,30 +130,27 @@ func (s *ArticleService) create(req *models.ArticleRequest, authorID uint) (*mod
 }
 
 func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint, role string) (*models.Article, error) {
-	// 先查询文章，但使用WHERE条件确保权限（非管理员只能查询自己的文章）
 	var article models.Article
-	query := database.DB.Where("id = ?", id)
-
-	// 非管理员只能更新自己的文章
-	if role != "admin" {
-		query = query.Where("author_id = ?", userID)
-	}
-
-	if err := query.Preload("Category").Preload("Tags").First(&article).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("文章不存在或无权限修改")
-		}
-		return nil, err
-	}
-
-	// 获取旧的标签IDs和分类ID
-	oldTagIDs := make([]uint, len(article.Tags))
-	for i, tag := range article.Tags {
-		oldTagIDs[i] = tag.ID
-	}
-	oldCategoryID := article.CategoryID
-
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// Lock before reading publication state and associations. Concurrent first
+		// publishers must observe the winner's timestamp, never overwrite it from
+		// a stale pre-transaction read. The same lock protects tag/category deltas.
+		query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where(models.ArticleColumns.ID+" = ?", id)
+		if role != "admin" {
+			query = query.Where("author_id = ?", userID)
+		}
+		if err := query.Preload("Category").Preload("Tags").First(&article).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("文章不存在或无权限修改")
+			}
+			return err
+		}
+		oldTagIDs := make([]uint, len(article.Tags))
+		for i, tag := range article.Tags {
+			oldTagIDs[i] = tag.ID
+		}
+		oldCategoryID := article.CategoryID
+
 		// 如果分类改变，更新旧分类的文章数
 		if oldCategoryID > 0 && oldCategoryID != req.CategoryID {
 			if err := tx.Model(&models.Category{}).
@@ -185,7 +187,16 @@ func (s *ArticleService) Update(id uint, req *models.ArticleRequest, userID uint
 		// 确保 status 正确设置：0=草稿, 1=已发布, 2=私有
 		status := req.Status
 		if status == 0 || status == 1 || status == 2 {
-			updateData["status"] = status
+			updateData[models.ArticleColumns.Status] = status
+		}
+		if status == 1 && article.PublishAt == nil {
+			// Historical published rows are repaired offline. If encountered here,
+			// preserve their historical age rather than promote them as new posts.
+			first := article.CreatedAt
+			if article.Status != 1 {
+				first = time.Now().Truncate(time.Millisecond)
+			}
+			updateData[models.ArticleColumns.PublishAt] = first
 		}
 
 		updateQuery := tx.Model(&models.Article{}).Where("id = ?", id)
