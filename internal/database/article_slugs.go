@@ -11,9 +11,13 @@ import (
 )
 
 // ArticleSlugMigrationStats records changes made by an explicit offline migration.
-type ArticleSlugMigrationStats struct{ Scanned, Filled int }
+type ArticleSlugMigrationStats struct {
+	Scanned, Filled                                 int
+	PublishScanned, PublishFilled, PublishPreserved int
+}
 
-// MigrateArticleSlugs runs the reviewed prepare/backfill/validate/index sequence.
+// MigrateArticleSlugs runs the reviewed slug and first-publication
+// prepare/backfill/validate/index sequence.
 // Stop all article writers first. The startup advisory lock serializes this
 // command against application initialization, but is not an online-write lock.
 // Completed rows survive a failure and are preserved on the next invocation.
@@ -55,6 +59,11 @@ func MigrateArticleSlugs(ctx context.Context, db *gorm.DB) (stats ArticleSlugMig
 				occupied[article.Slug] = article.ID
 			}
 		}
+		// Publication repair is part of the same explicit offline rollout, not a
+		// potentially large startup task. Preflight all fallback dates first.
+		if err := backfillArticlePublication(conn, &stats); err != nil {
+			return err
+		}
 		lastID = 0
 		for {
 			var batch []models.Article
@@ -71,7 +80,7 @@ func MigrateArticleSlugs(ctx context.Context, db *gorm.DB) (stats ArticleSlugMig
 				for attempt := uint(2); occupied[candidate] != 0; attempt++ {
 					candidate = seo.SlugCandidate(base, attempt)
 				}
-				result := conn.Exec("UPDATE articles SET slug = ? WHERE id = ? AND (slug IS NULL OR slug = '')", candidate, article.ID)
+				result := conn.Exec("UPDATE articles SET slug = ?, updated_at = updated_at WHERE id = ? AND (slug IS NULL OR slug = '')", candidate, article.ID)
 				if result.Error != nil {
 					return result.Error
 				}
@@ -94,7 +103,10 @@ func MigrateArticleSlugs(ctx context.Context, db *gorm.DB) (stats ArticleSlugMig
 				return err
 			}
 		}
-		return CheckArticleSlugSchema(conn)
+		if err := CheckArticleSlugSchema(conn); err != nil {
+			return err
+		}
+		return CheckArticlePublicationSchema(conn)
 	})
 	return stats, err
 }

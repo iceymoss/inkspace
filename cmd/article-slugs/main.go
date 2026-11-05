@@ -31,6 +31,7 @@ func run() error {
 	defer sqlDB.Close()
 	stats, err := database.MigrateArticleSlugs(context.Background(), db)
 	fmt.Printf("article slug migration: scanned=%d filled=%d\n", stats.Scanned, stats.Filled)
+	fmt.Printf("article publication migration: scanned=%d filled=%d preserved=%d\n", stats.PublishScanned, stats.PublishFilled, stats.PublishPreserved)
 	return err
 }
 
