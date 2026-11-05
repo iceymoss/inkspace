@@ -235,6 +235,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 	// Serve static files (uploads)
 	r.Static("/uploads", "./uploads")
+	registerFeeds(r, service.NewArticleService(), service.NewSettingService())
 	var blogAssets fs.FS
 	if len(assets) > 0 {
 		blogAssets = assets[0]
