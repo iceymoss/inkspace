@@ -13,14 +13,18 @@ import (
 // AllocateArticleSlug fills a newly inserted article's NULL slug inside its
 // creation transaction. A global unique index arbitrates concurrent writers;
 // duplicate-key races advance the deterministic suffix, never overwrite a row.
-// Raw occupancy reads include soft-deleted rows. The unique index, rather than
+// Unscoped occupancy reads include soft-deleted rows. The unique index, rather than
 // the preliminary snapshot read, is the authority when another writer wins.
 func AllocateArticleSlug(tx *gorm.DB, article *Article) error {
 	base := seo.SlugBase(article.Title, article.ID)
 	for attempt := uint(1); attempt < 1000000; attempt++ {
 		candidate := seo.SlugCandidate(base, attempt)
 		var occupied uint
-		if err := tx.Raw("SELECT id FROM articles WHERE slug = ? LIMIT 1", candidate).Scan(&occupied).Error; err != nil {
+		if err := tx.Unscoped().Model(&Article{}).
+			Select(ArticleColumns.ID).
+			Where(ArticleColumns.Slug+" = ?", candidate).
+			Limit(1).
+			Scan(&occupied).Error; err != nil {
 			return err
 		}
 		if occupied != 0 {
@@ -28,7 +32,9 @@ func AllocateArticleSlug(tx *gorm.DB, article *Article) error {
 		}
 		// Slug is otherwise create-only in the GORM model. This narrowly scoped
 		// SQL write can fill NULL once, and cannot rewrite an existing slug.
-		result := tx.Exec("UPDATE articles SET slug = ? WHERE id = ? AND (slug IS NULL OR slug = '')", candidate, article.ID)
+		query := fmt.Sprintf("UPDATE %s SET %s = ? WHERE %s = ? AND (%s IS NULL OR %s = '')",
+			(Article{}).TableName(), ArticleColumns.Slug, ArticleColumns.ID, ArticleColumns.Slug, ArticleColumns.Slug)
+		result := tx.Exec(query, candidate, article.ID)
 		if result.Error != nil {
 			var duplicate *mysqlDriver.MySQLError
 			if errors.As(result.Error, &duplicate) && duplicate.Number == 1062 {

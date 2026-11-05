@@ -118,3 +118,32 @@ not executed here.** SQL `verify.sql` is reviewable but has not been run against
 
 All changes are confined to this assigned worktree. Original user worktree documentation is untouched.
 No subagents, push, cluster mutation, production migration or destructive application-data action occurred.
+
+## Final-review fixes — 2026-11-05
+
+The preceding sections are historical ticket06 evidence. The final-review fixes are
+on `fix/seo-review-findings`, based on `64138eb3`, in
+`/Users/iceymoss/project/inkspace-seo-review`. See
+[SEO_REVIEW_RESOLUTION.md](SEO_REVIEW_RESOLUTION.md) for the complete four SPEC,
+D1–D3 and H1–H2 finding-to-code/test mapping and observed red/green evidence.
+
+Revalidated after the fixes:
+
+- `go test ./... -count=1`, `go build ./...`, `go vet ./...`: **PASS**.
+- Race tests for config/database/models/service/handler/router/seo: **PASS**.
+- Embedded head-placeholder test and `python3 scripts/seo_smoke_test.py`: **PASS**.
+- Blog frozen install, tests (**16 files / 114 tests**), build and lint: **PASS**.
+- `git diff --check`: **PASS**. No dependency changes or generated dist committed.
+
+Explicit gated database/service/router run now reports **15 SEO MySQL SKIPs**, not
+the earlier 13: the added fixtures cover legacy automatic-timestamp interactions
+and executable guarded migration SQL phases. The unrelated theme gate also skips.
+`INKSPACE_SEO_TEST_MYSQL_DSN` is absent; no database connection or DDL was performed.
+Actual SQL repetition/validation, legacy `updated_at`/sitemap invariance and live
+deployment acceptance remain release gates, not passing claims.
+
+Generic SPA settings outages now retain the normal shell with absolute RSS/Atom
+links and canonical bootstrap defaults. Explicit `PUBLIC_SITE_URL` remains required
+in every mode; article/feed metadata query errors remain **500/no-store**. SQL prepare
+and finalize artifacts are separate, opt-in, repeatable phases; application-driven
+pinyin/date repair stays between them and the completion marker is installed last.

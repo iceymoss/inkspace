@@ -80,9 +80,11 @@ configMapGenerator:
 3. 停止**全部写入者**：旧/新 blog 副本、admin、scheduler、知识库发布入口、后台任务、
    ad-hoc SQL 写入。网关可返回维护页/503，不能让旧进程继续创建无 slug 文章。
    MySQL DDL 隐式提交，advisory lock 不能替代停止旧写入者。
-4. 审查 [schema.sql](../scripts/article-slugs/schema.sql)、
+4. 审查分阶段、可重复执行的 [schema.sql](../scripts/article-slugs/schema.sql)、
+   [finalize.sql](../scripts/article-slugs/finalize.sql)（只在修复后验证/建约束，completion marker 最后安装）、
    [迁移说明](../scripts/article-slugs/README.md)、`internal/database/article_slugs.go`。
-   SQL 文件是**审查参考**，不能整体直接执行；确定性拼音/冲突处理和完整日期校验在 Go 命令中。
+   SQL 文件必须按迁移说明**分阶段执行**，不能拼接运行；每个 SQL 会话须显式确认离线，
+   确定性拼音/冲突处理和完整日期修复仍由中间的 Go 命令完成。推荐用 Go 命令编排完整流程。
 5. 从受保护的 secret 注入 `INKSPACE_ARTICLE_SLUG_MIGRATION_DSN`（必须显式选择目标库），
    设置 `INKSPACE_ARTICLE_SLUG_MIGRATION_OFFLINE=1`，在可信构建环境运行：
 

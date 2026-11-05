@@ -183,7 +183,7 @@ func (s *CommentService) Create(req *models.CommentRequest, userID uint) (*model
 			if req.ArticleID != nil && *req.ArticleID > 0 {
 				if err := tx.Model(&models.Article{}).
 					Where("id = ?", *req.ArticleID).
-					UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+					UpdateColumns(articleCounterChange(models.ArticleColumns.CommentCount, 1)).Error; err != nil {
 					return err
 				}
 			}
@@ -386,7 +386,7 @@ func (s *CommentService) Delete(id uint, userID uint, role string) error {
 		if comment.ArticleID != nil && *comment.ArticleID > 0 {
 			if err := tx.Model(&models.Article{}).
 				Where("id = ?", *comment.ArticleID).
-				UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+				UpdateColumns(articleCounterChange(models.ArticleColumns.CommentCount, -1)).Error; err != nil {
 				return err
 			}
 		}
@@ -553,7 +553,7 @@ func (s *CommentService) UpdateStatus(id uint, status int) error {
 				if comment.ArticleID != nil && *comment.ArticleID > 0 {
 					if err := tx.Model(&models.Article{}).
 						Where("id = ?", *comment.ArticleID).
-						UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+						UpdateColumns(articleCounterChange(models.ArticleColumns.CommentCount, 1)).Error; err != nil {
 						return err
 					}
 				}
@@ -592,7 +592,7 @@ func (s *CommentService) UpdateStatus(id uint, status int) error {
 				if comment.ArticleID != nil && *comment.ArticleID > 0 {
 					if err := tx.Model(&models.Article{}).
 						Where("id = ?", *comment.ArticleID).
-						UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+						UpdateColumns(articleCounterChange(models.ArticleColumns.CommentCount, -1)).Error; err != nil {
 						return err
 					}
 				}

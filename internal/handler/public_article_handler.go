@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/iceymoss/inkspace/internal/models"
@@ -12,6 +11,7 @@ import (
 	"github.com/iceymoss/inkspace/internal/utils"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -54,7 +54,7 @@ func (h *PublicArticleHandler) GetBySlug(c *gin.Context) {
 	}
 	if h.recordView != nil {
 		if err := h.recordView(c.Request.Context(), article.ID); err != nil {
-			log.Printf("record public article view: %v", err)
+			zap.L().Warn("record public article view", zap.Uint("article_id", article.ID), zap.Error(err))
 		}
 	}
 	c.Header("Cache-Control", "no-cache")

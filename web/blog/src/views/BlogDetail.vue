@@ -518,6 +518,8 @@ const isCommentAuthor = (comment) => {
 
 let articleLoadVersion = 0
 let disposed = false
+// Keep the refresh key stable while loadArticle temporarily clears the UI.
+const resolvedArticleID = ref(null)
 const loadArticle = async () => {
   if (disposed) return false
   const version = ++articleLoadVersion
@@ -528,6 +530,7 @@ const loadArticle = async () => {
     const response = await api.get(`/articles/slug/${encodeURIComponent(slug)}`)
     if (version !== articleLoadVersion || slug !== route.params.slug) return false
     article.value = response.data
+    resolvedArticleID.value = response.data.id
     setArticleMetadata(response.data.seo)
     
     // 设置已加载标记
@@ -1155,14 +1158,16 @@ watch(markdownTheme, () => {
 })
 
 watch(
-  () => terminalStore.refreshSignals[`article:${article.value?.id}`],
-  async (signal, previousSignal) => {
-    if (!signal || signal === previousSignal) return
+  () => [resolvedArticleID.value, terminalStore.refreshSignals[`article:${resolvedArticleID.value}`]],
+  async ([id, signal], [previousID, previousSignal]) => {
+    // A newly resolved route already has fresh data; do not replay old signals.
+    if (!id || id !== previousID || !signal || signal === previousSignal) return
     if (await loadArticle()) await Promise.all([checkLiked(), checkFavorited()])
   }
 )
 
 const loadArticlePage = async () => {
+  resolvedArticleID.value = null
   comments.value = []
   commentsPage.value = 1
   isLiked.value = false

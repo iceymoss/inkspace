@@ -13,23 +13,8 @@ import (
 
 // SetupUserRouter 设置用户服务路由
 func SetupUserRouter(assets ...fs.FS) *gin.Engine {
-	return setupUserRouter(assets, service.NewArticleService(), service.NewSettingService())
-}
-
-// setupUserRouterWithSitemap keeps discovery HTTP tests on the real blog router;
-// production still uses the shared published-only article service/global DB.
-func setupUserRouterWithSitemap(sitemapReader publicSitemapReader, assets ...fs.FS) *gin.Engine {
-	return setupUserRouterWithDiscovery(assets, service.NewArticleService(), service.NewSettingService(), sitemapReader)
-}
-
-// setupUserRouter preserves production assembly while letting discovery HTTP
-// tests supply fresh public readers without requiring a database or Redis.
-func setupUserRouter(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader) *gin.Engine {
-	return setupUserRouterWithDiscovery(assets, feedArticles, feedSettings, service.NewArticleService())
-}
-
-func setupUserRouterWithDiscovery(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader, sitemapReader publicSitemapReader) *gin.Engine {
-	return setupUserRouterWithPublicSEO(assets, feedArticles, feedSettings, sitemapReader, service.NewArticleService())
+	articles := service.NewArticleService()
+	return setupUserRouterWithPublicSEO(assets, articles, service.NewSettingService(), articles, articles)
 }
 
 // setupUserRouterWithPublicSEO is the assembled HTTP acceptance seam. Production
@@ -274,8 +259,13 @@ func setupUserRouterWithPublicSEO(assets []fs.FS, feedArticles recentPublicArtic
 		serveSPA(r, assets[0], func(c *gin.Context) {
 			site, err := feedSettings.GetPublicSiteIdentity(c.Request.Context())
 			if err != nil {
-				htmlFailure(c, 500)
-				return
+				// The ordinary application shell must survive a settings outage.
+				// Still require a validated explicit origin for feed links/bootstrap.
+				site, err = service.PublicSiteIdentityFromSettings(base, nil)
+				if err != nil {
+					htmlFailure(c, 500)
+					return
+				}
 			}
 			serveBlogIndex(c, blogAssets, site, nil)
 		})

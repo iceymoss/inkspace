@@ -665,7 +665,9 @@ func (s *ArticleService) getListFromDB(query *models.ArticleListQuery) ([]*model
 }
 
 func (s *ArticleService) IncrementViewCount(id uint) error {
-	return database.DB.Model(&models.Article{}).Where("id = ?", id).UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error
+	return database.DB.Model(&models.Article{}).
+		Where(models.ArticleColumns.ID+" = ?", id).
+		UpdateColumns(articleCounterChange(models.ArticleColumns.ViewCount, 1)).Error
 }
 
 // GetRecommended 获取推荐文章

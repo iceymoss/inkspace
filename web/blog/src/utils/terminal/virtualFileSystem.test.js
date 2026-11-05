@@ -3,12 +3,25 @@ import {
   createResourceName,
   extractResourceId,
   normalizeVirtualPath,
+  parseArticleReference,
   routeToVirtualPath,
   slugifyResourceName,
   virtualPathToRoute
 } from './virtualFileSystem'
 
 describe('terminal virtual file system', () => {
+  it.each([
+    ['stable-slug.md', { slug: 'stable-slug', id: null }],
+    ['2026-news.md', { slug: '2026-news', id: null }],
+    ['/inkspace/blog/stable-slug.md', { slug: 'stable-slug', id: null }],
+    ['42.md', { slug: null, id: 42 }],
+    ['/inkspace/blog/42', { slug: null, id: 42 }],
+    ['Upper.md', null], ['0.md', null], ['../post.md', null],
+    ['/inkspace/blog/nested/post.md', null], ['/inkspace/works/post.md', null],
+    ['post.json', null], ['x'.repeat(121), null], ['9007199254740992.md', null]
+  ])('decodes one validated article reference %s', (value, expected) => {
+    expect(parseArticleReference(value)).toEqual(expected)
+  })
   it('normalizes paths without allowing escape from /inkspace', () => {
     expect(normalizeVirtualPath('../blog/./12-post.md', '/inkspace/index')).toBe('/inkspace/blog/12-post.md')
     expect(normalizeVirtualPath('/inkspace/works/../blog')).toBe('/inkspace/blog')

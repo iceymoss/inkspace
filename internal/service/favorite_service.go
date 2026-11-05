@@ -58,7 +58,7 @@ func (s *FavoriteService) AddFavorite(userID, articleID uint) error {
 		// 更新文章收藏数
 		if err := tx.Model(&models.Article{}).
 			Where("id = ?", articleID).
-			UpdateColumn("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error; err != nil {
+			UpdateColumns(articleCounterChange(models.ArticleColumns.FavoriteCount, 1)).Error; err != nil {
 			return err
 		}
 
@@ -106,7 +106,7 @@ func (s *FavoriteService) RemoveFavorite(userID, articleID uint) error {
 		// 更新文章收藏数
 		if err := tx.Model(&models.Article{}).
 			Where("id = ?", articleID).
-			UpdateColumn("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error; err != nil {
+			UpdateColumns(articleCounterChange(models.ArticleColumns.FavoriteCount, -1)).Error; err != nil {
 			return err
 		}
 

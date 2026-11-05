@@ -1,19 +1,31 @@
--- REVIEW REFERENCE ONLY: do not run this file wholesale.
--- The Go migration checks information_schema before each DDL, validates existing
--- slugs and performs deterministic local-pinyin backfill BETWEEN these statements.
--- MySQL DDL commits implicitly. Stop all writers; take a backup first.
-ALTER TABLE articles ADD COLUMN slug varchar(120)
-  CHARACTER SET ascii COLLATE ascii_bin NULL DEFAULT NULL;
-
--- Only after complete nonempty/format/duplicate validation and backfill:
-CREATE UNIQUE INDEX ux_articles_slug ON articles(slug);
-
--- Extended offline command only: add if missing, then preflight all textual
--- publish_at/created_at values and repair invalid dates in ID batches. Do not
--- replace this with a blanket COALESCE (legacy invalid dates are not only NULL).
-ALTER TABLE articles ADD COLUMN publish_at datetime(3) NULL DEFAULT NULL;
--- Conceptual per-invalid-row update (the command binds ID and old value):
--- UPDATE articles SET publish_at = created_at, updated_at = updated_at WHERE id = ?;
--- Only AFTER complete publication repair; also the startup readiness marker:
-CREATE INDEX idx_articles_first_publication_v1
-  ON articles(status, deleted_at, publish_at DESC, id DESC);
+-- PHASE 1 / MySQL 8.0: guarded, repeatable preparation ONLY.
+-- Back up and STOP ALL WRITERS. In this same mysql-client connection set:
+-- SET @inkspace_article_seo_offline = 1;
+-- Then source this file. Run cmd/article-slugs for pinyin/date repair, and
+-- source finalize.sql only after reviewing its results. DDL commits implicitly.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS inkspace_prepare_article_seo$$
+CREATE PROCEDURE inkspace_prepare_article_seo()
+BEGIN
+  IF COALESCE(@inkspace_article_seo_offline, 0) <> 1 OR DATABASE() IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Select the reviewed database and explicitly confirm offline writers';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='articles') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'articles table is missing';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='articles' AND column_name='slug') THEN
+    ALTER TABLE articles ADD COLUMN slug varchar(120) CHARACTER SET ascii COLLATE ascii_bin NULL DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='articles' AND column_name='slug' AND data_type='varchar' AND character_maximum_length=120) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unexpected slug column; review manually, never rewrite populated slugs';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='articles' AND column_name='publish_at') THEN
+    ALTER TABLE articles ADD COLUMN publish_at datetime(3) NULL DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='articles' AND column_name='publish_at' AND data_type='datetime') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unexpected publish_at column; review manually';
+  END IF;
+END$$
+CALL inkspace_prepare_article_seo()$$
+DROP PROCEDURE inkspace_prepare_article_seo$$
+DELIMITER ;

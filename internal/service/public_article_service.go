@@ -45,5 +45,5 @@ func findPublicArticle(query *gorm.DB) (*models.Article, error) {
 func (s *ArticleService) RecordPublicArticleView(ctx context.Context, id uint) error {
 	return PublicArticles(database.DB.WithContext(ctx)).
 		Where(models.ArticleColumns.ID+" = ?", id).
-		UpdateColumn("view_count", gorm.Expr("view_count + 1")).Error
+		UpdateColumns(articleCounterChange(models.ArticleColumns.ViewCount, 1)).Error
 }

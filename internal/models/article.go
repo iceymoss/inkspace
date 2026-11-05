@@ -141,7 +141,8 @@ func (a *Article) ToResponse() *ArticleResponse {
 func (Article) TableName() string { return "articles" }
 
 // ArticleColumns centralizes columns used by the permalink and public-read contract.
-var ArticleColumns = struct{ ID, Slug, Status, DeletedAt, PublishAt, CreatedAt, UpdatedAt, AuthorID, Title, Summary, Content string }{
+var ArticleColumns = struct{ ID, Slug, Status, DeletedAt, PublishAt, CreatedAt, UpdatedAt, AuthorID, Title, Summary, Content, ViewCount, LikeCount, FavoriteCount, CommentCount string }{
 	ID: "id", Slug: "slug", Status: "status", DeletedAt: "deleted_at", PublishAt: "publish_at", CreatedAt: "created_at",
 	UpdatedAt: "updated_at", AuthorID: "author_id", Title: "title", Summary: "summary", Content: "content",
+	ViewCount: "view_count", LikeCount: "like_count", FavoriteCount: "favorite_count", CommentCount: "comment_count",
 }

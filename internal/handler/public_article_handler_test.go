@@ -13,8 +13,30 @@ import (
 	"github.com/iceymoss/inkspace/internal/seo"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 	"gorm.io/gorm"
 )
+
+func TestPublicSlugAPIViewFailureUsesStructuredNonfatalLog(t *testing.T) {
+	core, logs := observer.New(zap.WarnLevel)
+	restore := zap.ReplaceGlobals(zap.New(core))
+	t.Cleanup(restore)
+	h := &PublicArticleHandler{reader: slugReader{}, site: func(context.Context) (seo.SiteIdentity, error) {
+		return seo.SiteIdentity{URL: "https://canonical.example", Name: "Site"}, nil
+	}, recordView: func(context.Context, uint) error { return errors.New("view write failed") }}
+	r := gin.New()
+	r.GET("/api/articles/slug/:slug", h.GetBySlug)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/api/articles/slug/public-post", nil))
+	if w.Code != 200 || strings.Contains(w.Body.String(), "view write failed") {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	entries := logs.All()
+	if len(entries) != 1 || entries[0].Message != "record public article view" || entries[0].ContextMap()["article_id"] != uint64(42) || entries[0].ContextMap()["error"] != "view write failed" {
+		t.Fatal(entries)
+	}
+}
 
 type slugReader struct{}
 

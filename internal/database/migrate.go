@@ -229,7 +229,7 @@ func SyncCounters() error {
 	// 同步文章的评论数
 	if err := DB.Exec(`
 		UPDATE articles a 
-		SET comment_count = (
+		SET updated_at = updated_at, comment_count = (
 			SELECT COUNT(*) FROM comments c 
 			WHERE c.article_id = a.id AND c.deleted_at IS NULL
 		)
@@ -318,7 +318,7 @@ func SyncCounters() error {
 	// 同步文章的收藏数
 	if err := DB.Exec(`
 		UPDATE articles a
-		SET favorite_count = (
+		SET updated_at = updated_at, favorite_count = (
 			SELECT COUNT(*) FROM article_favorites af
 			WHERE af.article_id = a.id AND af.deleted_at IS NULL
 		)
@@ -414,7 +414,10 @@ func AfterCreateComment(db *gorm.DB, comment *models.Comment) error {
 	// 更新文章评论数
 	if err := db.Model(&models.Article{}).
 		Where("id = ?", comment.ArticleID).
-		UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+		UpdateColumns(map[string]any{
+			models.ArticleColumns.CommentCount: gorm.Expr(models.ArticleColumns.CommentCount+" + ?", 1),
+			models.ArticleColumns.UpdatedAt:    gorm.Expr(models.ArticleColumns.UpdatedAt),
+		}).Error; err != nil {
 		return err
 	}
 
@@ -444,7 +447,10 @@ func AfterDeleteComment(db *gorm.DB, comment *models.Comment) error {
 	// 更新文章评论数
 	if err := db.Model(&models.Article{}).
 		Where("id = ?", comment.ArticleID).
-		UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+		UpdateColumns(map[string]any{
+			models.ArticleColumns.CommentCount: gorm.Expr(models.ArticleColumns.CommentCount+" - ?", 1),
+			models.ArticleColumns.UpdatedAt:    gorm.Expr(models.ArticleColumns.UpdatedAt),
+		}).Error; err != nil {
 		return err
 	}
 

@@ -217,9 +217,34 @@ func TestHistoricalPublicationSurvivesRepublishMySQL(t *testing.T) {
 }
 
 func TestArticleInteractionsPreserveContentTimeMySQL(t *testing.T) {
+	testArticleInteractionsPreserveContentTime(t, false)
+}
+
+func TestArticleInteractionsPreserveLegacyAutomaticTimeMySQL(t *testing.T) {
+	testArticleInteractionsPreserveContentTime(t, true)
+}
+
+func testArticleInteractionsPreserveContentTime(t *testing.T, legacy bool) {
+	t.Helper()
 	db, author := publicationMySQL(t)
-	if err := db.AutoMigrate(&models.ArticleFavorite{}, &models.Like{}, &models.Comment{}, &models.Setting{}); err != nil {
+	// Finish all association-driven schema migration BEFORE installing the legacy
+	// column, so AutoMigrate cannot silently erase the behavior under test.
+	if err := db.AutoMigrate(&models.ArticleFavorite{}, &models.Like{}, &models.Comment{}, &models.Setting{}, &models.Work{}, &models.UserFollow{}); err != nil {
 		t.Fatal(err)
+	}
+	if legacy {
+		// This DDL is ONLY on SEOTestMySQL's random, opt-in test schema.
+		if err := db.Exec("ALTER TABLE articles MODIFY updated_at datetime(3) NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(3)").Error; err != nil {
+			t.Fatal(err)
+		}
+		var extra string
+		if err := db.Raw(`SELECT extra FROM information_schema.columns WHERE table_schema=DATABASE()
+			AND table_name='articles' AND column_name='updated_at'`).Scan(&extra).Error; err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(strings.ToLower(extra), "on update current_timestamp(3)") {
+			t.Fatalf("legacy automatic timestamp fixture missing: %q", extra)
+		}
 	}
 	s := NewArticleService()
 	article, err := s.Create(&models.ArticleRequest{Title: "Interaction timestamps", Content: "Body", Status: 1}, author.ID)
@@ -285,4 +310,39 @@ func TestArticleInteractionsPreserveContentTimeMySQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	check(t, 2, 0, 0, 0)
+	// Moderation has independent counter writes in both directions.
+	comment, err = NewCommentService().Create(&models.CommentRequest{ArticleID: &article.ID, Content: "Moderated comment"}, author.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, 2, 0, 0, 1)
+	for _, status := range []int{0, 1, -1} {
+		if err := NewCommentService().UpdateStatus(comment.ID, status); err != nil {
+			t.Fatal(err)
+		}
+		want := 0
+		if status == 1 {
+			want = 1
+		}
+		check(t, 2, 0, 0, want)
+	}
+	// Legacy database counter-maintenance entry points also must not advance
+	// editorial time. No user/reply counter is involved in this detached value.
+	detached := &models.Comment{ArticleID: &article.ID}
+	if err := database.AfterCreateComment(db, detached); err != nil {
+		t.Fatal(err)
+	}
+	check(t, 2, 0, 0, 1)
+	if err := database.AfterDeleteComment(db, detached); err != nil {
+		t.Fatal(err)
+	}
+	check(t, 2, 0, 0, 0)
+	// Force the maintenance sync to change both counters, not a no-op UPDATE.
+	if err := db.Model(article).UpdateColumns(map[string]any{"comment_count": 8, "favorite_count": 8, "updated_at": modified}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := database.SyncCounters(); err != nil {
+		t.Fatal(err)
+	}
+	check(t, 2, 0, 0, 1) // rejected, undeleted comment is included by legacy sync.
 }
