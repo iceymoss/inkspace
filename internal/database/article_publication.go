@@ -70,7 +70,7 @@ func backfillArticlePublication(db *gorm.DB, stats *ArticleSlugMigrationStats) e
 			return err
 		}
 		if len(batch) == 0 {
-			return markArticlePublicationReady(db)
+			return nil
 		}
 		for _, row := range batch {
 			lastID = row.ID
@@ -96,7 +96,7 @@ func backfillArticlePublication(db *gorm.DB, stats *ArticleSlugMigrationStats) e
 // data migration. Startup checks metadata only, never scans historical dates.
 func markArticlePublicationReady(db *gorm.DB) error {
 	if db.Migrator().HasIndex(&models.Article{}, "idx_articles_first_publication_v1") {
-		return nil
+		return CheckArticlePublicationSchema(db)
 	}
 	return db.Exec("CREATE INDEX idx_articles_first_publication_v1 ON articles(status, deleted_at, publish_at DESC, id DESC)").Error
 }
@@ -109,10 +109,13 @@ func CheckArticlePublicationSchema(db *gorm.DB) error {
 	if err := db.Raw(`SELECT COUNT(*) FROM information_schema.statistics
 		WHERE table_schema = DATABASE() AND table_name = 'articles'
 		AND index_name = 'idx_articles_first_publication_v1' AND non_unique = 1 AND sub_part IS NULL
-		AND ((seq_in_index = 1 AND column_name = 'status')
-		OR (seq_in_index = 2 AND column_name = 'deleted_at')
-		OR (seq_in_index = 3 AND column_name = 'publish_at')
-		OR (seq_in_index = 4 AND column_name = 'id'))`).Scan(&columns).Error; err != nil {
+		AND ((seq_in_index = 1 AND column_name = 'status' AND collation = 'A')
+		OR (seq_in_index = 2 AND column_name = 'deleted_at' AND collation = 'A')
+		OR (seq_in_index = 3 AND column_name = 'publish_at' AND collation = 'D')
+		OR (seq_in_index = 4 AND column_name = 'id' AND collation = 'D'))
+		AND NOT EXISTS (SELECT 1 FROM information_schema.statistics s
+		WHERE s.table_schema = DATABASE() AND s.table_name = 'articles'
+		AND s.index_name = 'idx_articles_first_publication_v1' AND s.seq_in_index > 4)`).Scan(&columns).Error; err != nil {
 		return err
 	}
 	if columns != 4 {

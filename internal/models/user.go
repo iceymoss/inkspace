@@ -7,26 +7,34 @@ import (
 )
 
 type User struct {
-	ID            uint           `gorm:"primarykey" json:"id"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
-	Username      string         `gorm:"uniqueIndex;size:50;not null" json:"username" binding:"required,min=3,max=50"`
-	Password      string         `gorm:"size:255;not null" json:"-"`
-	Email         string         `gorm:"uniqueIndex;size:100;not null" json:"email" binding:"required,email"`
-	Nickname      string         `gorm:"size:50" json:"nickname"`
-	Avatar        string         `gorm:"size:255" json:"avatar"`
-	Bio           string         `gorm:"size:500" json:"bio"`
-	Role          string         `gorm:"size:20;default:'user';index:idx_role_status" json:"role"` // admin, user
-	Status        int            `gorm:"default:1;index:idx_role_status" json:"status"`            // 1: active, 0: inactive
-	LastLoginAt   *time.Time     `gorm:"type:datetime(3)" json:"last_login_at"`
+	ID             uint           `gorm:"primarykey" json:"id"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+	Username       string         `gorm:"uniqueIndex;size:50;not null" json:"username" binding:"required,min=3,max=50"`
+	Password       string         `gorm:"size:255;not null" json:"-"`
+	Email          string         `gorm:"uniqueIndex;size:100;not null" json:"email" binding:"required,email"`
+	Nickname       string         `gorm:"size:50" json:"nickname"`
+	Avatar         string         `gorm:"size:255" json:"avatar"`
+	Bio            string         `gorm:"size:500" json:"bio"`
+	Role           string         `gorm:"size:20;default:'user';index:idx_role_status" json:"role"` // admin, user
+	Status         int            `gorm:"default:1;index:idx_role_status" json:"status"`            // 1: active, 0: inactive
+	LastLoginAt    *time.Time     `gorm:"type:datetime(3)" json:"last_login_at"`
 	LastLoginIP    string         `gorm:"size:50" json:"last_login_ip"`
 	ArticleCount   int            `gorm:"default:0;not null" json:"article_count"`
-	WorkCount      int            `gorm:"default:0;not null" json:"work_count"`      // 作品数
+	WorkCount      int            `gorm:"default:0;not null" json:"work_count"` // 作品数
 	CommentCount   int            `gorm:"default:0;not null" json:"comment_count"`
 	FollowingCount int            `gorm:"default:0;not null" json:"following_count"` // 关注数
 	FollowerCount  int            `gorm:"default:0;not null" json:"follower_count"`  // 粉丝数
 	FavoriteCount  int            `gorm:"default:0;not null" json:"favorite_count"`  // 收藏数
+}
+
+// TableName declares the persistent user table.
+func (User) TableName() string { return "users" }
+
+// UserColumns centralizes the privacy-minimal public author projection.
+var UserColumns = struct{ ID, Username, Nickname string }{
+	ID: "id", Username: "username", Nickname: "nickname",
 }
 
 type UserLoginRequest struct {
@@ -135,4 +143,3 @@ type UserListQuery struct {
 	Role     string `form:"role"`   // admin/user
 	Status   *int   `form:"status"` // 1: active, 0: inactive
 }
-

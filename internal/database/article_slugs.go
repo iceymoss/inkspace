@@ -106,6 +106,9 @@ func MigrateArticleSlugs(ctx context.Context, db *gorm.DB) (stats ArticleSlugMig
 		if err := CheckArticleSlugSchema(conn); err != nil {
 			return err
 		}
+		if err := markArticlePublicationReady(conn); err != nil {
+			return err
+		}
 		return CheckArticlePublicationSchema(conn)
 	})
 	return stats, err

@@ -85,6 +85,18 @@ export function extractResourceId(value) {
   return Number.isSafeInteger(id) ? id : null
 }
 
+// Decode a single article file, never infer an interaction ID from a slug's
+// numeric prefix. Callers normalize relative paths before passing a full path.
+export function parseArticleReference(value) {
+  const name = String(value ?? '').replace(/^\/inkspace\/blog\//, '').replace(/\.md$/, '')
+  if (!name || name.length > 120 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) return null
+  if (/^\d+$/.test(name)) {
+    const id = Number(name)
+    return isPositiveId(name) && Number.isSafeInteger(id) ? { slug: null, id } : null
+  }
+  return { slug: name, id: null }
+}
+
 export function routeToVirtualPath(route) {
   const routePath = typeof route === 'string' ? route : route?.path
   if (typeof routePath !== 'string') return null
@@ -131,14 +143,13 @@ export function virtualPathToRoute(path) {
   if (['blog', 'works', 'photos', 'wiki', 'about', 'links'].includes(relative)) return `/${relative}`
 
   const [type, ...resourceParts] = relative.split('/')
-  if (type === 'blog' && resourceParts.length === 1) {
-    const slug = resourceParts[0].replace(/\.md$/, '')
-    if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return `/blog/${slug}`
+  if (type === 'blog') {
+    const article = parseArticleReference(normalized)
+    return article ? `/blog/${article.slug || article.id}` : null
   }
   const id = extractResourceId(resourceParts.at(-1))
   if (!id) return null
 
-  if (type === 'blog') return `/blog/${id}`
   if (type === 'works' || type === 'photos') return `/works/${id}`
   if (type === 'users' && resourceParts.length === 1) return `/users/${id}`
   if (type === 'wiki' && resourceParts[0] === 'docs') return `/wiki/docs/${id}`

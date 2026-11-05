@@ -11,11 +11,56 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/service"
 
 	"gorm.io/gorm"
 )
+
+func TestGenericSPASettingsFailureKeepsShellButSEORemainsStrict(t *testing.T) {
+	sitemapConfig(t)
+	assets := []fs.FS{fstest.MapFS{"index.html": {Data: []byte(metadataHTML)}}}
+	feeds := feedArticleReaderFunc(func(context.Context) ([]*models.Article, error) { return nil, nil })
+	sitemap := sitemapReaderFunc(func(context.Context) ([]service.PublicSitemapArticle, error) { return nil, context.DeadlineExceeded })
+	router := setupUserRouterWithPublicSEO(assets, feeds, fixedSite{fail: true}, sitemap, metadataReader{})
+	for _, path := range []string{"/", "/blog", "/login", "/dashboard", "/share/token", "/index.html"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, httptest.NewRequest(method, "http://hostile.invalid"+path, nil))
+			if w.Code != 200 || w.Header().Get("Cache-Control") != "no-cache" {
+				t.Fatalf("%s %s: %d %v", method, path, w.Code, w.Header())
+			}
+			if method == "HEAD" {
+				if w.Body.Len() != 0 {
+					t.Fatal("HEAD body")
+				}
+				continue
+			}
+			values, ld := parseHead(t, w.Body.String())
+			if len(values["alternate"]) != 2 || values["alternate"][0] != "https://canonical.example/feed.xml" || values["alternate"][1] != "https://canonical.example/atom.xml" || values["title"][0] != "InkSpace" || ld != nil || !strings.Contains(w.Body.String(), `"url":"https://canonical.example"`) {
+				t.Fatal(path, values, w.Body.String())
+			}
+		}
+	}
+	for _, path := range []string{"/blog/public-post", "/feed.xml", "/atom.xml", "/sitemap.xml"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, httptest.NewRequest(method, path, nil))
+			if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" {
+				t.Fatal(path, w.Code, w.Header())
+			}
+		}
+	}
+	// A settings fallback must not silently remove the required absolute links.
+	config.AppConfig.PublicSiteURL = ""
+	w := httptest.NewRecorder()
+	router = setupUserRouterWithPublicSEO(assets, feeds, fixedSite{fail: true}, sitemap, metadataReader{})
+	router.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal(w.Code, w.Header())
+	}
+}
 
 // acceptanceArticles supplies already-public rows at the reader boundary. Real
 // SQL visibility filtering is separately exercised by the gated MySQL fixture.

@@ -30,7 +30,7 @@ func (s *ArticleService) GetRecentPublicArticles(ctx context.Context) ([]*models
 			models.ArticleColumns.CreatedAt,
 		}).
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "username", "nickname")
+			return db.Select(models.UserColumns.ID, models.UserColumns.Username, models.UserColumns.Nickname)
 		}).
 		Order(models.ArticleColumns.PublishAt + " DESC").
 		Order(models.ArticleColumns.ID + " DESC").

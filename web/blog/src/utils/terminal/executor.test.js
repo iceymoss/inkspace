@@ -159,7 +159,7 @@ describe('terminal executor', () => {
     await context.executor.execute('cat vue-notes.md')
     expect(context.api.get).toHaveBeenCalledWith('/articles/slug/vue-notes', expect.any(Object))
     expect(context.router.push).toHaveBeenCalledWith('/blog/vue-notes')
-    await context.executor.execute('favorite ../blog/vue-notes.md')
+    await context.executor.execute('favorite ../vue-notes.md')
     const confirmation = context.terminalStore.setPendingConfirmation.mock.calls[0][0]
     await context.executor.confirm({ ...confirmation, accepted: true })
     expect(context.api.post).toHaveBeenCalledWith('/articles/12/favorite', undefined, { silentError: true })
@@ -171,6 +171,28 @@ describe('terminal executor', () => {
 
     expect(context.api.post).not.toHaveBeenCalled()
     expect(context.terminalStore.output.at(-1).text).toContain('login required')
+  })
+
+  it('resolves legacy numeric article files consistently for reads and confirmed writes', async () => {
+    const context = setup('/blog')
+    context.userStore.isLoggedIn = true
+    context.api.get.mockResolvedValue({ data: { id: 42, slug: 'stable-post', status: 1 } })
+    await context.executor.execute('cat 42.md')
+    expect(context.api.get).toHaveBeenCalledWith('/articles/42', expect.any(Object))
+    await context.executor.execute('favorite article /inkspace/blog/42.md')
+    const confirmation = context.terminalStore.setPendingConfirmation.mock.calls[0][0]
+    await context.executor.confirm({ ...confirmation, accepted: true })
+    expect(context.api.post).toHaveBeenCalledWith('/articles/42/favorite', undefined, { silentError: true })
+    expect(context.api.get).not.toHaveBeenCalledWith('/articles/slug/42', expect.any(Object))
+  })
+
+  it('rejects malformed nested article files before read or write resolution', async () => {
+    const context = setup('/blog')
+    context.userStore.isLoggedIn = true
+    await context.executor.execute('cat /inkspace/blog/nested/post.md')
+    await context.executor.execute('favorite article /inkspace/blog/nested/post.md')
+    expect(context.api.get).not.toHaveBeenCalled()
+    expect(context.terminalStore.setPendingConfirmation).not.toHaveBeenCalled()
   })
 
   it('confirms a favorite before using the existing endpoint', async () => {

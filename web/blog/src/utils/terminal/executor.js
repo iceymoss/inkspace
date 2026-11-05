@@ -5,6 +5,7 @@ import {
   createResourceName,
   extractResourceId,
   normalizeVirtualPath,
+  parseArticleReference,
   routeToVirtualPath,
   virtualPathToRoute
 } from './virtualFileSystem'
@@ -146,8 +147,9 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
     const relative = path.slice(VIRTUAL_ROOT.length + 1)
     const [type] = relative.split('/')
     if (type === 'blog') {
-      const slug = relative.split('/').at(-1).replace(/\.md$/, '')
-      const response = await api.get(/^\d+$/.test(slug) ? `/articles/${slug}` : `/articles/slug/${encodeURIComponent(slug)}`, PUBLIC_REQUEST)
+      const reference = parseArticleReference(path)
+      if (!reference) throw new Error('invalid article reference')
+      const response = await api.get(reference.id ? `/articles/${reference.id}` : `/articles/slug/${reference.slug}`, PUBLIC_REQUEST)
       const item = response.data || {}
       if (Number(item.status) !== 1) throw new Error('resource is not publicly published')
       write([`# ${item.title || `article ${item.id}`}`, `${item.author?.nickname || item.author?.username || 'anonymous'} · ${item.created_at || ''}`, item.summary || textContent(item.content_html)])
@@ -253,10 +255,14 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
     }
     if (!['article', 'work', 'user'].includes(type)) throw new Error(`usage: ${name} article|work|user <id>`)
     let id
-    if (type === 'article' && String(target).includes('/')) {
-      const slug = String(target).split('/').at(-1).replace(/\.md$/, '')
-      const response = await api.get(`/articles/slug/${encodeURIComponent(slug)}`, PUBLIC_REQUEST)
-      id = positiveID(response.data?.id)
+    if (type === 'article') {
+      const reference = parseArticleReference(String(target).includes('/') ? resolvePath(target, routePath(route)) : target)
+      if (!reference) throw new Error('invalid article reference')
+      if (reference.id) id = reference.id
+      else {
+        const response = await api.get(`/articles/slug/${reference.slug}`, PUBLIC_REQUEST)
+        id = positiveID(response.data?.id)
+      }
     } else id = positiveID(target)
     if ((name === 'follow' || name === 'unfollow') && type !== 'user') throw new Error(`${name} only supports users`)
     if ((name === 'favorite' || name === 'unfavorite') && type === 'user') throw new Error(`${name} does not support users`)

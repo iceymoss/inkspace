@@ -90,8 +90,11 @@ func PublicResourceURL(base, raw string) string {
 	if ip := net.ParseIP(host); ip != nil && (ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast()) {
 		return ""
 	}
-	// Reject nonstandard numeric IPv4 spellings accepted by browsers but not net.ParseIP.
-	if net.ParseIP(host) == nil && strings.IndexFunc(host, func(r rune) bool { return r != '.' && (r < '0' || r > '9') }) < 0 {
+	// WHATWG hosts ending in a number are parsed as IPv4, not DNS. Reject
+	// noncanonical forms rather than trying to reproduce browser radix/overflow
+	// rules. This includes hex, octal, short, mixed and single-number spellings,
+	// as well as invalid numeric-ending DNS names browsers cannot load as DNS.
+	if net.ParseIP(host) == nil && browserNumericHost(host) {
 		return ""
 	}
 	clean := strings.ToLower(path.Clean(u.Path))
@@ -102,4 +105,13 @@ func PublicResourceURL(base, raw string) string {
 	}
 	u.Path, u.RawPath = path.Clean(u.Path), ""
 	return u.String()
+}
+
+func browserNumericHost(host string) bool {
+	last := host[strings.LastIndex(host, ".")+1:]
+	if strings.HasPrefix(last, "0x") {
+		last = last[2:]
+		return strings.IndexFunc(last, func(r rune) bool { return !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f') }) < 0
+	}
+	return last != "" && strings.IndexFunc(last, func(r rune) bool { return r < '0' || r > '9' }) < 0
 }

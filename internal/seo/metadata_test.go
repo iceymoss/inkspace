@@ -48,6 +48,38 @@ func TestPublicResourceURL(t *testing.T) {
 	}
 }
 
+func TestBrowserNumericResourceHostsAreOmitted(t *testing.T) {
+	// WHATWG URL hosts accept hexadecimal, octal, mixed-radix, short and
+	// single-number IPv4 forms. None may bypass the public resource boundary.
+	for _, host := range []string{
+		"0x7f.0.0.1", "0X7F.1", "0xa9.0xfe.0xa9.0xfe", "0x7f000001",
+		"2130706433", "0177.0.0.1", "017700000001", "127.1", "127.0.1",
+		"0x7f.00.0.01", "0x7f.1.", "0x0.0", "0xffffffff", "0x08080808",
+		"example.0x7f", "example.123", "example.09",
+	} {
+		t.Run(host, func(t *testing.T) {
+			raw := "http://" + host + "/image.png"
+			if got := PublicResourceURL("https://blog.example", raw); got != "" {
+				t.Errorf("unsafe browser host accepted: %q", got)
+			}
+			m := BuildArticleMetadata(SiteIdentity{URL: "https://blog.example", Name: "Site", Logo: raw}, ArticleInput{Slug: "post", Cover: raw, AuthorName: "Author", AuthorURL: raw})
+			if m.Image != "" || m.JSONLD["image"] != nil {
+				t.Fatal("unsafe cover emitted", m)
+			}
+			publisher := m.JSONLD["publisher"].(map[string]any)
+			author := m.JSONLD["author"].(map[string]any)
+			if publisher["logo"] != nil || author["url"] != nil {
+				t.Fatal("unsafe logo/author emitted", m.JSONLD)
+			}
+		})
+	}
+	for _, raw := range []string{"https://cdn.example/cover.png", "https://0x7f.example/cover.png", "https://8.8.8.8/cover.png"} {
+		if got := PublicResourceURL("https://blog.example", raw); got != raw {
+			t.Errorf("public resource %q omitted: %q", raw, got)
+		}
+	}
+}
+
 func TestSummaryRemovesMarkupAndUnsafeContents(t *testing.T) {
 	for _, tt := range []struct{ source, want string }{
 		{"## 中文标题\n\n> **粗体** 和 *斜体*\n\n- 列表 `code`", "中文标题 粗体 和 斜体 列表 code"},

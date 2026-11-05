@@ -2,6 +2,9 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { defineComponent } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
+import { useTerminalStore } from '@/stores/terminal'
+import { createTerminalExecutor } from '@/utils/terminal/executor'
 import BlogDetail from './BlogDetail.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import api from '@/utils/api'
@@ -12,7 +15,6 @@ vi.mock('vditor', () => ({ default: { preview: vi.fn() } }))
 vi.mock('@/utils/codeTheme', () => ({ loadCodeTheme: vi.fn().mockResolvedValue('github'), loadHighlightTheme: vi.fn().mockResolvedValue() }))
 vi.mock('@/stores/user', () => ({ useUserStore: () => ({ isLoggedIn: true, user: { id: 9 } }) }))
 vi.mock('@/stores/appearance', () => ({ useAppearanceStore: () => ({ resolvedColorScheme: 'light', activePreference: { ui_theme: 'magazine' } }) }))
-vi.mock('@/stores/terminal', () => ({ useTerminalStore: () => ({ refreshSignals: {} }) }))
 
 const article = (id, slug) => ({ id, slug, title: slug, content: '正文', reading_time: 2, tags: [], view_count: 0,
   seo: { title: `${slug} | Public site`, headline: slug, description: '纯文本摘要', canonical: `https://canonical.example/blog/${slug}`, card: 'summary',
@@ -46,6 +48,8 @@ async function renderPage(path = '/blog/first-post', withLayout = false) {
 
 describe('BlogDetail slug routing', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
     clearArticleMetadata()
     setSiteDefaults({ site_name: 'Public site', site_description: '默认描述', public_site_url: 'https://canonical.example' })
     api.get.mockImplementation(async path => {
@@ -56,6 +60,45 @@ describe('BlogDetail slug routing', () => {
       return { data: {} }
     })
     api.post.mockResolvedValue({ data: {} })
+    api.delete.mockResolvedValue({ data: {} })
+  })
+
+  it('consumes terminal refreshes once across loading and revisiting the real route', async () => {
+    const { wrapper, router } = await renderPage()
+    const terminal = useTerminalStore()
+    const executor = createTerminalExecutor({ router, route: router.currentRoute.value, api,
+      userStore: { isLoggedIn: true }, appearanceStore: {}, terminalStore: terminal })
+    const original = api.get.getMockImplementation()
+    const pending = []
+    api.get.mockImplementation(path => path === '/articles/slug/first-post'
+      ? new Promise(resolve => pending.push(resolve)) : original(path))
+    const requests = () => api.get.mock.calls.filter(([path]) => path === '/articles/slug/first-post').length
+    try {
+      for (let signal = 1; signal <= 2; signal++) {
+        await executor.execute(`${signal === 1 ? 'favorite' : 'unfavorite'} article 41`)
+        await executor.confirm({ ...terminal.pendingConfirmation, accepted: true })
+        await flushPromises()
+        expect(pending).toHaveLength(1)
+        pending.shift()({ data: article(41, 'first-post') })
+        await flushPromises()
+        expect(requests()).toBe(signal + 1)
+        expect(pending).toHaveLength(0)
+        expect(document.title).toBe('first-post | Public site')
+        expect(document.querySelectorAll('script[type="application/ld+json"]')).toHaveLength(1)
+      }
+      await router.push('/blog/second-post')
+      await flushPromises()
+      await router.push('/blog/first-post')
+      await flushPromises()
+      expect(pending).toHaveLength(1)
+      pending.shift()({ data: article(41, 'first-post') })
+      await flushPromises()
+      expect(requests()).toBe(4)
+      expect(pending).toHaveLength(0)
+      expect(document.querySelector('link[rel="canonical"]').href).toBe('https://canonical.example/blog/first-post')
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('loads the real slug route and uses returned numeric IDs for interactions', async () => {
