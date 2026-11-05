@@ -304,3 +304,21 @@ func TestSitemapIndexHTTPHeadAndVisibilityChanges(t *testing.T) {
 		t.Fatalf("removed shard incorrectly cached: %d %v", missing.Code, missing.Header())
 	}
 }
+
+func TestSitemapRejectsInvalidPersistedSlug(t *testing.T) {
+	sitemapConfig(t)
+	for _, slug := range []string{"", "../private", "123", "UPPERCASE", "bad/segment"} {
+		t.Run(slug, func(t *testing.T) {
+			reader := sitemapReaderFunc(func(context.Context) ([]service.PublicSitemapArticle, error) {
+				return []service.PublicSitemapArticle{{ID: 1, Slug: slug}}, nil
+			})
+			router := setupUserRouterWithSitemap(reader)
+			for _, path := range []string{"/sitemap.xml", "/sitemaps/1.xml"} {
+				response := sitemapRequest(router, http.MethodGet, path, "*")
+				if response.Code != 500 || response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("ETag") != "" {
+					t.Fatalf("unsafe canonical emitted: %d %v %s", response.Code, response.Header(), response.Body.String())
+				}
+			}
+		})
+	}
+}

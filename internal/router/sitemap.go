@@ -40,6 +40,12 @@ func registerSitemapRoutes(routes gin.IRoutes, reader publicSitemapReader, base 
 			discoveryError(c)
 			return
 		}
+		for _, article := range articles {
+			if !seo.ValidSlug(article.Slug) {
+				discoveryError(c)
+				return
+			}
+		}
 		// One ordered compact SELECT supplies both count and membership. Edits do
 		// not move IDs, but publication/deletion can shift membership between HTTP
 		// requests: this is deliberately not a persistent cross-request snapshot.
