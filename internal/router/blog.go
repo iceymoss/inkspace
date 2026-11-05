@@ -13,12 +13,22 @@ import (
 
 // SetupUserRouter 设置用户服务路由
 func SetupUserRouter(assets ...fs.FS) *gin.Engine {
-	return setupUserRouterWithSitemap(service.NewArticleService(), assets...)
+	return setupUserRouter(assets, service.NewArticleService(), service.NewSettingService())
 }
 
 // setupUserRouterWithSitemap keeps discovery HTTP tests on the real blog router;
 // production still uses the shared published-only article service/global DB.
 func setupUserRouterWithSitemap(sitemapReader publicSitemapReader, assets ...fs.FS) *gin.Engine {
+	return setupUserRouterWithDiscovery(assets, service.NewArticleService(), service.NewSettingService(), sitemapReader)
+}
+
+// setupUserRouter preserves production assembly while letting discovery HTTP
+// tests supply fresh public readers without requiring a database or Redis.
+func setupUserRouter(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader) *gin.Engine {
+	return setupUserRouterWithDiscovery(assets, feedArticles, feedSettings, service.NewArticleService())
+}
+
+func setupUserRouterWithDiscovery(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader, sitemapReader publicSitemapReader) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -242,6 +252,7 @@ func setupUserRouterWithSitemap(sitemapReader publicSitemapReader, assets ...fs.
 
 	// Serve static files (uploads)
 	r.Static("/uploads", "./uploads")
+	registerFeeds(r, feedArticles, feedSettings)
 	var blogAssets fs.FS
 	if len(assets) > 0 {
 		blogAssets = assets[0]
