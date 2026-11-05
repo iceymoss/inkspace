@@ -27,6 +27,7 @@ services:
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - /var/www/inkspace/uploads:/app/uploads # 修改为服务器绝对路径，可根据实际情况调整
@@ -44,6 +45,7 @@ services:
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - /var/www/inkspace/uploads:/app/uploads # 修改为服务器绝对路径，可根据实际情况调整
@@ -61,6 +63,7 @@ services:
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - /var/www/inkspace/uploads:/app/uploads # 修改为服务器绝对路径，可根据实际情况调整
@@ -79,6 +82,7 @@ services:
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
       - INKSPACE_BOOTSTRAP_SECRET=${INKSPACE_BOOTSTRAP_SECRET:-}
     volumes:
       - ./config:/app/config
@@ -96,6 +100,7 @@ services:
     # 注意：使用外部 MySQL/Redis，不需要 depends_on
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - /var/www/inkspace/uploads:/app/uploads # 修改为服务器绝对路径，可根据实际情况调整

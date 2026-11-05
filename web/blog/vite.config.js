@@ -39,7 +39,14 @@ export default defineConfig({
       '/uploads': {
         target: 'http://localhost:8081',  // 静态文件服务
         changeOrigin: true
-      }
+      },
+      // Root discovery documents and index-referenced sitemap shards must reach
+      // Go, not Vite's HTML fallback. /api also supplies runtime public_site_url;
+      // do not introduce a conflicting VITE_PUBLIC_SITE_URL build-time value.
+      ...Object.fromEntries(['/feed.xml', '/atom.xml', '/sitemap.xml', '/robots.txt', '/sitemaps/'].map(path => [path, {
+        target: 'http://localhost:8081',
+        changeOrigin: true
+      }]))
     }
   }
 })

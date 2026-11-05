@@ -29,6 +29,13 @@ func setupUserRouter(assets []fs.FS, feedArticles recentPublicArticleReader, fee
 }
 
 func setupUserRouterWithDiscovery(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader, sitemapReader publicSitemapReader) *gin.Engine {
+	return setupUserRouterWithPublicSEO(assets, feedArticles, feedSettings, sitemapReader, service.NewArticleService())
+}
+
+// setupUserRouterWithPublicSEO is the assembled HTTP acceptance seam. Production
+// supplies the same service instances; tests can inject public read boundaries
+// without replacing routes or depending on a developer database.
+func setupUserRouterWithPublicSEO(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader, sitemapReader publicSitemapReader, pages publicArticleReader) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -262,10 +269,10 @@ func setupUserRouterWithDiscovery(assets []fs.FS, feedArticles recentPublicArtic
 		base = config.AppConfig.PublicSiteURL
 	}
 	registerSitemapRoutes(r, sitemapReader, base)
-	registerPublicArticlePages(r, service.NewArticleService(), articleMetadataRenderer(blogAssets, service.NewSettingService()), base)
+	registerPublicArticlePages(r, pages, articleMetadataRenderer(blogAssets, feedSettings), base)
 	if len(assets) > 0 && assets[0] != nil {
 		serveSPA(r, assets[0], func(c *gin.Context) {
-			site, err := service.NewSettingService().GetPublicSiteIdentity(c.Request.Context())
+			site, err := feedSettings.GetPublicSiteIdentity(c.Request.Context())
 			if err != nil {
 				htmlFailure(c, 500)
 				return

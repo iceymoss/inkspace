@@ -40,7 +40,7 @@ func TestPublicSiteURLRequiredInEveryEnvironment(t *testing.T) {
 	t.Chdir(t.TempDir())
 	for _, mode := range []string{"release", "debug", "test"} {
 		for _, name := range []string{"config", "admin"} {
-			for _, raw := range []string{"", "https://example.com/path", "https://example.com/"} {
+			for _, raw := range []string{"", "https://example.com/path", "https://example.com?", "https://example.com#", "https://example.com?q=x", "https://example.com#fragment", "https://example.com/"} {
 				viper.Reset()
 				t.Setenv("SERVER_MODE", mode)
 				t.Setenv("PUBLIC_SITE_URL", raw)
@@ -67,11 +67,11 @@ func TestAdminFallbackStillValidatesPublicSiteURL(t *testing.T) {
 	if err := os.WriteFile("config/config.yaml", []byte("public_site_url: https://yaml.example/\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, raw := range []string{"", "https://env.example/", "javascript:bad"} {
+	for _, raw := range []string{"", "https://env.example/", "javascript:bad", "https://example.com?", "https://example.com#fragment"} {
 		viper.Reset()
 		t.Setenv("PUBLIC_SITE_URL", raw)
 		err := InitWithFile("admin")
-		if raw == "javascript:bad" {
+		if raw != "" && raw != "https://env.example/" {
 			if err == nil {
 				t.Fatal("fallback skipped validation")
 			}
@@ -99,5 +99,27 @@ func TestBootstrapSecretOnlyUsesEnvironment(t *testing.T) {
 	applyEnvironmentOnlyConfig(cfg)
 	if cfg.Bootstrap.Secret != "" {
 		t.Fatalf("bootstrap secret=%q, want empty without environment value", cfg.Bootstrap.Secret)
+	}
+}
+
+func TestAdminFallbackRejectsMissingOrInvalidCanonicalInAllModes(t *testing.T) {
+	old := AppConfig
+	t.Cleanup(func() { AppConfig = old; viper.Reset() })
+	t.Chdir(t.TempDir())
+	t.Setenv("PUBLIC_SITE_URL", "")
+	if err := os.Mkdir("config", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"release", "debug", "test"} {
+		for _, raw := range []string{"", "https://invalid.example?", "https://invalid.example#fragment"} {
+			viper.Reset()
+			body := "server:\n  mode: " + mode + "\npublic_site_url: '" + raw + "'\n"
+			if err := os.WriteFile("config/config.yaml", []byte(body), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := InitWithFile("admin"); err == nil {
+				t.Fatalf("admin fallback accepted %q in mode %s", raw, mode)
+			}
+		}
 	}
 }

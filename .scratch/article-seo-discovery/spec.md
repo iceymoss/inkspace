@@ -1,6 +1,12 @@
 # 博客文章 SEO 与公开发现能力
 
-Status: ready-for-agent
+Status: implemented
+
+Implementation acceptance: tickets 01–06 are implemented. Automated Go/HTTP/Vue/Vite,
+build/lint/static/race and offline deployment-render checks pass; **isolated MySQL
+fixtures explicitly SKIP without an authorized DSN**, and no live deployment has
+been accepted. See [validation evidence](../../docs/SEO_VALIDATION.md) and
+[migration-first rollout/release gates](../../docs/SEO_ROLLOUT.md) before production.
 
 ## Problem Statement
 
@@ -175,4 +181,4 @@ InkSpace 的博客目前主要依赖客户端渲染，文章公开地址使用�
 - 数据库采用 MySQL，schema 通过 GORM 管理，但新增全局唯一 slug 约束和历史数据回填必须使用可审查迁移脚本，并遵循先迁移、回填、校验，再部署应用的上线顺序。
 - 上线验收至少包括：公开文章 slug 200、旧数字地址 301、未公开文章 404、初始 HTML SEO metadata、RSS/Atom/Sitemap/robots 正确响应、条件缓存、Vite 开发代理和生产配置校验。
 - 上线后应监控数字 URL 301/404、slug URL 200/404、四个发现端点 4xx/5xx、XML 生成失败、slug 冲突、数据库查询延迟和缓存命中情况。
-- 本文是需求规格，不代表实现已经开始；下一步应由维护者审核本 spec，再使用 `/to-tickets` 按可独立验证的纵向行为拆分实施票。
+- 本文是实现所依据的需求规格；实现与可运行验收已完成，真实隔离 MySQL、容器/网关和生产 canary 验收仍需按上述证据与发布门禁执行，不能把测试 SKIP 当作上线通过。

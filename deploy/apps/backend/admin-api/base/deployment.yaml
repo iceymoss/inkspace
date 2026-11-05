@@ -22,6 +22,12 @@ spec:
         - name: admin-api-container
           # ！！！ 关键：这是占位符，不是实际地址
           image: inkspace-admin-api-image
+          env:
+            - name: PUBLIC_SITE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-api-public-site
+                  key: PUBLIC_SITE_URL
           ports:
             - containerPort: 8083
               name: http-admin-api
