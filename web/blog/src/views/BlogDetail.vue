@@ -396,6 +396,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { clearArticleMetadata, setArticleMetadata, setSiteDefaults } from '@/utils/metadata'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, Collection, User, View, Clock, Edit, ChatDotRound, ArrowDown } from '@element-plus/icons-vue'
@@ -516,14 +517,18 @@ const isCommentAuthor = (comment) => {
 }
 
 let articleLoadVersion = 0
+let disposed = false
 const loadArticle = async () => {
+  if (disposed) return false
   const version = ++articleLoadVersion
   const slug = route.params.slug
   article.value = null
+  clearArticleMetadata()
   try {
     const response = await api.get(`/articles/slug/${encodeURIComponent(slug)}`)
     if (version !== articleLoadVersion || slug !== route.params.slug) return false
     article.value = response.data
+    setArticleMetadata(response.data.seo)
     
     // 设置已加载标记
     renderedContent.value = 'loading'
@@ -1135,6 +1140,7 @@ const loadCommentSettings = async () => {
   try {
     const response = await api.get('/settings/public')
     const settings = response.data || {}
+    setSiteDefaults(settings)
     // 检查文章评论是否开放（默认true，如果配置不存在或为'1'/'true'则允许）
     articleCommentEnabled.value = settings.article_comment_enabled !== '0' && settings.article_comment_enabled !== 'false'
   } catch (error) {
@@ -1168,8 +1174,8 @@ const loadArticlePage = async () => {
   ])
 }
 
-watch(() => route.params.slug, () => { loadArticlePage() })
-onUnmounted(() => { articleLoadVersion++ })
+watch(() => route.params.slug, slug => { if (slug) loadArticlePage() })
+onUnmounted(() => { disposed = true; articleLoadVersion++; clearArticleMetadata() })
 
 onMounted(async () => {
   // 如果已登录但用户信息未加载，先获取用户信息
@@ -1178,7 +1184,7 @@ onMounted(async () => {
   }
   
   // 加载评论配置
-  await loadCommentSettings()
+  loadCommentSettings()
   
   await loadArticlePage()
 })

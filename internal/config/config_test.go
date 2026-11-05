@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestLoadEnvFileDoesNotOverrideProcessEnvironment(t *testing.T) {
@@ -29,6 +31,59 @@ func TestLoadEnvFileDoesNotOverrideProcessEnvironment(t *testing.T) {
 
 	if got := os.Getenv("INKSPACE_BOOTSTRAP_SECRET"); got != "injected-secret" {
 		t.Fatalf("bootstrap secret=%q, want injected process value", got)
+	}
+}
+
+func TestPublicSiteURLRequiredInEveryEnvironment(t *testing.T) {
+	old := AppConfig
+	t.Cleanup(func() { AppConfig = old; viper.Reset() })
+	t.Chdir(t.TempDir())
+	for _, mode := range []string{"release", "debug", "test"} {
+		for _, name := range []string{"config", "admin"} {
+			for _, raw := range []string{"", "https://example.com/path", "https://example.com/"} {
+				viper.Reset()
+				t.Setenv("SERVER_MODE", mode)
+				t.Setenv("PUBLIC_SITE_URL", raw)
+				err := InitWithFile(name)
+				if raw != "https://example.com/" {
+					if err == nil {
+						t.Fatalf("accepted %q in %s/%s", raw, name, mode)
+					}
+				} else if err != nil || AppConfig.PublicSiteURL != "https://example.com" {
+					t.Fatalf("config %s/%s: %v %+v", name, mode, err, AppConfig)
+				}
+			}
+		}
+	}
+}
+
+func TestAdminFallbackStillValidatesPublicSiteURL(t *testing.T) {
+	old := AppConfig
+	t.Cleanup(func() { AppConfig = old; viper.Reset() })
+	t.Chdir(t.TempDir())
+	if err := os.Mkdir("config", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("config/config.yaml", []byte("public_site_url: https://yaml.example/\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, raw := range []string{"", "https://env.example/", "javascript:bad"} {
+		viper.Reset()
+		t.Setenv("PUBLIC_SITE_URL", raw)
+		err := InitWithFile("admin")
+		if raw == "javascript:bad" {
+			if err == nil {
+				t.Fatal("fallback skipped validation")
+			}
+			continue
+		}
+		want := "https://yaml.example"
+		if raw != "" {
+			want = "https://env.example"
+		}
+		if err != nil || AppConfig.PublicSiteURL != want {
+			t.Fatalf("%v %+v", err, AppConfig)
+		}
 	}
 }
 

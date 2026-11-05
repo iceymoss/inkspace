@@ -9,6 +9,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/database"
 	"github.com/iceymoss/inkspace/internal/models"
 	"github.com/iceymoss/inkspace/internal/service"
@@ -20,15 +21,25 @@ import (
 
 func TestPublicPermalinksMySQL(t *testing.T) {
 	db := testutil.SEOTestMySQL(t)
-	if err := db.AutoMigrate(&models.User{}, &models.Category{}, &models.Tag{}, &models.Article{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Category{}, &models.Tag{}, &models.Article{}, &models.Setting{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := database.MigrateArticleSlugs(context.Background(), db); err != nil {
 		t.Fatal(err)
 	}
 	old := database.DB
+	oldConfig := config.AppConfig
+	config.AppConfig = &config.Config{PublicSiteURL: "https://canonical.example"}
 	database.DB = db
-	t.Cleanup(func() { database.DB = old })
+	t.Cleanup(func() { database.DB = old; config.AppConfig = oldConfig })
+	for _, setting := range []models.Setting{
+		{Key: "site_name", Value: "PRIVATE SITE NAME", IsPublic: false},
+		{Key: "site_description", Value: "公开描述", IsPublic: true},
+	} {
+		if err := db.Create(&setting).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
 	now := time.Now()
 	for _, a := range []models.Article{
 		{ID: 1, Slug: "public-post", Title: "Public", Content: "Body", Status: 1, AuthorID: 1},
@@ -50,7 +61,7 @@ func TestPublicPermalinksMySQL(t *testing.T) {
 		}
 	}
 	gin.SetMode(gin.TestMode)
-	r := SetupUserRouter(fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}})
+	r := SetupUserRouter(fstest.MapFS{"index.html": {Data: []byte(metadataHTML)}})
 	for _, tt := range []struct {
 		path   string
 		status int
@@ -67,8 +78,14 @@ func TestPublicPermalinksMySQL(t *testing.T) {
 			if w.Code != tt.status {
 				t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
 			}
-			if tt.status == 301 && w.Header().Get("Location") != "/blog/public-post" {
+			if tt.status == 301 && w.Header().Get("Location") != "https://canonical.example/blog/public-post" {
 				t.Fatal(w.Header())
+			}
+			if tt.path == "/blog/public-post" {
+				values, ld := parseHead(t, w.Body.String())
+				if len(values["title"]) != 1 || values["title"][0] != "Public | InkSpace" || ld["url"] != "https://canonical.example/blog/public-post" {
+					t.Fatal(values, ld)
+				}
 			}
 		})
 	}
