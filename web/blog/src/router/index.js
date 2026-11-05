@@ -17,7 +17,7 @@ const routes = [
         component: () => import('@/views/Blog.vue')
       },
       {
-        path: 'blog/:id',
+        path: 'blog/:slug',
         name: 'BlogDetail',
         component: () => import('@/views/BlogDetail.vue')
       },
@@ -205,4 +205,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-

@@ -5,6 +5,7 @@ import (
 
 	"github.com/iceymoss/inkspace/internal/handler"
 	"github.com/iceymoss/inkspace/internal/middleware"
+	"github.com/iceymoss/inkspace/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -59,6 +60,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			public.GET("/articles", articleHandler.GetList)
 			public.GET("/articles/recommended", articleHandler.GetRecommended)
 			public.GET("/articles/hot", articleHandler.GetHotArticles)
+			public.GET("/articles/slug/:slug", handler.NewPublicArticleHandler().GetBySlug)
 
 			// 状态检查API（可选认证）
 			publicWithOptionalAuth := api.Group("")
@@ -233,6 +235,11 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 	// Serve static files (uploads)
 	r.Static("/uploads", "./uploads")
+	var blogAssets fs.FS
+	if len(assets) > 0 {
+		blogAssets = assets[0]
+	}
+	registerPublicArticlePages(r, service.NewArticleService(), articleSPARenderer(blogAssets))
 	if len(assets) > 0 && assets[0] != nil {
 		serveSPA(r, assets[0])
 	}

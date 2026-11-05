@@ -336,6 +336,7 @@ const handleSubmit = async () => {
     loading.value = true
     try {
       let articleId = route.params.id
+      let articleSlug
       
       // 准备提交数据
       const submitData = {
@@ -354,7 +355,8 @@ const handleSubmit = async () => {
       console.log('Submitting article data:', submitData)
       
       if (isEdit.value) {
-        await api.put(`/articles/${articleId}`, submitData)
+        const response = await api.put(`/articles/${articleId}`, submitData)
+        articleSlug = response.data.slug
         if (form.status === 0) {
           ElMessage.success('草稿保存成功')
         } else if (form.status === 2) {
@@ -365,6 +367,7 @@ const handleSubmit = async () => {
       } else {
         const response = await api.post('/articles', submitData)
         articleId = response.data.id
+        articleSlug = response.data.slug
         if (form.status === 0) {
           ElMessage.success('草稿保存成功')
         } else if (form.status === 2) {
@@ -383,7 +386,7 @@ const handleSubmit = async () => {
       if (form.status === 0 || form.status === 2) {
         router.push('/dashboard/articles')
       } else {
-        router.push(`/blog/${articleId}`)
+        router.push(`/blog/${articleSlug}`)
       }
     } catch (error) {
       console.error('Submit error:', error)
@@ -677,4 +680,3 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 </style>
-

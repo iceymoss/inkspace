@@ -79,6 +79,12 @@ func InternalServerError(c *gin.Context, message string) {
 	Error(c, http.StatusInternalServerError, message)
 }
 
+// HTTPError returns the standard envelope with a real HTTP failure status. The
+// older Error helper intentionally keeps its HTTP-200 compatibility contract.
+func HTTPError(c *gin.Context, status int, message string) {
+	c.JSON(status, Response{Code: status, Message: message})
+}
+
 func PageResponse(c *gin.Context, list interface{}, total int64, page, pageSize int) {
 	Success(c, PageData{
 		List:     list,
@@ -87,4 +93,3 @@ func PageResponse(c *gin.Context, list interface{}, total int64, page, pageSize 
 		PageSize: pageSize,
 	})
 }
-

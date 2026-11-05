@@ -37,18 +37,19 @@ func (Notification) TableName() string {
 
 // NotificationResponse 通知响应
 type NotificationResponse struct {
-	ID         uint          `json:"id"`
-	UserID     uint          `json:"user_id"`
-	FromUserID *uint         `json:"from_user_id,omitempty"`
-	FromUser   *UserResponse `json:"from_user,omitempty"`
-	Type       string        `json:"type"`
-	Content    string        `json:"content"`
-	ArticleID  *uint         `json:"article_id,omitempty"`
-	WorkID     *uint         `json:"work_id,omitempty"`
-	CommentID  *uint         `json:"comment_id,omitempty"`
-	DocID      *uint         `json:"doc_id,omitempty"`
-	IsRead     bool          `json:"is_read"`
-	CreatedAt  time.Time     `json:"created_at"`
+	ID          uint          `json:"id"`
+	UserID      uint          `json:"user_id"`
+	FromUserID  *uint         `json:"from_user_id,omitempty"`
+	FromUser    *UserResponse `json:"from_user,omitempty"`
+	Type        string        `json:"type"`
+	Content     string        `json:"content"`
+	ArticleID   *uint         `json:"article_id,omitempty"`
+	ArticleSlug string        `json:"article_slug,omitempty"`
+	WorkID      *uint         `json:"work_id,omitempty"`
+	CommentID   *uint         `json:"comment_id,omitempty"`
+	DocID       *uint         `json:"doc_id,omitempty"`
+	IsRead      bool          `json:"is_read"`
+	CreatedAt   time.Time     `json:"created_at"`
 }
 
 // ToResponse 转换为响应格式
@@ -69,6 +70,9 @@ func (n *Notification) ToResponse() *NotificationResponse {
 
 	if n.FromUser != nil {
 		resp.FromUser = n.FromUser.ToResponse()
+	}
+	if n.Article != nil && n.Article.Status == 1 {
+		resp.ArticleSlug = n.Article.Slug
 	}
 
 	return resp

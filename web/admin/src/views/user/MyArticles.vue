@@ -145,7 +145,7 @@ const handleReset = () => {
 }
 
 const handleView = (row) => {
-  router.push(`/blog/${row.id}`)
+  router.push(`/blog/${row.slug}`)
 }
 
 const handleEdit = (row) => {
@@ -216,4 +216,3 @@ onMounted(() => {
   margin-top: 20px;
 }
 </style>
-

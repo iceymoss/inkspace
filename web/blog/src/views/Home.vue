@@ -111,7 +111,7 @@
           <router-link to="/blog">All articles →</router-link>
         </header>
         <div v-if="articles.length" class="swiss-index-list">
-          <router-link v-for="article in articles" :key="article.id" :to="`/blog/${article.id}`" class="swiss-index-row">
+          <router-link v-for="article in articles" :key="article.id" :to="`/blog/${article.slug}`" class="swiss-index-row">
             <span>{{ formatSwissCode('W–', article.id) }}</span>
             <h3>{{ article.title }}</h3>
             <small>{{ article.category?.name || 'UNCATEGORIZED' }} · {{ formatDate(article.created_at) }}</small>
@@ -232,7 +232,7 @@
                   class="article-item"
                   :class="isCozy ? `cozy-tone-${getCozyContentTone(article)}` : null"
                   shadow="hover"
-                  @click="$router.push(`/blog/${article.id}`)"
+                  @click="$router.push(`/blog/${article.slug}`)"
                 >
                   <div class="article-content" :class="{ 'has-cover': article.cover }">
                     <div class="terminal-log-meta">
@@ -601,7 +601,7 @@
                     v-for="article in recommendedArticles" 
                     :key="article.id" 
                     class="recommended-item"
-                    @click="$router.push(`/blog/${article.id}`)"
+                    @click="$router.push(`/blog/${article.slug}`)"
                   >
                     <h4>{{ article.title }}</h4>
                     <div class="recommended-meta">

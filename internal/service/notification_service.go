@@ -178,7 +178,7 @@ func (s *NotificationService) GetNotifications(userID uint, page, pageSize int, 
 	}
 
 	offset := (page - 1) * pageSize
-	err := db.Preload("FromUser").
+	err := db.Preload("FromUser").Preload("Article").
 		Order("created_at DESC").
 		Offset(offset).Limit(pageSize).
 		Find(&notifications).Error
