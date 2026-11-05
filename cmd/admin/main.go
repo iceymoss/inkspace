@@ -20,10 +20,9 @@ func main() {
 	// 加载管理后台配置
 	// 尝试加载admin.yaml，如果不存在则使用默认config.yaml
 	if err := config.InitWithFile("admin"); err != nil {
-		log.Printf("警告: 无法加载 admin.yaml，使用默认配置: %v\n", err)
-		if err := config.Init(); err != nil {
-			log.Fatalf("加载配置失败: %v", err)
-		}
+		// InitWithFile already handles missing-file fallback; validation errors
+		// must not be bypassed by retrying another configuration.
+		log.Fatalf("加载配置失败: %v", err)
 	}
 
 	// 初始化数据库

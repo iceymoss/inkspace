@@ -1,8 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: inkspace-backend
 
 resources:
   - ../../base
+
+# Same BLOG origin as blog-api, despite having no public HTTP listener.
+configMapGenerator:
+  - name: scheduler-task-public-site
+    literals:
+      - PUBLIC_SITE_URL=http://dev.blog.test.com
 
 patches:
   - path: patch-resources.yaml

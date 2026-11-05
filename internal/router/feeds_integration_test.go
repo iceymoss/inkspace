@@ -73,7 +73,7 @@ func TestFeedsMySQLHTTP(t *testing.T) {
 		}
 	}
 	gin.SetMode(gin.TestMode)
-	r := SetupUserRouter(fstest.MapFS{"index.html": {Data: []byte(`<!doctype html><html><head><!-- INKSPACE_SEO_HEAD --></head><body>app</body></html>`)}})
+	r := SetupUserRouter(fstest.MapFS{"index.html": {Data: []byte(metadataHTML)}})
 	token, err := utils.GenerateToken(1, "author", "admin")
 	if err != nil {
 		t.Fatal(err)

@@ -1,4 +1,6 @@
 # Required canonical BLOG origin in every environment; PUBLIC_SITE_URL overrides it.
+# Direct Go development: :8081; Vite development: http://localhost:3001.
+# Production: replace with the external blog origin in ALL binaries/replicas.
 public_site_url: http://localhost:8081
 
 server:

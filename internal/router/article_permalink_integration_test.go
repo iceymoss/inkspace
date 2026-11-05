@@ -41,10 +41,15 @@ func TestPublicPermalinksMySQL(t *testing.T) {
 	for _, setting := range []models.Setting{
 		{Key: "site_name", Value: "PRIVATE SITE NAME", IsPublic: false},
 		{Key: "site_description", Value: "公开描述", IsPublic: true},
+		{Key: "public_site_url", Value: "https://attacker.invalid", IsPublic: true},
+		{Key: "site_logo", Value: "javascript:alert(1)", IsPublic: true},
 	} {
 		if err := db.Create(&setting).Error; err != nil {
 			t.Fatal(err)
 		}
+	}
+	if err := db.Create(&models.User{ID: 1, Username: "author", Nickname: "作者 & 中文", Email: "PRIVATE EMAIL", Password: "PRIVATE PASSWORD"}).Error; err != nil {
+		t.Fatal(err)
 	}
 	now := time.Now().Truncate(time.Millisecond)
 	for _, a := range []models.Article{
@@ -57,7 +62,9 @@ func TestPublicPermalinksMySQL(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := db.Model(&models.Article{}).Where("id=2").UpdateColumn("status", 0).Error; err != nil {
+	if err := db.Model(&models.Article{}).
+		Where(models.ArticleColumns.ID+" = ?", 2).
+		UpdateColumn(models.ArticleColumns.Status, 0).Error; err != nil {
 		t.Fatal(err)
 	}
 	s := service.NewArticleService()
@@ -125,13 +132,120 @@ func TestPublicPermalinksMySQL(t *testing.T) {
 			t.Fatalf("author/admin bypassed public filtering for %s: %d %s", path, w.Code, w.Body.String())
 		}
 	}
+	// Cross-end acceptance on the same production assembly and real public SQL
+	// readers. Host/forwarded headers and list-query bypass flags are untrusted.
+	request := func(method, path, etag string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, nil)
+		req.Host = "hostile.invalid"
+		req.Header.Set("X-Forwarded-Host", "forwarded.invalid")
+		req.Header.Set("Authorization", "Bearer "+authorToken)
+		req.Header.Set("If-None-Match", etag)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		for _, secret := range []string{"PRIVATE", "hostile.invalid", "forwarded.invalid", "attacker.invalid", "javascript:", "secret"} {
+			if strings.Contains(w.Body.String(), secret) {
+				t.Fatalf("%s leaked %q", path, secret)
+			}
+		}
+		return w
+	}
+	settings := request("GET", "/api/settings/public", "")
+	var publicSettings struct {
+		Code int               `json:"code"`
+		Data map[string]string `json:"data"`
+	}
+	if err := json.Unmarshal(settings.Body.Bytes(), &publicSettings); err != nil {
+		t.Fatal(err)
+	}
+	if settings.Code != 200 || publicSettings.Code != 0 || publicSettings.Data["public_site_url"] != "https://canonical.example" || publicSettings.Data["site_logo"] != "" {
+		t.Fatal(settings.Code, publicSettings)
+	}
+	api := request("GET", "/api/articles/slug/public-post?status=0&show_all=true", "")
+	var apiArticle struct {
+		Code int `json:"code"`
+		Data struct {
+			SEO struct {
+				Canonical string `json:"canonical"`
+			} `json:"seo"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(api.Body.Bytes(), &apiArticle); err != nil {
+		t.Fatal(err)
+	}
+	if api.Code != 200 || apiArticle.Code != 0 || apiArticle.Data.SEO.Canonical != "https://canonical.example/blog/public-post" {
+		t.Fatal(api.Code, api.Body.String())
+	}
+	for _, path := range []string{"/feed.xml", "/atom.xml", "/sitemap.xml", "/sitemaps/1.xml", "/robots.txt"} {
+		w := request("GET", path+"?status=0&show_all=true&author_id=1", "")
+		if w.Code != 200 {
+			t.Fatal(path, w.Code)
+		}
+		if path == "/feed.xml" || path == "/atom.xml" {
+			entries := decodedFeedEntries(t, w.Body.Bytes())
+			if len(entries) != 1 || entries[0].URL != "https://canonical.example/blog/public-post" {
+				t.Fatal(entries)
+			}
+		} else if path != "/robots.txt" {
+			doc := parseSitemap(t, w)
+			if len(doc.URLs) != 3 || doc.URLs[2].Location != "https://canonical.example/blog/public-post" {
+				t.Fatal(doc)
+			}
+		}
+		head := request("HEAD", path, "")
+		if head.Code != 200 || head.Body.Len() != 0 || head.Header().Get("ETag") != w.Header().Get("ETag") {
+			t.Fatal(path, head.Code, head.Header())
+		}
+		for _, method := range []string{"GET", "HEAD"} {
+			conditional := request(method, path, w.Header().Get("ETag"))
+			if conditional.Code != 304 || conditional.Body.Len() != 0 {
+				t.Fatal(path, conditional.Code)
+			}
+		}
+	}
 	// Visibility is fresh, not inherited from the internal article cache.
-	if err := db.Model(&models.Article{}).Where("id=1").UpdateColumn("status", 2).Error; err != nil {
+	if err := db.Model(&models.Article{}).
+		Where(models.ArticleColumns.ID+" = ?", 1).
+		UpdateColumn(models.ArticleColumns.Status, 2).Error; err != nil {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/blog/public-post", nil))
 	if w.Code != 404 {
 		t.Fatal("unpublished article remained public")
+	}
+	for _, path := range []string{"/feed.xml", "/atom.xml", "/sitemap.xml"} {
+		w := request("GET", path, "")
+		if w.Code != 200 || strings.Contains(w.Body.String(), "/blog/public-post") {
+			t.Fatal("withdrawal not reflected", path, w.Code)
+		}
+	}
+	// Destroy only a table in this disposable random test schema. Conditional
+	// requests must not conceal failed DB reads as 304 or successful empty XML.
+	if err := db.Migrator().DropTable(&models.Article{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/blog/public-post", "/blog/1", "/api/articles/slug/public-post", "/feed.xml", "/atom.xml", "/sitemap.xml", "/sitemaps/1.xml"} {
+		methods := []string{"GET", "HEAD"}
+		if strings.HasPrefix(path, "/api/") {
+			methods = []string{"GET"} // existing JSON API is GET-only
+		}
+		for _, method := range methods {
+			w := request(method, path, "*")
+			if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" || w.Header().Get("ETag") != "" || (method == "HEAD" && w.Body.Len() != 0) {
+				t.Fatal(path, method, w.Code, w.Header())
+			}
+		}
+	}
+	if err := db.Migrator().DropTable(&models.Setting{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/api/settings/public", "/"} {
+		w := request("GET", path, "*")
+		if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal(path, w.Code, w.Header())
+		}
+	}
+	if w := request("GET", "/robots.txt", ""); w.Code != 200 {
+		t.Fatal("robots must not depend on DB", w.Code)
 	}
 }

@@ -1,5 +1,10 @@
 # 部署指南
 
+> **文章 SEO 升级必读**：先完成 [SEO 迁移、部署与验收](SEO_ROLLOUT.md)，
+> 再启动任何新应用副本。已有库必须离线运行扩展 `cmd/article-slugs`，即使旧 slug
+> 迁移已经执行过也要重跑。所有 server/admin/scheduler 必须配置相同的博客
+> `PUBLIC_SITE_URL`；Compose 缺失/空值直接报错，不能把示例 localhost 用于生产。
+
 ## 📋 环境要求
 
 - Docker 20.10+
