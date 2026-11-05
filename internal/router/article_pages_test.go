@@ -35,18 +35,18 @@ func (p pageReader) GetPublicByID(ctx context.Context, id uint) (*models.Article
 func TestPublicArticlePages(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	assets := fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}}
-	registerPublicArticlePages(r, pageReader{}, articleSPARenderer(assets))
+	assets := fstest.MapFS{"index.html": {Data: []byte(metadataHTML)}}
+	registerPublicArticlePages(r, pageReader{}, articleMetadataRenderer(assets, fixedSite{}), "https://canonical.example")
 	serveSPA(r, assets)
 	tests := []struct {
 		path     string
 		status   int
 		location string
 	}{
-		{"/blog/public-post", 200, ""}, {"/blog/7", 301, "/blog/public-post"},
-		{"/blog/0007", 301, "/blog/public-post"}, {"/blog/PUBLIC-POST/", 301, "/blog/public-post"},
-		{"/blog/public-post/", 301, "/blog/public-post"}, {"/blog/private", 404, ""},
-		{"/blog/%70ublic-post", 301, "/blog/public-post"},
+		{"/blog/public-post", 200, ""}, {"/blog/7", 301, "https://canonical.example/blog/public-post"},
+		{"/blog/0007", 301, "https://canonical.example/blog/public-post"}, {"/blog/PUBLIC-POST/", 301, "https://canonical.example/blog/public-post"},
+		{"/blog/public-post/", 301, "https://canonical.example/blog/public-post"}, {"/blog/private", 404, ""},
+		{"/blog/%70ublic-post", 301, "https://canonical.example/blog/public-post"},
 		{"/blog/draft?status=0&show_all=true&author_id=1", 404, ""},
 		{"/blog/deleted", 404, ""}, {"/blog/8", 404, ""}, {"/blog/99999999999999999", 404, ""},
 		{"/blog/0", 404, ""}, {"/blog/a.b", 404, ""}, {"/blog/a%2Fb", 404, ""},
@@ -62,11 +62,14 @@ func TestPublicArticlePages(t *testing.T) {
 				if method == http.MethodHead && w.Body.Len() != 0 {
 					t.Fatal("HEAD has body")
 				}
+				if tt.status == 404 && w.Body.Len() != 0 {
+					t.Fatal("404 leaked article HTML")
+				}
 			})
 		}
 	}
 	r = gin.New()
-	registerPublicArticlePages(r, pageReader{fail: true}, articleSPARenderer(assets))
+	registerPublicArticlePages(r, pageReader{fail: true}, articleMetadataRenderer(assets, fixedSite{}), "https://canonical.example")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/blog/public-post", nil))
 	if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" {

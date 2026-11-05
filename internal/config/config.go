@@ -5,19 +5,22 @@ import (
 	"os"
 	"strings"
 
+	"github.com/iceymoss/inkspace/internal/seo"
+
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Server     ServerConfig     `mapstructure:"server"`
-	Admin      AdminConfig      `mapstructure:"admin"`
-	Database   DatabaseConfig   `mapstructure:"database"`
-	Redis      RedisConfig      `mapstructure:"redis"`
-	JWT        JWTConfig        `mapstructure:"jwt"`
-	Bootstrap  BootstrapConfig  `mapstructure:"bootstrap"`
-	Upload     UploadConfig     `mapstructure:"upload"`
-	Pagination PaginationConfig `mapstructure:"pagination"`
-	Cache      CacheConfig      `mapstructure:"cache"`
+	PublicSiteURL string           `mapstructure:"public_site_url"`
+	Server        ServerConfig     `mapstructure:"server"`
+	Admin         AdminConfig      `mapstructure:"admin"`
+	Database      DatabaseConfig   `mapstructure:"database"`
+	Redis         RedisConfig      `mapstructure:"redis"`
+	JWT           JWTConfig        `mapstructure:"jwt"`
+	Bootstrap     BootstrapConfig  `mapstructure:"bootstrap"`
+	Upload        UploadConfig     `mapstructure:"upload"`
+	Pagination    PaginationConfig `mapstructure:"pagination"`
+	Cache         CacheConfig      `mapstructure:"cache"`
 }
 
 type AdminConfig struct {
@@ -120,7 +123,7 @@ func InitWithFile(configName string) error {
 					return err
 				}
 				applyEnvironmentOnlyConfig(AppConfig)
-				return nil
+				return validatePublicSiteURL(AppConfig)
 			}
 		}
 		// 如果配置文件不存在，尝试使用环境变量
@@ -139,6 +142,15 @@ func InitWithFile(configName string) error {
 	}
 	applyEnvironmentOnlyConfig(AppConfig)
 
+	return validatePublicSiteURL(AppConfig)
+}
+
+func validatePublicSiteURL(cfg *Config) error {
+	normalized, err := seo.NormalizePublicSiteURL(cfg.PublicSiteURL)
+	if err != nil {
+		return err
+	}
+	cfg.PublicSiteURL = normalized
 	return nil
 }
 
@@ -191,6 +203,7 @@ func loadEnvFile() {
 
 // bindEnvVars 绑定环境变量到配置键
 func bindEnvVars() {
+	viper.BindEnv("public_site_url", "PUBLIC_SITE_URL")
 	// Server 配置
 	viper.BindEnv("server.port", "SERVER_PORT")
 	viper.BindEnv("server.mode", "SERVER_MODE")

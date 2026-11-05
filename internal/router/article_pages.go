@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"errors"
-	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,9 +22,10 @@ type publicArticleReader interface {
 // registerPublicArticlePages owns article HTML URLs before generic SPA fallback.
 // The resolved public article is passed to render so metadata can be added without
 // reimplementing visibility, legacy-ID parsing or canonical-path normalization.
-func registerPublicArticlePages(r *gin.Engine, reader publicArticleReader, render func(*gin.Context, *models.Article)) {
+func registerPublicArticlePages(r *gin.Engine, reader publicArticleReader, render func(*gin.Context, *models.Article), base string) {
 	r.Use(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/blog/") && strings.Contains(strings.TrimSuffix(strings.TrimPrefix(c.Request.URL.Path, "/blog/"), "/"), "/") {
+			c.Header("Cache-Control", "no-cache")
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
@@ -65,7 +65,13 @@ func registerPublicArticlePages(r *gin.Engine, reader publicArticleReader, rende
 		}
 		canonical := seo.ArticlePath(article.Slug)
 		if c.Request.URL.EscapedPath() != canonical {
-			c.Redirect(http.StatusMovedPermanently, canonical)
+			origin, err := seo.NormalizePublicSiteURL(base)
+			if err != nil {
+				c.Header("Cache-Control", "no-store")
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+			c.Redirect(http.StatusMovedPermanently, seo.ArticleURL(origin, article.Slug))
 			return
 		}
 		render(c, article)
@@ -73,27 +79,5 @@ func registerPublicArticlePages(r *gin.Engine, reader publicArticleReader, rende
 	for _, path := range []string{"/blog/:slug", "/blog/:slug/"} {
 		r.GET(path, page)
 		r.HEAD(path, page)
-	}
-}
-
-func articleSPARenderer(assets fs.FS) func(*gin.Context, *models.Article) {
-	return func(c *gin.Context, _ *models.Article) {
-		if assets == nil {
-			c.Header("Cache-Control", "no-store")
-			c.Status(http.StatusServiceUnavailable)
-			return
-		}
-		index, err := fs.ReadFile(assets, "index.html")
-		if err != nil {
-			c.Header("Cache-Control", "no-store")
-			c.Status(http.StatusServiceUnavailable)
-			return
-		}
-		c.Header("Content-Type", "text/html; charset=utf-8")
-		if c.Request.Method == http.MethodHead {
-			c.Status(http.StatusOK)
-			return
-		}
-		c.Data(http.StatusOK, "text/html; charset=utf-8", index)
 	}
 }
