@@ -128,7 +128,7 @@
               v-for="article in articles" 
               :key="article.id" 
               class="recent-item"
-              @click="$router.push(`/blog/${article.id}`)"
+              @click="$router.push(`/blog/${article.slug}`)"
             >
               <el-image 
                 v-if="article.cover"

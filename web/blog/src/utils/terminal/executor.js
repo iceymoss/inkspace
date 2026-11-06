@@ -5,6 +5,7 @@ import {
   createResourceName,
   extractResourceId,
   normalizeVirtualPath,
+  parseArticleReference,
   routeToVirtualPath,
   virtualPathToRoute
 } from './virtualFileSystem'
@@ -55,13 +56,13 @@ function textContent(html) {
 function resourceLines(type, list) {
   return list.slice(0, 20).map(item => {
     const label = item.title || item.name || item.nickname || item.username || 'untitled'
-    const name = createResourceName(type, item.id, label)
+    const name = createResourceName(type, item.id, label, item.slug)
     return `${name || item.id}  ${label}`
   })
 }
 
 function prefixedResourceLines(type, list) {
-  return list.slice(0, 20).map(item => `${type}/${createResourceName(type, item.id, item.title || item.name)}`)
+  return list.slice(0, 20).map(item => `${type}/${createResourceName(type, item.id, item.title || item.name, item.slug)}`)
 }
 
 function queryWithoutEmpty(query) {
@@ -74,6 +75,12 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
   const write = (text, type = 'output') => terminalStore.appendOutput(text, type)
 
   async function navigate(path, query) {
+    const legacy = path.match(/^\/blog\/(\d+)$/)
+    if (legacy) {
+      const response = await api.get(`/articles/${legacy[1]}`, PUBLIC_REQUEST)
+      if (Number(response.data?.status) !== 1 || !response.data?.slug) throw new Error('resource is not publicly published')
+      path = `/blog/${response.data.slug}`
+    }
     await router.push(query ? { path, query: queryWithoutEmpty(query) } : path)
     write(`cwd ${routePath(route)}`, 'success')
   }
@@ -139,20 +146,23 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
     if (!path) throw new Error('invalid virtual path')
     const relative = path.slice(VIRTUAL_ROOT.length + 1)
     const [type] = relative.split('/')
-    const id = positiveID(relative)
     if (type === 'blog') {
-      const response = await api.get(`/articles/${id}`, PUBLIC_REQUEST)
+      const reference = parseArticleReference(path)
+      if (!reference) throw new Error('invalid article reference')
+      const response = await api.get(reference.id ? `/articles/${reference.id}` : `/articles/slug/${reference.slug}`, PUBLIC_REQUEST)
       const item = response.data || {}
       if (Number(item.status) !== 1) throw new Error('resource is not publicly published')
-      write([`# ${item.title || `article ${id}`}`, `${item.author?.nickname || item.author?.username || 'anonymous'} · ${item.created_at || ''}`, item.summary || textContent(item.content_html)])
-      await navigate(`/blog/${id}`)
+      write([`# ${item.title || `article ${item.id}`}`, `${item.author?.nickname || item.author?.username || 'anonymous'} · ${item.created_at || ''}`, item.summary || textContent(item.content_html)])
+      await navigate(`/blog/${item.slug}`)
     } else if (type === 'works' || type === 'photos') {
+      const id = positiveID(relative)
       const response = await api.get(`/works/${id}`, PUBLIC_REQUEST)
       const item = response.data || {}
       if (Number(item.status) !== 1) throw new Error('resource is not publicly published')
       write([`# ${item.title || `work ${id}`}`, `${item.type || 'work'} · ${item.author?.nickname || item.author?.username || 'anonymous'}`, item.description || 'no description'])
       await navigate(`/works/${id}`)
     } else if (type === 'wiki') {
+      const id = positiveID(relative)
       const response = await api.get(`/wiki/docs/${id}`, PUBLIC_REQUEST)
       const item = response.data || {}
       write([`# ${item.title || `doc ${id}`}`, textContent(item.content_html) || 'empty document'])
@@ -244,7 +254,16 @@ export function createTerminalExecutor({ router, route, api, userStore, appearan
       type = 'user'
     }
     if (!['article', 'work', 'user'].includes(type)) throw new Error(`usage: ${name} article|work|user <id>`)
-    const id = positiveID(target)
+    let id
+    if (type === 'article') {
+      const reference = parseArticleReference(String(target).includes('/') ? resolvePath(target, routePath(route)) : target)
+      if (!reference) throw new Error('invalid article reference')
+      if (reference.id) id = reference.id
+      else {
+        const response = await api.get(`/articles/slug/${reference.slug}`, PUBLIC_REQUEST)
+        id = positiveID(response.data?.id)
+      }
+    } else id = positiveID(target)
     if ((name === 'follow' || name === 'unfollow') && type !== 'user') throw new Error(`${name} only supports users`)
     if ((name === 'favorite' || name === 'unfavorite') && type === 'user') throw new Error(`${name} does not support users`)
     if ((name === 'like' || name === 'unlike') && type === 'user') throw new Error(`${name} does not support users`)

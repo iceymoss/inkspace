@@ -158,7 +158,7 @@
               :key="article.id"
               class="user-article-item"
               shadow="hover"
-              @click="$router.push(`/blog/${article.id}`)"
+              @click="$router.push(`/blog/${article.slug}`)"
             >
               <div class="user-article-content">
                 <img
@@ -352,7 +352,7 @@
                 v-if="favorite && favorite.article"
                 class="user-favorite-item"
                 shadow="hover"
-                @click="$router.push(`/blog/${favorite.article.id}`)"
+                @click="$router.push(`/blog/${favorite.article.slug}`)"
               >
                 <div class="user-favorite-content">
                   <img
@@ -1886,4 +1886,3 @@ const handleFollowToggle = async (item) => {
   }
 }
 </style>
-

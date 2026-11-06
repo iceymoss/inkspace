@@ -67,8 +67,9 @@ export function slugifyResourceName(value) {
   return slug || 'untitled'
 }
 
-export function createResourceName(type, id, label) {
+export function createResourceName(type, id, label, slug) {
   if (!Object.hasOwn(RESOURCE_EXTENSIONS, type) || !isPositiveId(id)) return null
+  if (type === 'blog' && slug) return `${slug}.md`
   return `${id}-${slugifyResourceName(label)}${RESOURCE_EXTENSIONS[type]}`
 }
 
@@ -82,6 +83,18 @@ export function extractResourceId(value) {
 
   const id = Number(match[1])
   return Number.isSafeInteger(id) ? id : null
+}
+
+// Decode a single article file, never infer an interaction ID from a slug's
+// numeric prefix. Callers normalize relative paths before passing a full path.
+export function parseArticleReference(value) {
+  const name = String(value ?? '').replace(/^\/inkspace\/blog\//, '').replace(/\.md$/, '')
+  if (!name || name.length > 120 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) return null
+  if (/^\d+$/.test(name)) {
+    const id = Number(name)
+    return isPositiveId(name) && Number.isSafeInteger(id) ? { slug: null, id } : null
+  }
+  return { slug: name, id: null }
 }
 
 export function routeToVirtualPath(route) {
@@ -104,6 +117,8 @@ export function routeToVirtualPath(route) {
     const extension = RESOURCE_EXTENSIONS[detail[1]]
     return `${VIRTUAL_ROOT}/${detail[1]}/${detail[2]}${extension}`
   }
+  const article = path.match(/^\/blog\/([a-z0-9]+(?:-[a-z0-9]+)*)$/)
+  if (article) return `${VIRTUAL_ROOT}/blog/${article[1]}.md`
 
   const workspace = path.match(/^\/wiki\/([1-9]\d*)$/)
   if (workspace) return `${VIRTUAL_ROOT}/wiki/${workspace[1]}`
@@ -128,10 +143,13 @@ export function virtualPathToRoute(path) {
   if (['blog', 'works', 'photos', 'wiki', 'about', 'links'].includes(relative)) return `/${relative}`
 
   const [type, ...resourceParts] = relative.split('/')
+  if (type === 'blog') {
+    const article = parseArticleReference(normalized)
+    return article ? `/blog/${article.slug || article.id}` : null
+  }
   const id = extractResourceId(resourceParts.at(-1))
   if (!id) return null
 
-  if (type === 'blog') return `/blog/${id}`
   if (type === 'works' || type === 'photos') return `/works/${id}`
   if (type === 'users' && resourceParts.length === 1) return `/users/${id}`
   if (type === 'wiki' && resourceParts[0] === 'docs') return `/wiki/docs/${id}`

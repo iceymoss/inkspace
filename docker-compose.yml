@@ -83,6 +83,7 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - ./uploads:/app/uploads
@@ -105,6 +106,7 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - ./uploads:/app/uploads
@@ -127,6 +129,7 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - ./uploads:/app/uploads
@@ -151,6 +154,7 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
       - INKSPACE_BOOTSTRAP_SECRET=${INKSPACE_BOOTSTRAP_SECRET:-}
     volumes:
       - ./config:/app/config
@@ -174,6 +178,7 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Shanghai
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:?Set the externally visible blog origin}
     volumes:
       - ./config:/app/config
       - ./uploads:/app/uploads

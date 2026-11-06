@@ -3,12 +3,25 @@ import {
   createResourceName,
   extractResourceId,
   normalizeVirtualPath,
+  parseArticleReference,
   routeToVirtualPath,
   slugifyResourceName,
   virtualPathToRoute
 } from './virtualFileSystem'
 
 describe('terminal virtual file system', () => {
+  it.each([
+    ['stable-slug.md', { slug: 'stable-slug', id: null }],
+    ['2026-news.md', { slug: '2026-news', id: null }],
+    ['/inkspace/blog/stable-slug.md', { slug: 'stable-slug', id: null }],
+    ['42.md', { slug: null, id: 42 }],
+    ['/inkspace/blog/42', { slug: null, id: 42 }],
+    ['Upper.md', null], ['0.md', null], ['../post.md', null],
+    ['/inkspace/blog/nested/post.md', null], ['/inkspace/works/post.md', null],
+    ['post.json', null], ['x'.repeat(121), null], ['9007199254740992.md', null]
+  ])('decodes one validated article reference %s', (value, expected) => {
+    expect(parseArticleReference(value)).toEqual(expected)
+  })
   it('normalizes paths without allowing escape from /inkspace', () => {
     expect(normalizeVirtualPath('../blog/./12-post.md', '/inkspace/index')).toBe('/inkspace/blog/12-post.md')
     expect(normalizeVirtualPath('/inkspace/works/../blog')).toBe('/inkspace/blog')
@@ -26,6 +39,7 @@ describe('terminal virtual file system', () => {
     ['/about', '/inkspace/about'],
     ['/links', '/inkspace/links'],
     ['/blog/42', '/inkspace/blog/42.md'],
+    ['/blog/stable-title', '/inkspace/blog/stable-title.md'],
     ['/works/7', '/inkspace/works/7.json'],
     ['/users/9', '/inkspace/users/9'],
     ['/wiki/3', '/inkspace/wiki/3'],
@@ -53,7 +67,7 @@ describe('terminal virtual file system', () => {
   })
 
   it('maps readable resource paths back to ID-based routes', () => {
-    expect(virtualPathToRoute('/inkspace/blog/42-vue-终端.md')).toBe('/blog/42')
+    expect(virtualPathToRoute('/inkspace/blog/vue-notes.md')).toBe('/blog/vue-notes')
     expect(virtualPathToRoute('/inkspace/photos/8-summer-trip.jpg')).toBe('/works/8')
     expect(virtualPathToRoute('/inkspace/users/9-alice')).toBe('/users/9')
     expect(virtualPathToRoute('/inkspace/wiki/3-frontend/18-routing.md')).toBe('/wiki/docs/18')
@@ -62,6 +76,7 @@ describe('terminal virtual file system', () => {
   it('creates readable names and extracts positive IDs only', () => {
     expect(slugifyResourceName('  Vue 3: 终端基础  ')).toBe('vue-3-终端基础')
     expect(createResourceName('blog', 12, 'Hello, InkSpace!')).toBe('12-hello-inkspace.md')
+    expect(createResourceName('blog', 12, 'New title', 'immutable-slug')).toBe('immutable-slug.md')
     expect(createResourceName('works', 0, 'invalid')).toBeNull()
     expect(extractResourceId('/inkspace/blog/12-hello.md')).toBe(12)
     expect(extractResourceId('0-invalid.md')).toBeNull()
@@ -70,7 +85,7 @@ describe('terminal virtual file system', () => {
   })
 
   it('rejects unknown routes and virtual roots', () => {
-    expect(routeToVirtualPath('/blog/not-an-id')).toBeNull()
+    expect(routeToVirtualPath('/blog/not/a/slug')).toBeNull()
     expect(virtualPathToRoute('/inkspace/private/1-file')).toBeNull()
   })
 })

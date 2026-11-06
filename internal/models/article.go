@@ -7,7 +7,10 @@ import (
 )
 
 type Article struct {
-	ID            uint           `gorm:"primarykey" json:"id"`
+	ID uint `gorm:"primarykey" json:"id"`
+	// Slug is nullable only during the explicit legacy migration. Updates to
+	// article content must never change it; the unique index is installed by migration.
+	Slug          string         `gorm:"type:varchar(120);default:null;<-:create" json:"slug"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
@@ -32,7 +35,8 @@ type Article struct {
 	IsRecommend   bool           `gorm:"default:false" json:"is_recommend"`
 	IsOriginal    bool           `gorm:"default:true" json:"is_original"`
 	SourceURL     string         `gorm:"size:255" json:"source_url"`
-	PublishAt     *time.Time     `gorm:"type:datetime(3)" json:"publish_at"`
+	// PublishAt is the first public publication time, retained after unpublishing.
+	PublishAt *time.Time `gorm:"type:datetime(3)" json:"publish_at"`
 }
 
 type ArticleRequest struct {
@@ -63,6 +67,7 @@ type ArticleListQuery struct {
 
 type ArticleResponse struct {
 	ID            uint              `json:"id"`
+	Slug          string            `json:"slug"`
 	Title         string            `json:"title"`
 	Content       string            `json:"content"`
 	Summary       string            `json:"summary"`
@@ -85,11 +90,13 @@ type ArticleResponse struct {
 	SourceURL     string            `json:"source_url"`
 	CreatedAt     time.Time         `json:"created_at"`
 	UpdatedAt     time.Time         `json:"updated_at"`
+	PublishAt     *time.Time        `json:"publish_at"`
 }
 
 func (a *Article) ToResponse() *ArticleResponse {
 	resp := &ArticleResponse{
 		ID:            a.ID,
+		Slug:          a.Slug,
 		Title:         a.Title,
 		Content:       a.Content,
 		Summary:       a.Summary,
@@ -109,6 +116,7 @@ func (a *Article) ToResponse() *ArticleResponse {
 		SourceURL:     a.SourceURL,
 		CreatedAt:     a.CreatedAt,
 		UpdatedAt:     a.UpdatedAt,
+		PublishAt:     a.PublishAt,
 	}
 
 	if a.Category != nil {
@@ -127,4 +135,14 @@ func (a *Article) ToResponse() *ArticleResponse {
 	}
 
 	return resp
+}
+
+// TableName declares the persistent article table shared by public and internal queries.
+func (Article) TableName() string { return "articles" }
+
+// ArticleColumns centralizes columns used by the permalink and public-read contract.
+var ArticleColumns = struct{ ID, Slug, Status, DeletedAt, PublishAt, CreatedAt, UpdatedAt, AuthorID, Title, Summary, Content, ViewCount, LikeCount, FavoriteCount, CommentCount string }{
+	ID: "id", Slug: "slug", Status: "status", DeletedAt: "deleted_at", PublishAt: "publish_at", CreatedAt: "created_at",
+	UpdatedAt: "updated_at", AuthorID: "author_id", Title: "title", Summary: "summary", Content: "content",
+	ViewCount: "view_count", LikeCount: "like_count", FavoriteCount: "favorite_count", CommentCount: "comment_count",
 }

@@ -17,10 +17,28 @@ func MigrateDB() error {
 
 func migrateDB(db *gorm.DB) error {
 	log.Println("开始数据库迁移...")
+	articleTableExists := db.Migrator().HasTable(&models.Article{})
+	if articleTableExists {
+		if err := CheckArticleSlugSchema(db); err != nil {
+			return err
+		}
+		if err := CheckArticlePublicationSchema(db); err != nil {
+			return err
+		}
+	}
 
 	// 自动迁移所有表
 	if err := autoMigrateWithDB(db); err != nil {
 		return fmt.Errorf("自动迁移失败: %w", err)
+	}
+	if !articleTableExists {
+		// Only a brand-new empty table may receive the index at startup.
+		if err := db.Exec("CREATE UNIQUE INDEX ux_articles_slug ON articles(slug)").Error; err != nil {
+			return err
+		}
+		if err := markArticlePublicationReady(db); err != nil {
+			return err
+		}
 	}
 
 	// 创建索引
@@ -211,7 +229,7 @@ func SyncCounters() error {
 	// 同步文章的评论数
 	if err := DB.Exec(`
 		UPDATE articles a 
-		SET comment_count = (
+		SET updated_at = updated_at, comment_count = (
 			SELECT COUNT(*) FROM comments c 
 			WHERE c.article_id = a.id AND c.deleted_at IS NULL
 		)
@@ -242,13 +260,16 @@ func SyncCounters() error {
 		return err
 	}
 
-	// 同步评论的回复数
+	// GROUP BY forces materialization of the reply counts, avoiding MySQL's
+	// target-table restriction. LEFT JOIN also resets comments without replies.
 	if err := DB.Exec(`
-		UPDATE comments c 
-		SET reply_count = (
-			SELECT COUNT(*) FROM comments r 
-			WHERE r.parent_id = c.id AND r.deleted_at IS NULL
-		)
+		UPDATE comments c
+		LEFT JOIN (
+			SELECT parent_id, COUNT(*) AS reply_count FROM comments
+			WHERE deleted_at IS NULL AND parent_id IS NOT NULL
+			GROUP BY parent_id
+		) r ON r.parent_id = c.id
+		SET c.reply_count = COALESCE(r.reply_count, 0)
 	`).Error; err != nil {
 		return err
 	}
@@ -300,7 +321,7 @@ func SyncCounters() error {
 	// 同步文章的收藏数
 	if err := DB.Exec(`
 		UPDATE articles a
-		SET favorite_count = (
+		SET updated_at = updated_at, favorite_count = (
 			SELECT COUNT(*) FROM article_favorites af
 			WHERE af.article_id = a.id AND af.deleted_at IS NULL
 		)
@@ -396,7 +417,10 @@ func AfterCreateComment(db *gorm.DB, comment *models.Comment) error {
 	// 更新文章评论数
 	if err := db.Model(&models.Article{}).
 		Where("id = ?", comment.ArticleID).
-		UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+		UpdateColumns(map[string]any{
+			models.ArticleColumns.CommentCount: gorm.Expr(models.ArticleColumns.CommentCount+" + ?", 1),
+			models.ArticleColumns.UpdatedAt:    gorm.Expr(models.ArticleColumns.UpdatedAt),
+		}).Error; err != nil {
 		return err
 	}
 
@@ -426,7 +450,10 @@ func AfterDeleteComment(db *gorm.DB, comment *models.Comment) error {
 	// 更新文章评论数
 	if err := db.Model(&models.Article{}).
 		Where("id = ?", comment.ArticleID).
-		UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+		UpdateColumns(map[string]any{
+			models.ArticleColumns.CommentCount: gorm.Expr(models.ArticleColumns.CommentCount+" - ?", 1),
+			models.ArticleColumns.UpdatedAt:    gorm.Expr(models.ArticleColumns.UpdatedAt),
+		}).Error; err != nil {
 		return err
 	}
 

@@ -22,6 +22,12 @@ spec:
         - name: blog-api-container
           # ！！！ 关键：这是占位符，不是实际地址
           image: inkspace-blog-api-image
+          env:
+            - name: PUBLIC_SITE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: blog-api-public-site
+                  key: PUBLIC_SITE_URL
           ports:
             - containerPort: 8081
               name: http-blog-api

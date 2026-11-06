@@ -184,6 +184,7 @@ import { useRouter } from 'vue-router'
 import { User, Edit, Collection, SwitchButton, Odometer, Monitor, Moon, Sunny, Menu, Close } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
 import api from '@/utils/api'
+import { setSiteDefaults } from '@/utils/metadata'
 
 const userStore = useUserStore()
 const appearance = useAppearanceStore()
@@ -218,10 +219,7 @@ const loadSiteSettings = async () => {
     const response = await api.get('/settings/public')
     siteSettings.value = response.data || {}
     
-    // 更新页面标题
-    if (siteSettings.value.site_name) {
-      document.title = siteSettings.value.site_name
-    }
+    setSiteDefaults(siteSettings.value)
     
     // 更新favicon
     if (siteSettings.value.site_logo) {

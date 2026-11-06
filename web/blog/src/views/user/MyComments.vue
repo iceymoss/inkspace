@@ -16,7 +16,7 @@
           <div class="comment-target">
             <el-link 
               v-if="comment.article"
-              :href="`/blog/${comment.article.id}`"
+              :href="`/blog/${comment.article.slug}`"
               type="primary"
             >
               评论了文章：{{ comment.article.title }}

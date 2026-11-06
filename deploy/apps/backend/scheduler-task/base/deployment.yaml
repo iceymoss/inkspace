@@ -22,6 +22,12 @@ spec:
         - name: scheduler-task-container
           # ！！！ 关键：这是占位符，不是实际地址
           image: inkspace-scheduler-task-image
+          env:
+            - name: PUBLIC_SITE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: scheduler-task-public-site
+                  key: PUBLIC_SITE_URL
           resources:
             # 适配 1G 内存节点的 Base 配置
             limits:

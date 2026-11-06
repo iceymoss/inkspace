@@ -111,7 +111,7 @@ func (s *LikeService) LikeArticle(userID, articleID uint) error {
 
 		// 减少文章点赞数
 		if err := database.DB.Model(&models.Article{}).Where("id = ?", articleID).
-			UpdateColumn("like_count", gorm.Expr("like_count - ?", 1)).Error; err != nil {
+			UpdateColumns(articleCounterChange(models.ArticleColumns.LikeCount, -1)).Error; err != nil {
 			return err
 		}
 
@@ -131,7 +131,7 @@ func (s *LikeService) LikeArticle(userID, articleID uint) error {
 
 	// 增加文章点赞数
 	if err := database.DB.Model(&models.Article{}).Where("id = ?", articleID).
-		UpdateColumn("like_count", gorm.Expr("like_count + ?", 1)).Error; err != nil {
+		UpdateColumns(articleCounterChange(models.ArticleColumns.LikeCount, 1)).Error; err != nil {
 		return err
 	}
 

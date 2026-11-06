@@ -3,14 +3,24 @@ package router
 import (
 	"io/fs"
 
+	"github.com/iceymoss/inkspace/internal/config"
 	"github.com/iceymoss/inkspace/internal/handler"
 	"github.com/iceymoss/inkspace/internal/middleware"
+	"github.com/iceymoss/inkspace/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 // SetupUserRouter 设置用户服务路由
 func SetupUserRouter(assets ...fs.FS) *gin.Engine {
+	articles := service.NewArticleService()
+	return setupUserRouterWithPublicSEO(assets, articles, service.NewSettingService(), articles, articles)
+}
+
+// setupUserRouterWithPublicSEO is the assembled HTTP acceptance seam. Production
+// supplies the same service instances; tests can inject public read boundaries
+// without replacing routes or depending on a developer database.
+func setupUserRouterWithPublicSEO(assets []fs.FS, feedArticles recentPublicArticleReader, feedSettings feedSiteReader, sitemapReader publicSitemapReader, pages publicArticleReader) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -59,6 +69,7 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 			public.GET("/articles", articleHandler.GetList)
 			public.GET("/articles/recommended", articleHandler.GetRecommended)
 			public.GET("/articles/hot", articleHandler.GetHotArticles)
+			public.GET("/articles/slug/:slug", handler.NewPublicArticleHandler().GetBySlug)
 
 			// 状态检查API（可选认证）
 			publicWithOptionalAuth := api.Group("")
@@ -233,8 +244,31 @@ func SetupUserRouter(assets ...fs.FS) *gin.Engine {
 
 	// Serve static files (uploads)
 	r.Static("/uploads", "./uploads")
+	registerFeeds(r, feedArticles, feedSettings)
+	var blogAssets fs.FS
+	if len(assets) > 0 {
+		blogAssets = assets[0]
+	}
+	base := ""
+	if config.AppConfig != nil {
+		base = config.AppConfig.PublicSiteURL
+	}
+	registerSitemapRoutes(r, sitemapReader, base)
+	registerPublicArticlePages(r, pages, articleMetadataRenderer(blogAssets, feedSettings), base)
 	if len(assets) > 0 && assets[0] != nil {
-		serveSPA(r, assets[0])
+		serveSPA(r, assets[0], func(c *gin.Context) {
+			site, err := feedSettings.GetPublicSiteIdentity(c.Request.Context())
+			if err != nil {
+				// The ordinary application shell must survive a settings outage.
+				// Still require a validated explicit origin for feed links/bootstrap.
+				site, err = service.PublicSiteIdentityFromSettings(base, nil)
+				if err != nil {
+					htmlFailure(c, 500)
+					return
+				}
+			}
+			serveBlogIndex(c, blogAssets, site, nil)
+		})
 	}
 
 	return r

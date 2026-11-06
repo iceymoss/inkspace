@@ -1,4 +1,7 @@
 # 管理后台服务配置
+# Canonical BLOG origin, not the admin origin; PUBLIC_SITE_URL overrides it.
+# Same value as server/scheduler; use http://localhost:3001 for Vite development.
+public_site_url: http://localhost:8081
 
 admin:
   port: 8083
@@ -36,4 +39,3 @@ jwt:
 server:
   port: 8083
   mode: debug
-
