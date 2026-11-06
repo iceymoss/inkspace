@@ -3,7 +3,9 @@
 Date: 2026-11-05. Ticket: `.scratch/article-seo-discovery/issues/06-deployment-and-acceptance.md`.
 Worktree: `/Users/iceymoss/project/inkspace-seo-06`; branch `feat/seo-ticket-06`;
 integration base `34356ce42dfb926a2cc9162c74302ad53d91d4f9` (tickets 01–05 integrated).
-This is implementation evidence, **not a production deployment or MySQL acceptance sign-off**.
+This opening record is historical implementation evidence, **not a production deployment**.
+The [2026-11-06 MySQL acceptance follow-up](#real-mysql-acceptance-follow-up--2026-11-06)
+below supersedes the earlier skipped-MySQL gate; no business migration or deployment is claimed.
 
 ## Delivered deployment boundary
 
@@ -73,7 +75,7 @@ Rendered K8s review caught a namespace mismatch before delivery: generator resou
 landed outside `inkspace-backend`, leaving unresolved/unhashed Deployment references. Explicit
 overlay namespace and an offline rendered-manifest regression test now verify all three apps.
 
-## Isolated MySQL: explicitly SKIP, not PASS
+## Historical isolated MySQL run: explicitly SKIP, not PASS (2026-11-05)
 
 Executed:
 
@@ -100,8 +102,9 @@ not executed here.** SQL `verify.sql` is reviewable but has not been run against
 
 ## Remaining release gates / deliberate limits
 
-1. Obtain an explicitly authorized isolated MySQL DSN, run the 13 gated fixtures, and record actual
-   schema/backfill/locking/public-SQL evidence before production rollout. Do not reuse developer credentials.
+1. **Completed for isolated fixtures on 2026-11-06:** the expanded 15-test SEO suite and model
+   slug-allocation fixture ran against authorized random schemas on the existing MySQL instance.
+   Deployment-specific data checks and offline migration remain operator gates; see the follow-up below.
 2. Docker CLI can render Compose, but the local Docker daemon is unavailable (`docker info` fails).
    Container image builds/startup, real nginx/TLS/DNS/CDN routing and cluster apply were not performed.
 3. Operator must run [SEO_ROLLOUT.md](SEO_ROLLOUT.md), including **extended migration rerun even
@@ -135,15 +138,60 @@ Revalidated after the fixes:
 - Blog frozen install, tests (**16 files / 114 tests**), build and lint: **PASS**.
 - `git diff --check`: **PASS**. No dependency changes or generated dist committed.
 
-Explicit gated database/service/router run now reports **15 SEO MySQL SKIPs**, not
+That historical gated database/service/router run reported **15 SEO MySQL SKIPs**, not
 the earlier 13: the added fixtures cover legacy automatic-timestamp interactions
 and executable guarded migration SQL phases. The unrelated theme gate also skips.
 `INKSPACE_SEO_TEST_MYSQL_DSN` is absent; no database connection or DDL was performed.
-Actual SQL repetition/validation, legacy `updated_at`/sitemap invariance and live
-deployment acceptance remain release gates, not passing claims.
+At that point SQL repetition/validation and legacy `updated_at`/sitemap invariance
+were unverified. Their isolated-fixture gate is now resolved below; live deployment
+acceptance is still outstanding.
 
 Generic SPA settings outages now retain the normal shell with absolute RSS/Atom
 links and canonical bootstrap defaults. Explicit `PUBLIC_SITE_URL` remains required
 in every mode; article/feed metadata query errors remain **500/no-store**. SQL prepare
 and finalize artifacts are separate, opt-in, repeatable phases; application-driven
 pinyin/date repair stays between them and the completion marker is installed last.
+
+## Real MySQL acceptance follow-up — 2026-11-06
+
+Worktree: `/Users/iceymoss/project/inkspace-seo-mysql`; branch `fix/seo-mysql-acceptance`;
+base `1d2ecf80`. Server version observed by `SELECT VERSION()`: **MySQL 8.0.33**.
+The user authorized the already-running instance and its existing account for random-schema
+tests. A local Node subprocess launcher parsed the existing config programmatically, passed a
+**no-selected-database** DSN only through `INKSPACE_SEO_TEST_MYSQL_DSN`, and redacted secrets
+from output. No credentials/DSN were printed or committed. `SEOTestMySQL` retained its selected-DB
+refusal and created/dropped only its own `inkspace_seo_test_*` schemas. No business schema was changed.
+
+The initial targeted acceptance run had **4 failures / 11 passes**, each reproduced narrowly:
+
+- SQL phase fixture: the expected missing-opt-in error poisoned GORM's initialized pinned
+  connection handle, so later statements inherited it. Fresh statement clones on the **same
+  pinned connection** now isolate expected errors. SQL guards were not changed or relaxed.
+- Both interaction fixtures: `SyncCounters` used a correlated self-update of `comments`, rejected
+  with MySQL error 1093. A `GROUP BY`-materialized derived-table `LEFT JOIN` now counts undeleted
+  direct replies and resets empty counts to zero. New assertions cover approved/rejected/deleted
+  replies and stale counts, while article editorial/publication time and sitemap lastmod stay unchanged.
+- Permalink fixture: an obsolete assertion still demanded a 500 for the generic SPA `/` after the
+  reviewed outage fallback. It now verifies GET/HEAD 200/no-cache, default title, canonical bootstrap
+  and absolute feeds. Settings API and article/feed/sitemap query failures still assert 500/no-store.
+
+| Command (SEO DSN injected by local launcher) | Actual result |
+| --- | --- |
+| `go test ./internal/database ./internal/service ./internal/router -run 'MySQL\|Publication\|PublicArticleCollections\|Interactions' -v -count=1` | **15 SEO PASS, 0 SEO SKIP/FAIL**; 1 unrelated theme SKIP |
+| `go test ./... -json -count=1` | **124 top-level PASS (412 including subtests), 28 unrelated SKIP, 0 FAIL; 10 test packages PASS**. All **16 SEO MySQL tests PASS**, including model slug allocation. |
+| `go test -race ./... -json -count=1` | Same **124 / 412 PASS, 28 unrelated SKIP, 0 FAIL; 10 test packages PASS**; all **16 SEO MySQL tests PASS**, no race reported. |
+| `go build ./...` / `go vet ./...` | **PASS / PASS** |
+| `git diff --check` | **PASS** |
+
+Executed SQL coverage includes prepare/finalize repetition, missing offline acknowledgements,
+pre-repair rejection, missing/invalid/duplicate slugs, zero/partial/impossible publication dates,
+malformed unique/marker indexes, populated slug preservation, and Go orchestration validation.
+The legacy fixture verified `ON UPDATE CURRENT_TIMESTAMP(3)` really existed before exercising
+changed counters; publication/content time and sitemap lastmod invariance now have real-SQL evidence.
+
+Limitations: the 28 unrelated skipped tests use separate bootstrap/admin, reading-time/MySQL/Redis,
+and theme opt-ins; those gates were not enabled or counted as passes. The interaction cache uses the
+existing disposable RESP invalidation stub, not live Redis. No frontend source/dependencies changed;
+the preceding **16 files / 114 tests** frontend result is historical, not rerun in this follow-up.
+`verify.sql` was not run against a business/deployment database. No production data migration,
+container/cluster rollout, live gateway/TLS/CDN acceptance, or push was performed.

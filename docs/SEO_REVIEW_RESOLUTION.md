@@ -3,7 +3,9 @@
 Date: 2026-11-05. Worktree: `/Users/iceymoss/project/inkspace-seo-review`.
 Branch: `fix/seo-review-findings`; reviewed implementation/base: `64138eb3`.
 Scope: the four SPEC findings, Standards D1–D3, and minimal H1–H2 cleanup.
-This records implementation and local verification, **not MySQL or deployment acceptance**.
+The opening record is historical implementation/local verification, **not deployment acceptance**.
+Real isolated-MySQL acceptance was completed in the [2026-11-06 follow-up](#real-mysql-acceptance-resolution--2026-11-06)
+below; the earlier SKIP statements describe the original review run only.
 
 ## Finding → implementation → regression evidence
 
@@ -44,7 +46,7 @@ All commands run in this worktree (frontend commands in `web/blog`):
 Nonblocking existing warnings: unreadable user `.npmrc`, Vite CJS Node API deprecation,
 and large frontend chunks. Generated dist and dependencies are not committed.
 
-## MySQL release gate — 15 explicit SEO SKIPs, not PASS
+## Historical MySQL gate — 15 explicit SEO SKIPs, not PASS (2026-11-05)
 
 Executed:
 
@@ -60,7 +62,7 @@ fresh and legacy interaction timestamps; public collections; permalink HTTP; fee
 sitemap HTTP. The unrelated theme integration test also skipped its independent gate.
 No developer database, live Redis, migration credentials or live DDL was accessed.
 
-Before rollout, an operator must supply an explicitly authorized isolated **MySQL 8.0**
+At that point, an operator still needed to supply an explicitly authorized isolated **MySQL 8.0**
 DSN with CREATE/DROP test-schema privileges and **no selected database**. The fixture
 creates/drops only its random `inkspace_seo_test_*` schema. SQL artifact testing also
 requires routine privileges. Run the command above and record actual results.
@@ -69,8 +71,38 @@ The SQL fixture separates pinned prepare/finalize connections from the Go comman
 own advisory-lock connection and opts in separately for each SQL session. The legacy
 interaction fixture performs all association AutoMigrate work before installing
 `ON UPDATE CURRENT_TIMESTAMP(3)`, asserts that metadata, then performs no more DDL.
-These safeguards are reviewed/compiled, but do not replace running the gated fixtures.
+These safeguards were then only reviewed/compiled; the follow-up below records their execution.
 
 Container/live gateway/TLS/CDN acceptance, production backup/rollback rehearsal and
 the offline migration remain operator gates in [SEO_ROLLOUT.md](SEO_ROLLOUT.md).
 No deploy, push, PR, production migration or subagent work was performed.
+
+## Real MySQL acceptance resolution — 2026-11-06
+
+Branch `fix/seo-mysql-acceptance`, worktree `/Users/iceymoss/project/inkspace-seo-mysql`,
+base `1d2ecf80`. The authorized existing server reports **MySQL 8.0.33**. Credentials were read
+programmatically, never printed/committed; the environment DSN selected no database. Only fixture-owned
+random `inkspace_seo_test_*` schemas were created/changed/dropped, not any business schema.
+
+| Acceptance failure | Root cause and minimal resolution | Real regression evidence |
+| --- | --- | --- |
+| SQL phases: error 1644 after offline opt-in | GORM's initialized `Connection` handle retained the deliberately triggered guard error. Use `Session(NewDB: true)` statement clones on each pinned phase connection. SQL artifacts/guards remain unchanged. | Prepare/finalize reruns, guard and invalid row/index cases all execute and pass. Added explicit unset acknowledgements and no-change checks, including the pooled-session case. |
+| Fresh + legacy interactions: `SyncCounters` error 1093 | MySQL rejects the correlated `comments` self-update. Join a grouped/materialized reply-count projection and `COALESCE` missing groups to zero; preserve original undeleted/direct-reply semantics. | Both existing fixtures demonstrated red before the query fix, then green. Added active/rejected/deleted reply assertions plus stale-to-zero reset. Existing changed article counters preserve `updated_at`, first publication and sitemap lastmod, including verified legacy `ON UPDATE`. |
+| Permalink `/` expected 500 despite correct shell 200 | Stale gated assertion contradicted SPEC 3's reviewed SPA fallback. Separate strict settings-API failure from generic-shell success. | Real dropped settings table: API 500/no-store; shell GET/HEAD 200/no-cache, empty HEAD, default title, canonical bootstrap and absolute RSS/Atom links. Existing article/feed/sitemap 500/no-store checks remain. |
+
+Verification (SEO DSN injected through a local subprocess launcher):
+
+- Original targeted database/service/router command: **15 SEO PASS, 0 SEO SKIP/FAIL**;
+  the unrelated theme test alone skips its independent gate.
+- `go test ./... -json -count=1`: **124 top-level PASS / 412 including subtests**, **28 unrelated
+  SKIP**, **0 FAIL**, **10 test packages PASS**. Includes **16 SEO MySQL PASS**, adding model slug allocation.
+- `go test -race ./... -json -count=1`: identical pass/skip counts; all **16 SEO MySQL PASS**,
+  no race reported.
+- `go build ./...`, `go vet ./...`, `git diff --check`: **PASS**.
+
+See [SEO_VALIDATION.md](SEO_VALIDATION.md#real-mysql-acceptance-follow-up--2026-11-06) for complete
+scope and limits. The 28 unrelated bootstrap/admin, reading-time/MySQL/Redis and theme integration
+gates remain skipped, not passing claims. Cache invalidation uses the existing RESP stub, not live
+Redis. Frontend code was unaffected; its earlier **114-test** evidence remains historical.
+The isolated SEO MySQL gate is resolved; business-data `verify.sql`, offline migration, backup/rollback,
+container/gateway/TLS/CDN and live deployment acceptance remain operator responsibilities.

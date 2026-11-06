@@ -52,13 +52,32 @@ func runArticleSQL(t *testing.T, db *gorm.DB, name string) error {
 
 func TestArticleSQLPhasesMySQL(t *testing.T) {
 	db := testutil.SEOTestMySQL(t)
+	var version string
+	if err := db.Raw("SELECT VERSION()").Scan(&version).Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("SQL artifact acceptance server: MySQL %s", version)
 	if err := db.Connection(func(conn *gorm.DB) error {
+		// Connection passes an initialized GORM handle. Clone each statement so
+		// an expected guard error cannot poison later statements on this session.
+		conn = conn.Session(&gorm.Session{NewDB: true})
 		if err := conn.Exec(`CREATE TABLE articles (id bigint unsigned PRIMARY KEY, title varchar(200), status int,
 			deleted_at datetime(3), created_at datetime(3), updated_at datetime(3))`).Error; err != nil {
 			return err
 		}
+		if err := conn.Exec("SET @inkspace_article_seo_offline = NULL").Error; err != nil {
+			return err
+		}
 		if err := runArticleSQL(t, conn, "schema.sql"); err == nil {
 			t.Fatal("SQL accepted missing offline opt-in")
+		}
+		var preparedColumns int64
+		if err := conn.Raw(`SELECT COUNT(*) FROM information_schema.columns
+			WHERE table_schema=DATABASE() AND table_name='articles' AND column_name IN ('slug','publish_at')`).Scan(&preparedColumns).Error; err != nil {
+			return err
+		}
+		if preparedColumns != 0 {
+			t.Fatal("unacknowledged prepare changed schema")
 		}
 		if err := conn.Exec("SET @inkspace_article_seo_offline = 1").Error; err != nil {
 			return err
@@ -88,6 +107,17 @@ func TestArticleSQLPhasesMySQL(t *testing.T) {
 		t.Fatalf("repair: %+v %v", stats, err)
 	}
 	if err := db.Connection(func(conn *gorm.DB) error {
+		conn = conn.Session(&gorm.Session{NewDB: true})
+		if err := conn.Exec("SET @inkspace_article_seo_offline = NULL").Error; err != nil {
+			return err
+		}
+		if err := runArticleSQL(t, conn, "finalize.sql"); err == nil {
+			t.Fatal("finalize accepted missing offline opt-in")
+		}
+		// The successful Go repair has already installed both valid indexes.
+		if !conn.Migrator().HasIndex("articles", "idx_articles_first_publication_v1") || !conn.Migrator().HasIndex("articles", "ux_articles_slug") {
+			t.Fatal("unacknowledged finalize changed existing constraints")
+		}
 		// Each SQL phase must explicitly opt in on its own pinned connection.
 		if err := conn.Exec("SET @inkspace_article_seo_offline = 1").Error; err != nil {
 			return err

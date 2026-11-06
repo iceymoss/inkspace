@@ -239,10 +239,25 @@ func TestPublicPermalinksMySQL(t *testing.T) {
 	if err := db.Migrator().DropTable(&models.Setting{}); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/api/settings/public", "/"} {
-		w := request("GET", path, "*")
-		if w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" {
-			t.Fatal(path, w.Code, w.Header())
+	if w := request("GET", "/api/settings/public", "*"); w.Code != 500 || w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("settings API", w.Code, w.Header())
+	}
+	// A real settings-query failure retains the generic SPA shell, not SEO
+	// article data. It must still provide canonical bootstrap and feed links.
+	for _, method := range []string{"GET", "HEAD"} {
+		w := request(method, "/", "*")
+		if w.Code != 200 || w.Header().Get("Cache-Control") != "no-cache" {
+			t.Fatal("generic shell", method, w.Code, w.Header())
+		}
+		if method == "HEAD" {
+			if w.Body.Len() != 0 {
+				t.Fatal("generic shell HEAD body")
+			}
+			continue
+		}
+		values, ld := parseHead(t, w.Body.String())
+		if len(values["alternate"]) != 2 || values["alternate"][0] != "https://canonical.example/feed.xml" || values["alternate"][1] != "https://canonical.example/atom.xml" || values["title"][0] != "InkSpace" || ld != nil || !strings.Contains(w.Body.String(), `"url":"https://canonical.example"`) {
+			t.Fatal("generic shell defaults", values, w.Body.String())
 		}
 	}
 	if w := request("GET", "/robots.txt", ""); w.Code != 200 {
