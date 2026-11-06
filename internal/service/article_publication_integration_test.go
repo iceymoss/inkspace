@@ -337,6 +337,19 @@ func testArticleInteractionsPreserveContentTime(t *testing.T, legacy bool) {
 		t.Fatal(err)
 	}
 	check(t, 2, 0, 0, 0)
+	// Sync counts undeleted direct replies regardless of moderation status, and
+	// must reset stale counts for comments with no replies (including deleted ones).
+	replies := []models.Comment{
+		{ParentID: &comment.ID, UserID: author.ID, Content: "Active reply", Status: 1, ReplyCount: 8},
+		{ParentID: &comment.ID, UserID: author.ID, Content: "Rejected reply", Status: -1, ReplyCount: 8},
+		{ParentID: &comment.ID, UserID: author.ID, Content: "Deleted reply", Status: 1, DeletedAt: gorm.DeletedAt{Time: modified, Valid: true}, ReplyCount: 8},
+	}
+	if err := db.Create(&replies).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(comment).UpdateColumn("reply_count", 8).Error; err != nil {
+		t.Fatal(err)
+	}
 	// Force the maintenance sync to change both counters, not a no-op UPDATE.
 	if err := db.Model(article).UpdateColumns(map[string]any{"comment_count": 8, "favorite_count": 8, "updated_at": modified}).Error; err != nil {
 		t.Fatal(err)
@@ -345,4 +358,16 @@ func testArticleInteractionsPreserveContentTime(t *testing.T, legacy bool) {
 		t.Fatal(err)
 	}
 	check(t, 2, 0, 0, 1) // rejected, undeleted comment is included by legacy sync.
+	for _, want := range []struct {
+		id    uint
+		count int
+	}{{comment.ID, 2}, {replies[0].ID, 0}, {replies[1].ID, 0}, {replies[2].ID, 0}} {
+		var got models.Comment
+		if err := db.Unscoped().First(&got, want.id).Error; err != nil {
+			t.Fatal(err)
+		}
+		if got.ReplyCount != want.count {
+			t.Fatalf("comment %d reply_count=%d, want %d", want.id, got.ReplyCount, want.count)
+		}
+	}
 }

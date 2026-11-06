@@ -260,13 +260,16 @@ func SyncCounters() error {
 		return err
 	}
 
-	// 同步评论的回复数
+	// GROUP BY forces materialization of the reply counts, avoiding MySQL's
+	// target-table restriction. LEFT JOIN also resets comments without replies.
 	if err := DB.Exec(`
-		UPDATE comments c 
-		SET reply_count = (
-			SELECT COUNT(*) FROM comments r 
-			WHERE r.parent_id = c.id AND r.deleted_at IS NULL
-		)
+		UPDATE comments c
+		LEFT JOIN (
+			SELECT parent_id, COUNT(*) AS reply_count FROM comments
+			WHERE deleted_at IS NULL AND parent_id IS NOT NULL
+			GROUP BY parent_id
+		) r ON r.parent_id = c.id
+		SET c.reply_count = COALESCE(r.reply_count, 0)
 	`).Error; err != nil {
 		return err
 	}
